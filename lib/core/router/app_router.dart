@@ -10,6 +10,7 @@ import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/persona_select/persona_select_screen.dart';
 import '../../features/recipe_detail/recipe_detail_screen.dart';
 import '../../features/splash/splash_screen.dart';
+import '../../features/mypage/presentation/screens/mypage_screen.dart';
 import 'app_routes.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -48,6 +49,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.bulkPurchase,
         builder: (_, __) => const BulkPurchaseScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.myPage,
+        builder: (_, __) => const MyPageScreen(),
       ),
     ],
   );

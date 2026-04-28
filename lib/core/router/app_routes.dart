@@ -11,6 +11,7 @@ class AppRoutes {
   static const calendar = '/calendar';
   static const recipeDetail = '/recipe/:recipeId';
   static const bulkPurchase = '/bulk-purchase';
+  static const myPage = '/my-page'; 
 
   static String recipe(String recipeId) => '/recipe/$recipeId';
 }

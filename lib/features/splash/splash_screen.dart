@@ -40,7 +40,7 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
-              '끼니픽',
+              '오늘의 끼니',
               style: TextStyle(
                 fontSize: 48,
                 fontWeight: FontWeight.w800,
