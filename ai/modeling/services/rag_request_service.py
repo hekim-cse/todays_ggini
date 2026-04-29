@@ -6,8 +6,11 @@ def build_rag_request(
     """
     Modeling 파트에서 RAG 파트로 넘길 요청 JSON을 생성한다.
 
-    현재 RAG가 완성되지 않아도 이 요청 형식을 먼저 고정해두면,
-    나중에 실제 RAG API에 그대로 전달할 수 있다.
+    RAG는 user_conditions.allergy_ingredients를 기준으로
+    알레르기 재료가 포함된 메뉴를 1차 제외한다.
+
+    Modeling은 RAG 응답 이후 ingredients 기준으로
+    한 번 더 안전 필터링을 수행한다.
     """
 
     return {
@@ -27,12 +30,14 @@ def build_rag_request(
             "category",
             "ingredients",
             "ingredient_groups",
-            "allergy_ingredients",
             "difficulty",
             "estimated_cost",
             "calories",
             "protein",
+        ],
+        "optional_fields": [
             "similar_menu_ids",
+            "allergy_ingredients",
         ],
     }
 
