@@ -1,4 +1,4 @@
-from services.weight_service import get_weights_by_goal
+from services.weight_service import get_weights_by_goals
 from utils.calculator import calculate_meal_budget
 
 
@@ -32,10 +32,10 @@ def build_user_profile(user_input) -> dict:
         month=user_input.month
     )
 
-    weights = get_weights_by_goal(user_input.goal)
+    weights = get_weights_by_goals(user_input.goals)
 
     profile = {
-        "goal": user_input.goal,
+        "goals": user_input.goals,
         "year": user_input.year,
         "month": user_input.month,
         "meal_budget": meal_budget,

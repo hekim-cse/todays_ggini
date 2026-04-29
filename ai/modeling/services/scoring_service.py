@@ -87,7 +87,7 @@ def calculate_preference_score(menu: dict, profile: dict) -> float:
 
     return category_score * 0.5 + ingredient_score * 0.5
 
-def calculate_nutrition_score(menu: dict, goal: str) -> float:
+def calculate_nutrition_score(menu: dict, goals: list) -> float:
     """
     사용자의 목적에 따라 영양 점수를 계산한다.
     MVP 단계에서는 단순 기준으로 시작한다.
@@ -96,7 +96,7 @@ def calculate_nutrition_score(menu: dict, goal: str) -> float:
     calories = menu["calories"]
     protein = menu["protein"]
 
-    if goal == "다이어트":
+    if goals == "다이어트":
         # 칼로리가 낮을수록 높은 점수
         if calories <= 500:
             return 100
@@ -107,7 +107,7 @@ def calculate_nutrition_score(menu: dict, goal: str) -> float:
         else:
             return 40
 
-    if goal == "고단백":
+    if goals == "고단백":
         # 단백질이 높을수록 높은 점수
         if protein >= 30:
             return 100
@@ -118,7 +118,7 @@ def calculate_nutrition_score(menu: dict, goal: str) -> float:
         else:
             return 40
 
-    if goal == "영양 균형":
+    if goals == "영양 균형":
         # 너무 낮거나 너무 높은 칼로리를 피한다.
         if 500 <= calories <= 800 and protein >= 15:
             return 100

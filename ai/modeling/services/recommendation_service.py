@@ -40,7 +40,7 @@ def calculate_final_score(
 
     nutrition_score = calculate_nutrition_score(
         menu,
-        profile["goal"]
+        profile["goals"]
     )
 
     preference_score = calculate_preference_score(

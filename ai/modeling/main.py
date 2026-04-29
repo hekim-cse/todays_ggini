@@ -10,7 +10,7 @@ with open("data/sample_menus.json", "r", encoding="utf-8") as file:
 
 
 user_input = UserProfileInput(
-    goal="식비 절약",
+    goals=["식비 절약", "고단백", "간편식"],
     year=2026,
     month=1,
     monthly_budget=300000,
