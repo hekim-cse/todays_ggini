@@ -25,7 +25,7 @@ user_input = UserProfileInput(
     meal_count_per_day=2,
     cooking_skill=2,
     preferred_categories=["한식", "분식"],
-    diversity_level="높음",
+    diversity_level="낮음",
     ingredient_preferences={
         "육류": 4,
         "해산물류": 2,
@@ -81,7 +81,8 @@ recommendations = recommend_menus(
 weekly_plan = build_weekly_meal_plan(
     recommendations=recommendations,
     meal_count_per_day=user_input.meal_count_per_day,
-    period_days=PERIOD_DAYS
+    period_days=PERIOD_DAYS,
+    diversity_penalty_strength=profile["diversity_penalty_strength"]
 )
 
 
