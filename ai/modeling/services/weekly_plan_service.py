@@ -15,20 +15,39 @@ def build_weekly_meal_plan(
     period_days:
     - 기본 7일
 
-    RAG에서 받은 recipe 정보가 recommendations에 포함되어 있으면
-    주간 식단 결과에도 함께 포함한다.
+    후보 메뉴가 부족한 경우 warnings에 안내 메시지를 추가한다.
     """
 
-    if not recommendations:
+    required_meal_count = period_days * meal_count_per_day
+    available_recommendation_count = len(recommendations)
+
+    warnings = []
+
+    if available_recommendation_count == 0:
+        warnings.append(
+            "조건을 만족하는 추천 메뉴가 없습니다. 알레르기, 예산, 난이도 조건을 완화하거나 후보 메뉴 데이터를 추가해야 합니다."
+        )
+
         return {
             "period_days": period_days,
             "meal_count_per_day": meal_count_per_day,
+            "required_meal_count": required_meal_count,
+            "available_recommendation_count": available_recommendation_count,
+            "warnings": warnings,
             "days": []
         }
+
+    if available_recommendation_count < required_meal_count:
+        warnings.append(
+            f"요청한 {required_meal_count}개 식단 후보 중 조건을 통과한 추천 메뉴가 {available_recommendation_count}개입니다. 부족한 메뉴는 반복 배치됩니다."
+        )
 
     weekly_plan = {
         "period_days": period_days,
         "meal_count_per_day": meal_count_per_day,
+        "required_meal_count": required_meal_count,
+        "available_recommendation_count": available_recommendation_count,
+        "warnings": warnings,
         "days": []
     }
 
@@ -41,7 +60,7 @@ def build_weekly_meal_plan(
         }
 
         for meal_order in range(1, meal_count_per_day + 1):
-            menu = recommendations[recommendation_index % len(recommendations)]
+            menu = recommendations[recommendation_index % available_recommendation_count]
 
             meal = {
                 "meal_order": meal_order,
