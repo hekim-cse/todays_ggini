@@ -3,10 +3,20 @@ from typing import List, Optional
 
 
 class UserProfileInput(BaseModel):
+    """
+    사용자가 개인 맞춤 설정 페이지에서 입력한 값을 담는 구조이다.
+
+    sample_period_days:
+    - 3일치 샘플 식단 생성에 사용한다.
+
+    period_days:
+    - 월간 식단 생성 기간에 사용한다.
+    - 3일치 샘플 생성 단계에서는 없어도 된다.
+    """
+
     goals: List[str] = Field(..., min_length=1, max_length=3)
 
     monthly_budget: int
-    days_in_month: int
     meal_count_per_day: int
     cooking_skill: int
 
@@ -14,6 +24,12 @@ class UserProfileInput(BaseModel):
     diversity_level: str
     ingredient_preferences: List[str]
     allergy_ingredients: Optional[List[str]] = []
+
+    # 샘플 식단 생성용
+    sample_period_days: Optional[int] = 3
+
+    # 월간 식단 생성용
+    period_days: Optional[int] = None
 
     @field_validator("goals")
     @classmethod
