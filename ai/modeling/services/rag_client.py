@@ -1,6 +1,52 @@
 import json
 
 
+def build_default_recipe(menu: dict) -> dict:
+    """
+    mock RAG 환경에서 recipe 필드가 없을 때 사용할 기본 레시피를 생성한다.
+
+    실제 RAG가 완성되면 RAG가 직접 recipe를 내려주므로,
+    이 함수는 mock 테스트용 보조 역할만 한다.
+    """
+
+    menu_name = menu.get("name", "메뉴")
+    ingredients = menu.get("ingredients", [])
+    cooking_time = menu.get("cooking_time", 0)
+
+    return {
+        "serving_size": 1,
+        "cooking_time": cooking_time,
+        "steps": [
+            f"{menu_name}에 필요한 재료를 준비한다.",
+            "재료를 먹기 좋은 크기로 손질한다.",
+            "준비한 재료를 조리 순서에 맞게 조리한다.",
+            "그릇에 담아 완성한다."
+        ],
+        "required_ingredients": ingredients,
+        "optional_ingredients": [],
+        "substitution_ingredients": {}
+    }
+
+
+def normalize_menu_for_rag_response(menu: dict) -> dict:
+    """
+    sample_menus.json의 메뉴 데이터를 RAG 응답 형식에 맞게 정리한다.
+
+    recipe가 없으면 mock용 기본 recipe를 추가한다.
+    similar_menu_ids가 없으면 빈 리스트를 넣는다.
+    """
+
+    normalized_menu = dict(menu)
+
+    if "recipe" not in normalized_menu:
+        normalized_menu["recipe"] = build_default_recipe(normalized_menu)
+
+    if "similar_menu_ids" not in normalized_menu:
+        normalized_menu["similar_menu_ids"] = []
+
+    return normalized_menu
+
+
 def fetch_candidate_menus_from_mock(
     rag_request: dict,
     file_path: str = "data/sample_menus.json"
@@ -22,9 +68,10 @@ def fetch_candidate_menus_from_mock(
 
     candidate_count = rag_request["candidate_count"]
 
-    # 현재는 sample 데이터에서 앞에서부터 candidate_count개만 가져온다.
-    # 나중에 RAG가 완성되면 이 부분은 실제 검색 결과로 대체된다.
-    candidate_menus = menus[:candidate_count]
+    candidate_menus = [
+        normalize_menu_for_rag_response(menu)
+        for menu in menus[:candidate_count]
+    ]
 
     return {
         "candidate_menus": candidate_menus
