@@ -6,11 +6,8 @@ def build_rag_request(
     """
     Modeling 파트에서 RAG 파트로 넘길 요청 JSON을 생성한다.
 
-    RAG는 user_conditions.allergy_ingredients를 기준으로
-    알레르기 재료가 포함된 메뉴를 1차 제외한다.
-
-    Modeling은 RAG 응답 이후 ingredients 기준으로
-    한 번 더 안전 필터링을 수행한다.
+    ingredient_preferences는 재료군별 점수가 아니라,
+    사용자가 중복 선택한 선호 재료군 목록이다.
     """
 
     return {
@@ -45,14 +42,16 @@ def build_rag_request(
 
 def calculate_candidate_count(
     meal_count_per_day: int,
-    period_days: int = 7
+    period_days: int = 7,
+    buffer_multiplier: int = 3
 ) -> int:
     """
-    필요한 후보 메뉴 개수를 계산한다.
+    RAG에 요청할 후보 메뉴 개수를 계산한다.
+
+    실제 식단에 필요한 메뉴 수보다 여유 있게 요청한다.
 
     예:
-    하루 2끼 × 7일 = 14개
-    하루 3끼 × 7일 = 21개
+    하루 2끼 × 7일 × 3배수 = 42개 후보 요청
     """
 
-    return meal_count_per_day * period_days
+    return meal_count_per_day * period_days * buffer_multiplier
