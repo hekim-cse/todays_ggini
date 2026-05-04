@@ -3,8 +3,7 @@
     "user_id": "user_001",
     "profile": {
       "goals": ["식비 절약", "고단백", "간편식"],
-      "year": 2026,
-      "month": 1,
+      "days_in_month": 30,
       "monthly_budget": 300000,
       "meal_count_per_day": 2,
       "cooking_skill": 2,
@@ -18,8 +17,7 @@
     "user_id": "user_002",
     "profile": {
       "goals": ["다이어트", "영양 균형"],
-      "year": 2026,
-      "month": 1,
+      "days_in_month": 31,
       "monthly_budget": 400000,
       "meal_count_per_day": 3,
       "cooking_skill": 3,
@@ -33,8 +31,7 @@
     "user_id": "user_003",
     "profile": {
       "goals": ["식비 절약", "영양 균형"],
-      "year": 2026,
-      "month": 2,
+      "days_in_month": 30,
       "monthly_budget": 250000,
       "meal_count_per_day": 2,
       "cooking_skill": 1,
@@ -48,8 +45,7 @@
     "user_id": "user_004",
     "profile": {
       "goals": ["고단백", "간편식"],
-      "year": 2026,
-      "month": 3,
+      "days_in_month": 29,
       "monthly_budget": 500000,
       "meal_count_per_day": 3,
       "cooking_skill": 2,
@@ -63,8 +59,7 @@
     "user_id": "user_005",
     "profile": {
       "goals": ["맛 중심", "간편식"],
-      "year": 2026,
-      "month": 4,
+      "days_in_month": 30,
       "monthly_budget": 350000,
       "meal_count_per_day": 2,
       "cooking_skill": 1,
@@ -78,8 +73,7 @@
     "user_id": "user_006",
     "profile": {
       "goals": ["식비 절약"],
-      "year": 2026,
-      "month": 5,
+      "days_in_month": 30,
       "monthly_budget": 180000,
       "meal_count_per_day": 1,
       "cooking_skill": 2,
@@ -93,8 +87,7 @@
     "user_id": "user_007",
     "profile": {
       "goals": ["영양 균형", "고단백", "다이어트"],
-      "year": 2026,
-      "month": 6,
+      "days_in_month": 28,
       "monthly_budget": 600000,
       "meal_count_per_day": 3,
       "cooking_skill": 4,

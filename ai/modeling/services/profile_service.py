@@ -28,16 +28,14 @@ def build_user_profile(user_input) -> dict:
     meal_budget = calculate_meal_budget(
         monthly_budget=user_input.monthly_budget,
         meal_count_per_day=user_input.meal_count_per_day,
-        year=user_input.year,
-        month=user_input.month
+        days_in_month=user_input.days_in_month
     )
 
     weights = get_weights_by_goals(user_input.goals)
 
     profile = {
         "goals": user_input.goals,
-        "year": user_input.year,
-        "month": user_input.month,
+        "days_in_month": user_input.days_in_month,
         "meal_budget": meal_budget,
         "weights": weights,
         "max_difficulty": user_input.cooking_skill,

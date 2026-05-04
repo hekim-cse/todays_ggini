@@ -3,26 +3,16 @@ from typing import List, Optional
 
 
 class UserProfileInput(BaseModel):
-    """
-    사용자가 개인 맞춤 설정 페이지에서 입력한 값을 담는 구조이다.
-    """
-
-    # 목표는 최소 1개, 최대 3개까지 선택 가능
     goals: List[str] = Field(..., min_length=1, max_length=3)
 
-    year: int
-    month: int
     monthly_budget: int
+    days_in_month: int
     meal_count_per_day: int
     cooking_skill: int
 
     preferred_categories: List[str]
     diversity_level: str
-
-    # 재료 선호도는 점수가 아니라 중복 선택 목록으로 받는다.
-    # 예: ["육류", "식물성 단백질류", "채소류"]
     ingredient_preferences: List[str]
-
     allergy_ingredients: Optional[List[str]] = []
 
     @field_validator("goals")
