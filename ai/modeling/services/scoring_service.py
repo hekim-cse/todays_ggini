@@ -72,20 +72,51 @@ def calculate_ingredient_score(menu_ingredient_groups: list, ingredient_preferen
 
 def calculate_preference_score(menu: dict, profile: dict) -> float:
     """
-    선호도 점수는 카테고리 점수와 재료군 점수를 합쳐서 계산한다.
+    사용자 선호 카테고리와 선호 재료군을 바탕으로 선호도 점수를 계산한다.
+
+    선호도 점수 = 카테고리 점수 50% + 재료군 점수 50%
+
+    카테고리 점수:
+    - 메뉴 카테고리가 사용자의 preferred_categories에 포함되면 100점
+    - 아니면 50점
+
+    재료군 점수:
+    - 사용자가 선택한 ingredient_preferences와
+      메뉴의 ingredient_groups가 얼마나 겹치는지 비율로 계산
     """
 
-    category_score = calculate_category_score(
-        menu["category"],
-        profile["preferred_categories"]
-    )
+    preferred_categories = profile.get("preferred_categories", [])
+    preferred_ingredient_groups = profile.get("ingredient_preferences", [])
 
-    ingredient_score = calculate_ingredient_score(
-        menu["ingredient_groups"],
-        profile["ingredient_preferences"]
-    )
+    menu_category = menu.get("category")
+    menu_ingredient_groups = menu.get("ingredient_groups", [])
 
-    return category_score * 0.5 + ingredient_score * 0.5
+    # 1. 카테고리 점수
+    if menu_category in preferred_categories:
+        category_score = 100
+    else:
+        category_score = 50
+
+    # 2. 재료군 선호도 점수
+    if not preferred_ingredient_groups:
+        ingredient_score = 50
+    else:
+        matched_count = 0
+
+        for ingredient_group in menu_ingredient_groups:
+            if ingredient_group in preferred_ingredient_groups:
+                matched_count += 1
+
+        ingredient_score = (
+            matched_count / len(preferred_ingredient_groups)
+        ) * 100
+
+        # 점수가 100을 넘지 않도록 제한
+        ingredient_score = min(ingredient_score, 100)
+
+    preference_score = category_score * 0.5 + ingredient_score * 0.5
+
+    return preference_score
 
 def calculate_nutrition_score(menu: dict, goals: list) -> float:
     """

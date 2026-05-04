@@ -10,13 +10,7 @@
       "cooking_skill": 2,
       "preferred_categories": ["한식", "분식"],
       "diversity_level": "낮음",
-      "ingredient_preferences": {
-        "육류": 4,
-        "해산물류": 2,
-        "식물성 단백질류": 5,
-        "채소류": 4,
-        "계란·유제품류": 3
-      },
+      "ingredient_preferences": ["식물성 단백질류", "채소류"],
       "allergy_ingredients": ["계란"]
     }
   },
@@ -31,13 +25,7 @@
       "cooking_skill": 3,
       "preferred_categories": ["샐러드/건강식", "한식"],
       "diversity_level": "높음",
-      "ingredient_preferences": {
-        "육류": 3,
-        "해산물류": 3,
-        "식물성 단백질류": 5,
-        "채소류": 5,
-        "계란·유제품류": 2
-      },
+      "ingredient_preferences": ["식물성 단백질류", "채소류"],
       "allergy_ingredients": []
     }
   },
@@ -52,13 +40,7 @@
       "cooking_skill": 1,
       "preferred_categories": ["한식", "일식"],
       "diversity_level": "보통",
-      "ingredient_preferences": {
-        "육류": 2,
-        "해산물류": 4,
-        "식물성 단백질류": 4,
-        "채소류": 5,
-        "계란·유제품류": 3
-      },
+      "ingredient_preferences": ["해산물류", "채소류"],
       "allergy_ingredients": ["새우"]
     }
   },
@@ -73,13 +55,7 @@
       "cooking_skill": 2,
       "preferred_categories": ["샐러드/건강식", "양식", "한식"],
       "diversity_level": "보통",
-      "ingredient_preferences": {
-        "육류": 5,
-        "해산물류": 2,
-        "식물성 단백질류": 4,
-        "채소류": 4,
-        "계란·유제품류": 3
-      },
+      "ingredient_preferences": ["육류", "식물성 단백질류"],
       "allergy_ingredients": ["우유"]
     }
   },
@@ -94,13 +70,7 @@
       "cooking_skill": 1,
       "preferred_categories": ["분식", "양식", "일식"],
       "diversity_level": "낮음",
-      "ingredient_preferences": {
-        "육류": 4,
-        "해산물류": 3,
-        "식물성 단백질류": 2,
-        "채소류": 2,
-        "계란·유제품류": 4
-      },
+      "ingredient_preferences": ["육류", "계란·유제품류"],
       "allergy_ingredients": []
     }
   },
@@ -115,13 +85,7 @@
       "cooking_skill": 2,
       "preferred_categories": ["한식", "분식"],
       "diversity_level": "낮음",
-      "ingredient_preferences": {
-        "육류": 2,
-        "해산물류": 1,
-        "식물성 단백질류": 5,
-        "채소류": 4,
-        "계란·유제품류": 2
-      },
+      "ingredient_preferences": ["식물성 단백질류", "채소류"],
       "allergy_ingredients": ["계란"]
     }
   },
@@ -136,13 +100,7 @@
       "cooking_skill": 4,
       "preferred_categories": ["한식", "샐러드/건강식", "일식"],
       "diversity_level": "높음",
-      "ingredient_preferences": {
-        "육류": 4,
-        "해산물류": 4,
-        "식물성 단백질류": 4,
-        "채소류": 5,
-        "계란·유제품류": 3
-      },
+      "ingredient_preferences": ["육류", "해산물류", "채소류"],
       "allergy_ingredients": ["오이"]
     }
   }
