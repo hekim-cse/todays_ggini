@@ -34,6 +34,7 @@ def build_rag_request(
             "estimated_cost",
             "calories",
             "protein",
+            "recipe",
         ],
         "optional_fields": [
             "similar_menu_ids",

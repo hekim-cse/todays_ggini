@@ -14,6 +14,9 @@ def build_weekly_meal_plan(
 
     period_days:
     - 기본 7일
+
+    RAG에서 받은 recipe 정보가 recommendations에 포함되어 있으면
+    주간 식단 결과에도 함께 포함한다.
     """
 
     if not recommendations:
@@ -44,10 +47,20 @@ def build_weekly_meal_plan(
                 "meal_order": meal_order,
                 "menu_id": menu["menu_id"],
                 "name": menu["name"],
+                "category": menu.get("category"),
                 "final_score": menu["final_score"],
                 "estimated_cost": menu["estimated_cost"],
                 "calories": menu["calories"],
                 "protein": menu["protein"],
+
+                # 프론트에서 메뉴 상세 표시용으로 사용 가능
+                "ingredients": menu.get("ingredients", []),
+                "ingredient_groups": menu.get("ingredient_groups", []),
+
+                # RAG에서 받은 레시피 정보
+                "recipe": menu.get("recipe", {}),
+
+                # 점수 근거 확인용
                 "scores": menu["scores"]
             }
 
