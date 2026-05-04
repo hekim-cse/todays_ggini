@@ -1,5 +1,5 @@
 import json
-
+from services.meal_style_service import build_meal_style_candidates
 from schemas.user_profile_schema import UserProfileInput
 from services.profile_service import build_user_profile
 from services.rag_request_service import (
@@ -67,33 +67,36 @@ recommendations = recommend_menus(
 )
 
 
-# 10. 최종 추천 결과를 7일치 식단으로 구성
-weekly_plan = build_weekly_meal_plan(
-    recommendations=recommendations,
+# 식단 스타일 후보 3개 생성
+
+meal_style_result = build_meal_style_candidates(
+
+    candidate_menus=candidate_menus,
+
+    profile=profile,
+
     meal_count_per_day=user_input.meal_count_per_day,
-    period_days=PERIOD_DAYS,
-    diversity_penalty_strength=profile["diversity_penalty_strength"]
+
+    sample_period_days=3
+
 )
 
-
-# 11. 출력
 print("랜덤 선택 사용자")
+
 print(user_id)
 
 print("\n사용자 입력 원본")
+
 print(json.dumps(selected_user, ensure_ascii=False, indent=2))
 
 print("\n사용자 프로필")
+
 print(json.dumps(profile, ensure_ascii=False, indent=2))
 
 print("\nModeling → RAG 요청 JSON")
+
 print(json.dumps(rag_request, ensure_ascii=False, indent=2))
 
-print("\nRAG → Modeling 응답 JSON")
-print(json.dumps(rag_response, ensure_ascii=False, indent=2))
+print("\n식단 스타일 후보 3개")
 
-print("\n추천 결과")
-print(json.dumps(recommendations, ensure_ascii=False, indent=2))
-
-print("\n7일치 식단 구성 결과")
-print(json.dumps(weekly_plan, ensure_ascii=False, indent=2))
+print(json.dumps(meal_style_result, ensure_ascii=False, indent=2))
