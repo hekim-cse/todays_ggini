@@ -26,9 +26,13 @@ def calculate_difficulty_score(menu_difficulty: int, cooking_skill: int) -> floa
     return max(0, score)
 
 
-def calculate_category_score(menu_category: str, preferred_categories: list) -> float:
+def calculate_category_score(
+    menu_category: str,
+    preferred_categories: list[str]
+) -> float:
     """
-    메뉴 카테고리가 사용자의 선호 카테고리에 포함되면 100점이다.
+    메뉴 카테고리가 사용자의 선호 카테고리에 포함되는지 계산한다.
+
     상관없음을 선택한 경우 카테고리 영향은 중립 점수로 처리한다.
     """
 
@@ -41,33 +45,35 @@ def calculate_category_score(menu_category: str, preferred_categories: list) -> 
     return 40
 
 
-def calculate_ingredient_score(menu_ingredient_groups: list, ingredient_preferences: dict) -> float:
+def calculate_ingredient_score(
+    menu_ingredient_groups: list[str],
+    ingredient_preferences: list[str]
+) -> float:
     """
-    메뉴에 포함된 재료군이 사용자의 선호도와 얼마나 맞는지 계산한다.
+    메뉴의 재료군이 사용자가 선택한 선호 재료군과 얼마나 겹치는지 계산한다.
 
     ingredient_preferences 예:
-    {
-        "육류": 4,
-        "해산물류": 2,
-        "식물성 단백질류": 5
-    }
+    ["육류", "식물성 단백질류"]
 
-    선호도는 1~5점이므로 100점 기준으로 변환한다.
+    계산 방식:
+    겹친 재료군 수 / 사용자가 선택한 선호 재료군 수 * 100
     """
+
+    if not ingredient_preferences:
+        return 50
 
     if not menu_ingredient_groups:
         return 50
 
-    scores = []
+    matched_count = 0
 
-    for group in menu_ingredient_groups:
-        preference_value = ingredient_preferences.get(group, 3)
+    for ingredient_group in menu_ingredient_groups:
+        if ingredient_group in ingredient_preferences:
+            matched_count += 1
 
-        # 1~5 값을 20~100점으로 변환한다.
-        converted_score = preference_value * 20
-        scores.append(converted_score)
+    score = (matched_count / len(ingredient_preferences)) * 100
 
-    return sum(scores) / len(scores)
+    return min(score, 100)
 
 
 def calculate_preference_score(menu: dict, profile: dict) -> float:
@@ -75,91 +81,76 @@ def calculate_preference_score(menu: dict, profile: dict) -> float:
     사용자 선호 카테고리와 선호 재료군을 바탕으로 선호도 점수를 계산한다.
 
     선호도 점수 = 카테고리 점수 50% + 재료군 점수 50%
-
-    카테고리 점수:
-    - 메뉴 카테고리가 사용자의 preferred_categories에 포함되면 100점
-    - 아니면 50점
-
-    재료군 점수:
-    - 사용자가 선택한 ingredient_preferences와
-      메뉴의 ingredient_groups가 얼마나 겹치는지 비율로 계산
     """
 
     preferred_categories = profile.get("preferred_categories", [])
-    preferred_ingredient_groups = profile.get("ingredient_preferences", [])
+    ingredient_preferences = profile.get("ingredient_preferences", [])
 
-    menu_category = menu.get("category")
+    menu_category = menu.get("category", "")
     menu_ingredient_groups = menu.get("ingredient_groups", [])
 
-    # 1. 카테고리 점수
-    if menu_category in preferred_categories:
-        category_score = 100
-    else:
-        category_score = 50
+    category_score = calculate_category_score(
+        menu_category=menu_category,
+        preferred_categories=preferred_categories
+    )
 
-    # 2. 재료군 선호도 점수
-    if not preferred_ingredient_groups:
-        ingredient_score = 50
-    else:
-        matched_count = 0
-
-        for ingredient_group in menu_ingredient_groups:
-            if ingredient_group in preferred_ingredient_groups:
-                matched_count += 1
-
-        ingredient_score = (
-            matched_count / len(preferred_ingredient_groups)
-        ) * 100
-
-        # 점수가 100을 넘지 않도록 제한
-        ingredient_score = min(ingredient_score, 100)
+    ingredient_score = calculate_ingredient_score(
+        menu_ingredient_groups=menu_ingredient_groups,
+        ingredient_preferences=ingredient_preferences
+    )
 
     preference_score = category_score * 0.5 + ingredient_score * 0.5
 
     return preference_score
 
-def calculate_nutrition_score(menu: dict, goals: list) -> float:
+
+def calculate_nutrition_score(menu: dict, goals: list[str]) -> float:
     """
     사용자의 목적에 따라 영양 점수를 계산한다.
-    MVP 단계에서는 단순 기준으로 시작한다.
+
+    goals는 여러 개 선택될 수 있으므로,
+    다이어트 / 고단백 / 영양 균형 목표가 포함되어 있는지 확인한다.
     """
 
     calories = menu["calories"]
     protein = menu["protein"]
 
-    if goals == "다이어트":
-        # 칼로리가 낮을수록 높은 점수
+    nutrition_scores = []
+
+    if "다이어트" in goals:
         if calories <= 500:
-            return 100
+            nutrition_scores.append(100)
         elif calories <= 700:
-            return 80
+            nutrition_scores.append(80)
         elif calories <= 900:
-            return 60
+            nutrition_scores.append(60)
         else:
-            return 40
+            nutrition_scores.append(40)
 
-    if goals == "고단백":
-        # 단백질이 높을수록 높은 점수
+    if "고단백" in goals:
         if protein >= 30:
-            return 100
+            nutrition_scores.append(100)
         elif protein >= 20:
-            return 80
+            nutrition_scores.append(80)
         elif protein >= 10:
-            return 60
+            nutrition_scores.append(60)
         else:
-            return 40
+            nutrition_scores.append(40)
 
-    if goals == "영양 균형":
-        # 너무 낮거나 너무 높은 칼로리를 피한다.
+    if "영양 균형" in goals:
         if 500 <= calories <= 800 and protein >= 15:
-            return 100
+            nutrition_scores.append(100)
         elif 400 <= calories <= 900:
-            return 80
+            nutrition_scores.append(80)
         else:
-            return 60
+            nutrition_scores.append(60)
 
-    # 식비 절약, 간편식, 맛 중심은 기본 영양 점수 부여
-    return 70
+    # 식비 절약, 간편식, 맛 중심만 선택된 경우 기본 영양 점수
+    if not nutrition_scores:
+        return 70
+
+    return sum(nutrition_scores) / len(nutrition_scores)
+
 
 def calculate_diversity_score(
     menu: dict,
@@ -169,19 +160,7 @@ def calculate_diversity_score(
     """
     이미 선택된 메뉴들과 현재 메뉴가 비슷한지 확인하고 다양성 점수를 계산한다.
 
-    menu:
-    현재 점수를 계산할 메뉴이다.
-
-    selected_menu_ids:
-    이미 추천 식단에 포함된 메뉴 ID 목록이다.
-
-    penalty_strength:
-    사용자의 다양성 선호도에 따른 감점 강도이다.
-    낮음: 0.1
-    보통: 0.3
-    높음: 0.5
-
-    현재 메뉴가 이미 선택된 메뉴와 비슷하면 감점한다.
+    현재 메뉴가 이미 선택된 메뉴와 비슷하면 사용자 다양성 선호도에 따라 감점한다.
     """
 
     similar_menu_ids = menu.get("similar_menu_ids", [])
