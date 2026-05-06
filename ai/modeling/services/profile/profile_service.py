@@ -1,19 +1,29 @@
-from services.weight_service import get_weights_by_goals
+from services.profile.weight_service import get_weights_by_goals
 from utils.calculator import calculate_meal_budget
 
 
 def get_diversity_penalty_strength(diversity_level: str) -> float:
     """
     메뉴 다양성 선택값을 감점 강도로 변환한다.
+
+    낮음:
+    - 메뉴 반복을 어느 정도 허용한다.
+    - 그래도 완전 반복은 피하기 위해 약한 감점을 준다.
+
+    보통:
+    - 비슷한 메뉴가 반복되면 눈에 띄게 감점한다.
+
+    높음:
+    - 반복 메뉴를 싫어하는 사용자이므로 강하게 감점한다.
     """
 
     mapping = {
-        "낮음": 0.1,
-        "보통": 0.3,
-        "높음": 0.5
+        "낮음": 0.2,
+        "보통": 0.45,
+        "높음": 0.65
     }
 
-    return mapping.get(diversity_level, 0.3)
+    return mapping.get(diversity_level, 0.45)
 
 
 def build_user_profile(user_input) -> dict:
