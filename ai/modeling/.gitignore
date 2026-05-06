@@ -24,3 +24,4 @@ env/
 .env
 
 .vscode/result.json
+result.json
