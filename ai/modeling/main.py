@@ -1,14 +1,18 @@
 import json
 
 from schemas.user_profile_schema import UserProfileInput
-from services.profile_service import build_user_profile
-from services.rag_request_service import (
+
+from services.profile.profile_service import build_user_profile
+from services.profile.user_input_service import select_random_user_input
+
+from services.rag.rag_request_service import (
     build_rag_request,
     calculate_candidate_count,
 )
-from services.rag_client import fetch_candidate_menus
-from services.user_input_service import select_random_user_input
-from services.meal_style_service import build_meal_style_candidates
+from services.rag.rag_client import fetch_candidate_menus
+
+from services.style.meal_style_service import build_meal_style_candidates
+from services.plan.monthly_plan_test_service import build_monthly_plan_by_random_style
 
 
 USE_MOCK_RAG = True
@@ -51,6 +55,12 @@ meal_style_result = build_meal_style_candidates(
     sample_period_days=sample_period_days
 )
 
+monthly_plan = build_monthly_plan_by_random_style(
+    user_id=user_id,
+    candidate_menus=candidate_menus,
+    profile=profile,
+    meal_style_response=meal_style_result
+)
 
 print("랜덤 선택 사용자")
 print(user_id)
@@ -66,3 +76,6 @@ print(json.dumps(rag_request, ensure_ascii=False, indent=2))
 
 print("\nModeling → Back 3일치 샘플 후보 추천 JSON")
 print(json.dumps(meal_style_result, ensure_ascii=False, indent=2))
+
+print("테스트용 랜덤 스타일 선택 → 월간 식단 생성 JSON")
+print(json.dumps(monthly_plan, ensure_ascii=False, indent=2))
