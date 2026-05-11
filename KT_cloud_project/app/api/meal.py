@@ -407,7 +407,7 @@ async def generate_initial_meal_plan(
     current_user: User = Depends(get_current_user)
 ):
     """
-    사용자의 페르소나를 기반으로 모델링 파트에 식단 생성을 요청합니다.
+    사용자의 온보딩을 기반으로 모델링 파트에 3일치 샘플 식단 생성을 요청합니다.
     """
     
     # 1. DB의 User 테이블에서 페르소나 데이터 추출 및 가공
@@ -443,6 +443,48 @@ async def generate_initial_meal_plan(
         "sent_data": ai_payload, # 디버깅용
         "ai_result": ai_response
     }
+
+# @router.post("/meal-plans/select-style")
+# async def select_style_and_generate_monthly(
+#     selection: StyleSelectionRequest,
+#     db: Session = Depends(get_db),
+#     current_user: User = Depends(get_current_user)
+# ):
+#     """
+#     [Step 3] 사용자가 선택한 스타일 ID를 기반으로 모델링 파트에 월간 식단 생성을 요청합니다.
+#     """
+    
+#     # 1. 모델링 파트에 보낼 페이로드 구성 (image_b0a23c 규격 준수)
+#     final_payload = {
+#         "user_id": f"user_{current_user.id:03d}",
+#         "request_type": "monthly_meal_plan_generation",
+#         "selected_style_id": selection.selected_style_id,
+#         "profile": {
+#             "goals": current_user.purpose,
+#             "monthly_budget": current_user.monthly_budget,
+#             "meal_count_per_day": current_user.meals_per_day,
+#             "cooking_skill": current_user.cooking_skill,
+#             "preferred_categories": current_user.preferred_style,
+#             "diversity_level": current_user.diversity_level,
+#             "ingredient_preferences": current_user.preferred_ingredients,
+#             "allergy_ingredients": current_user.excluded_ingredients
+#         }
+#     }
+
+#     # 2. 모델링 파트(AI 서버)에 최종 생성 요청
+#     # 이 과정은 오래 걸릴 수 있으므로 실제로는 비동기(Celery) 처리가 권장됩니다.
+#     monthly_plan_response = await request_ai_meal_plan(final_payload)
+
+#     if not monthly_plan_response:
+#         raise HTTPException(status_code=500, detail="월간 식단 생성 요청 중 AI 서버 오류가 발생했습니다.")
+
+#     # 3. AI 응답(30일치 식단)을 DB에 저장하는 로직으로 이어짐
+#     # TODO: monthly_plan_response['monthly_plan'] 데이터를 MealPlan 테이블에 Loop를 돌며 저장
+    
+#     return {
+#         "message": f"스타일 {selection.selected_style_id}에 기반한 월간 식단 생성이 시작되었습니다.",
+#         "status": "processing"
+#     }
 
 @router.post("/generate_sample", status_code=status.HTTP_201_CREATED)
 async def generate_meal_plan(
