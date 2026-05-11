@@ -18,6 +18,7 @@ class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
+      fontFamily: 'NanumSquareNeo-cBd',
       colorScheme: colorScheme,
       scaffoldBackgroundColor: AppColors.background,
       textTheme: const TextTheme(
@@ -44,7 +45,7 @@ class AppTheme {
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           minimumSize: const Size.fromHeight(56),
-          textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+          textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600, fontFamily: 'NanumSquareNeo-cBd',),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(28),
           ),

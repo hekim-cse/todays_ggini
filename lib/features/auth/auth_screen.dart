@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 
+import 'package:go_router/go_router.dart';
+
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
 
@@ -12,311 +14,333 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
+  final _pageController = PageController();
+  int _currentPage = 0;
+
+  final List<Map<String, String>> _pages = [
+    {
+      'image': 'assets/images/calendar_preview.png',
+      'label': '캘린더 사진',
+    },
+    {
+      'image': 'assets/images/preview2.png',
+      'label': '레시피 사진',
+    },
+    {
+      'image': 'assets/images/shopping_preview.png',
+      'label': '장보기 사진',
+    },
+  ];
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
+    _pageController.dispose();
     super.dispose();
+  }
+
+  void _onTap() {
+    if (_currentPage < _pages.length - 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      _showLoginSheet();
+    }
+  }
+
+  void _showLoginSheet() {
+    final persona = GoRouterState.of(context).extra as String?;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) => _LoginSheet(persona: persona),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          // 상단 초록 배경 + 로고 + 캘린더 프리뷰
-          Expanded(
-            flex: 2,
-            child: Container(
-              width: double.infinity,
-              color: AppColors.primaryDark,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // 로고
-                  const Positioned(
-                    top: 60,
-                    child: Column(
-                      children: [
-                        Text('🐹', style: TextStyle(fontSize: 48)),
-                        Text(
-                          '오늘의 끼니',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+      body: GestureDetector(
+        onTap: _onTap,
+        child: Column(
+          children: [
+            // 상단 진행바
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                child: Row(
+                  children: List.generate(_pages.length, (index) {
+                    return Expanded(
+                      child: Container(
+                        height: 4,
+                        margin: EdgeInsets.only(
+                          right: index < _pages.length - 1 ? 4 : 0,
                         ),
-                      ],
-                    ),
-                  ),
-
-                  // 캘린더 프리뷰
-                  Positioned(
-                    bottom: 0,
-                    left: 24,
-                    right: 24,
-                    child: Container(
-                      height: 430,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(24),
-                          topRight: Radius.circular(24),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 10,
-                          ),
-                        ],
-                      ),
-                      child: const Center(
-                        child: Text(
-                          '📅 캘린더 프리뷰\n(이미지로 교체 예정)',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.grey,
-                            fontSize: 16,
-                          ),
+                        decoration: BoxDecoration(
+                          color: index == _currentPage
+                              ? AppColors.primary
+                              : AppColors.surfaceDim,
+                          borderRadius: BorderRadius.circular(2),
                         ),
                       ),
-                    ),
-                  ),
-                ],
+                    );
+                  }),
+                ),
               ),
             ),
-          ),
 
-          // 하단 로그인
-          Expanded(
-            flex: 2,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Column(
-                children: [
-                  // 안내 텍스트
-                  const Text(
-                    '나만의 맞춤 식단 관리 시작하기',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+            // 사진 영역 (PageView)
+            Expanded(
+              child: PageView.builder(
+                controller: _pageController,
+                onPageChanged: (index) =>
+                    setState(() => _currentPage = index),
+                itemCount: _pages.length,
+                itemBuilder: (context, index) {
+                  return Container(
+                    margin: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceDim,
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // 소셜 버튼들
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _SocialButton(
-                        color: const Color(0xFFFFE812),
-                        onTap: () => context.go(AppRoutes.onboarding),
-                        child: const Text('💬',
-                            style: TextStyle(fontSize: 24)),
-                      ),
-                      const SizedBox(width: 12),
-                      _SocialButton(
-                        color: const Color(0xFF03C75A),
-                        onTap: () => context.go(AppRoutes.onboarding),
-                        child: const Text('N',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            )),
-                      ),
-                      const SizedBox(width: 12),
-                      _SocialButton(
-                        color: Colors.white,
-                        border: true,
-                        onTap: () => context.go(AppRoutes.onboarding),
-                        child: const Text('G',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red,
-                            )),
-                      ),
-                      const SizedBox(width: 12),
-                      _SocialButton(
-                        color: Colors.white,
-                        border: true,
-                        onTap: () => context.go(AppRoutes.onboarding),
-                        child: const Text('🍎',
-                            style: TextStyle(fontSize: 22)),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // 구분선
-                  const Row(
-                    children: [
-                      Expanded(child: Divider()),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 12),
-                        child: Text('또는',
-                            style: TextStyle(color: Colors.grey)),
-                      ),
-                      Expanded(child: Divider()),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // 이메일
-                  TextField(
-                    controller: _emailController,
-                    decoration: _inputDecoration('ID'),
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // 비밀번호
-                  TextField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: _inputDecoration('비밀번호').copyWith(
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility),
-                        onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 4),
-
-                  // 비밀번호 찾기
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: GestureDetector(
-                      onTap: () {},
-                      child: const Text(
-                        '비밀번호를 잊으셨나요?',
-                        style: TextStyle(
-                          color: AppColors.primaryDark,
-                          fontSize: 13,
+                    child: Center(
+                      child: Text(
+                        '📸 ${_pages[index]['label']}\n(이미지로 교체 예정)',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 14,
                         ),
                       ),
                     ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // 로그인 버튼
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => context.go(AppRoutes.onboarding),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryDark,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        '로그인',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // 회원가입 이동
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        '아직 계정이 없으신가요?',
-                        style:
-                            TextStyle(color: Colors.grey, fontSize: 14),
-                      ),
-                      const SizedBox(width: 4),
-                      GestureDetector(
-                        onTap: () => context.go(AppRoutes.onboarding),
-                        child: const Text(
-                          '회원가입',
-                          style: TextStyle(
-                            color: AppColors.primaryDark,
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // 둘러보기
-                  GestureDetector(
-                    onTap: () => context.go(AppRoutes.onboarding),
-                    child: const Text(
-                      '회원가입 없이 둘러보기',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ],
+                  );
+                },
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  InputDecoration _inputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.grey),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFCCCCCC)),
+            // 하단 텍스트
+            Padding(
+              padding: const EdgeInsets.only(bottom: 30),
+              child: Text(
+                _currentPage < _pages.length - 1
+                    ? '화면을 터치해 주세요'
+                    : '시작하기',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: _currentPage < _pages.length - 1
+                      ? AppColors.textHint
+                      : AppColors.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: AppColors.primaryDark),
-      ),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
     );
   }
 }
 
+// 하단 로그인 시트
+class _LoginSheet extends StatefulWidget {
+  final String? persona;
+  const _LoginSheet({this.persona});
+
+  @override
+  State<_LoginSheet> createState() => _LoginSheetState();
+}
+
+class _LoginSheetState extends State<_LoginSheet> {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+        color: AppColors.background,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 핸들바
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // 소셜 버튼들
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _SocialButton(
+                  label: '카카오',
+                  color: const Color(0xFFFFE812),
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go(AppRoutes.personaSelect);
+                  },
+                ),
+                _SocialButton(
+                  label: '네이버',
+                  color: const Color(0xFF03C75A),
+                  labelColor: Colors.white,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go(AppRoutes.personaSelect);
+                  },
+                ),
+                _SocialButton(
+                  label: '구글',
+                  color: Colors.white,
+                  border: true,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go(AppRoutes.personaSelect);
+                  },
+                ),
+                _SocialButton(
+                  label: '애플',
+                  color: Colors.white,
+                  border: true,
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.go(AppRoutes.personaSelect);
+                  },
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // 구분선
+            const Row(
+              children: [
+                Expanded(child: Divider()),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('또는', style: TextStyle(color: AppColors.textSecondary)),
+                ),
+                Expanded(child: Divider()),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // 로그인 없이 시작하기 버튼
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      backgroundColor: AppColors.background,
+                      insetPadding:
+                          const EdgeInsets.symmetric(horizontal: 40),
+                      contentPadding:
+                          const EdgeInsets.fromLTRB(24, 32, 24, 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      content: const Text(
+                        '로그인 없이 시작할 시,\n어플리케이션을 삭제하면\n저장된 정보가 모두 삭제됩니다.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      actionsPadding: EdgeInsets.zero,
+                      actions: [
+                        Column(
+                          children: [
+                            // 가로 구분선
+                            Divider(
+                              height: 1,
+                              color: AppColors.textSecondary,
+                            ),
+
+                            // 버튼들
+                            Row(
+                              children: [
+                                // 로그인하기
+                                Expanded(
+                                  child: TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(dialogContext),
+                                    child: const Text(
+                                      '로그인하기',
+                                      style: TextStyle(
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                // 세로 구분선
+                                Container(
+                                  width: 1,
+                                  height: 48,
+                                  color: AppColors.textSecondary
+                                ),
+
+                                // 확인
+                                Expanded(
+                                  child: TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(dialogContext);
+                                      Navigator.pop(context);
+                                      context.go(AppRoutes.personaSelect);
+                                    },
+                                    child: Text(
+                                      '확인',
+                                      style: TextStyle(
+                                        color: AppColors.textGray,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                child: const Text('로그인 없이 시작하기'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// 소셜 버튼
 class _SocialButton extends StatelessWidget {
+  final String label;
   final Color color;
-  final Widget child;
+  final Color labelColor;
   final VoidCallback onTap;
   final bool border;
 
   const _SocialButton({
+    required this.label,
     required this.color,
-    required this.child,
     required this.onTap,
+    this.labelColor = Colors.black,
     this.border = false,
   });
 
@@ -325,8 +349,8 @@ class _SocialButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 60,
-        height: 60,
+        width: 64,
+        height: 64,
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.circle,
@@ -338,7 +362,15 @@ class _SocialButton extends StatelessWidget {
             ),
           ],
         ),
-        child: Center(child: child),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: labelColor,
+            ),
+          ),
+        ),
       ),
     );
   }

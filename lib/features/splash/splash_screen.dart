@@ -4,10 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
-import '../../../../core/theme/app_colors.dart';
 
-/// 스플래시 (피그마 #1).
-/// 1.5초 후 페르소나 선택으로 자동 이동.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -21,8 +18,8 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(milliseconds: 1500), () {
-      if (mounted) context.go(AppRoutes.personaSelect);
+    _timer = Timer(const Duration(milliseconds: 2000), () {
+      if (mounted) context.go(AppRoutes.auth);
     });
   }
 
@@ -39,20 +36,17 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              '오늘의 끼니',
-              style: TextStyle(
-                fontSize: 48,
-                fontWeight: FontWeight.w800,
-                color: AppColors.primaryDark,
-              ),
+            // 로고 이미지
+            Image(
+              image: AssetImage('assets/images/pic.png'),
+              width: 200,
+            ),
+            SizedBox(height: 10),
+            Image(
+              image: AssetImage('assets/images/logo.png'),
+              width: 200,
             ),
             SizedBox(height: 16),
-            Text(
-              '당신의 완벽한 식단을\n장보는 중이에요!',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
-            ),
           ],
         ),
       ),

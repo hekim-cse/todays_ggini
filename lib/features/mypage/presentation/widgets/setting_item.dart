@@ -52,14 +52,22 @@ class _SettingItemState extends State<SettingItem> {
               Switch(
                 value: _toggleValue,
                 onChanged: (v) => setState(() => _toggleValue = v),
-                activeColor: AppColors.primaryDark,
+                activeColor: AppColors.primary,
+                activeTrackColor: AppColors.mypage,
+                inactiveThumbColor: Colors.white,
+                inactiveTrackColor: AppColors.surfaceDim,
               )
             else if (widget.value.isNotEmpty)
-              Text(
-                widget.value,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
+              SizedBox(
+                width: MediaQuery.of(context).size.width * 0.4,
+                child: Text(
+                  widget.value,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ),
             if (widget.showArrow) ...[

@@ -29,3 +29,11 @@ flutter:
   # mock JSON을 asset 으로 등록
   assets:
     - assets/mocks/users/
+    - assets/images/
+  fonts:
+    - family: MemomentKkukkukk
+      fonts:
+        - asset: assets/fonts/MemomentKkukkukk.ttf
+    - family: NanumSquareNeo-cBd
+      fonts:
+        - asset: assets/fonts/NanumSquareNeo-cBd.ttf
