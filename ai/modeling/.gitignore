@@ -25,3 +25,4 @@ env/
 
 .vscode/result.json
 result.json
+.DS_Store
