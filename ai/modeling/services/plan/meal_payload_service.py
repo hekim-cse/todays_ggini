@@ -14,5 +14,6 @@ def build_menu_payload(menu: dict) -> dict:
         "ingredients": menu.get("ingredients", []),
         "ingredient_groups": menu.get("ingredient_groups", []),
         "recipe": menu.get("recipe", {}),
-        "scores": menu["scores"]
+        "scores": menu["scores"],
+        "reasons": menu.get("reasons", [])
     }
