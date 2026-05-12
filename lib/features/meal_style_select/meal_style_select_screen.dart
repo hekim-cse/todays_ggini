@@ -80,12 +80,14 @@ class _MealStyleSelectScreenState extends State<MealStyleSelectScreen> {
                     onTap: () => setState(() => _selectedIndex = index),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEEF4EE),
+                        color: isSelected
+                          ? AppColors.mypage
+                          : AppColors.surface,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: isSelected
                               ? AppColors.primary
-                              : Colors.transparent,
+                              : AppColors.surfaceDim,
                           width: 2.5,
                         ),
                       ),
@@ -126,9 +128,9 @@ class _MealStyleSelectScreenState extends State<MealStyleSelectScreen> {
                                     const Text(
                                       '3일치 샘플 식단',
                                       style: TextStyle(
-                                        fontSize: 11,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.textSecondary,
+                                        color: AppColors.textPrimary,
                                       ),
                                     ),
                                     const SizedBox(height: 4),
@@ -182,8 +184,8 @@ class _MealStyleSelectScreenState extends State<MealStyleSelectScreen> {
                                                 child: Text(
                                                   e.key,
                                                   style: const TextStyle(
-                                                    fontSize: 10,
-                                                    color: AppColors.textSecondary,
+                                                    fontSize: 12,
+                                                    color: AppColors.textPrimary,
                                                   ),
                                                 ),
                                               ),
@@ -202,7 +204,7 @@ class _MealStyleSelectScreenState extends State<MealStyleSelectScreen> {
                                                 '${e.value}',
                                                 style: const TextStyle(
                                                   fontSize: 10,
-                                                  color: AppColors.textSecondary,
+                                                  color: AppColors.textPrimary,
                                                 ),
                                               ),
                                             ],

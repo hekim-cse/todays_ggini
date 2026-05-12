@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/bottom_nav_bar.dart';
 import '../widgets/profile_section.dart';
 import '../widgets/section_title.dart';
 import '../widgets/setting_item.dart';
+import '../../../../core/widgets/popup.dart';
 
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({super.key});
@@ -33,6 +36,42 @@ class _MyPageScreenState extends State<MyPageScreen> {
     return '${list.take(2).join(', ')}, ...';
   }
 
+  // 공통 팝업 액션 버튼
+  Widget _buildActions(BuildContext ctx, VoidCallback onConfirm, VoidCallback onReset) {
+    return Column(
+      children: [
+        Divider(height: 1, color: AppColors.textSecondary),
+        Row(
+          children: [
+            Expanded(
+              child: TextButton(
+                onPressed: () async {
+                  Navigator.of(ctx).pop();
+                  await Future.delayed(Duration.zero); // ← 팝업 완전히 닫힌 후 이동
+                  onReset();
+                },
+                child: const Text(
+                  '재설정하기',
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
+              ),
+            ),
+            Container(width: 1, height: 48, color: AppColors.textSecondary),
+            Expanded(
+              child: TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(
+                  '확인',
+                  style: TextStyle(color: AppColors.primary),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   void _showChipDialog(
     String title,
     List<String> options,
@@ -45,53 +84,46 @@ class _MyPageScreenState extends State<MyPageScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          backgroundColor: AppColors.background,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Text(
             '[$title]',
-            style: const TextStyle(fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+              color: AppColors.textPrimary,
+            ),
           ),
           content: Wrap(
             spacing: 8,
             runSpacing: 8,
             children: options.map((option) {
-              final isSelected = temp.contains(option);
-              return GestureDetector(
-                onTap: () {
-                  setDialogState(() {
-                    if (isSelected) {
-                      temp.remove(option);
-                    } else if (temp.length < maxSelect) {
-                      temp.add(option);
-                    }
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.primary : AppColors.surfaceDim,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    option,
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : AppColors.textPrimary,
-                      fontSize: 14,
-                    ),
+              final isSelected = selected.contains(option); // temp 대신 selected 원본
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.primary : AppColors.surfaceDim,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  option,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : AppColors.textPrimary,
+                    fontSize: 14,
                   ),
                 ),
               );
             }).toList(),
           ),
+          actionsPadding: EdgeInsets.zero,
           actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                setState(() => onConfirm(temp));
+            _buildActions(
+              ctx,
+              () => Navigator.pop(ctx),
+              () {
+                if (mounted) context.go(AppRoutes.onboarding);
               },
-              child: Text(
-                '확인',
-                style: TextStyle(color: AppColors.primary),
-              ),
             ),
           ],
         ),
@@ -112,8 +144,13 @@ class _MyPageScreenState extends State<MyPageScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('[$title]', style: const TextStyle(fontWeight: FontWeight.bold)),
+          backgroundColor: AppColors.background,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            '[$title]',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -123,9 +160,10 @@ class _MyPageScreenState extends State<MyPageScreen> {
               ),
               SliderTheme(
                 data: SliderTheme.of(ctx).copyWith(
-                  activeTrackColor: AppColors.primary,
-                  inactiveTrackColor: AppColors.surfaceDim,
-                  thumbColor: AppColors.primary,
+                  disabledActiveTrackColor: AppColors.primary,
+                  disabledInactiveTrackColor: AppColors.surfaceDim,
+                  disabledThumbColor: AppColors.primary,
+
                   trackHeight: 6,
                 ),
                 child: Slider(
@@ -133,7 +171,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                   min: min.toDouble(),
                   max: max.toDouble(),
                   divisions: max - min,
-                  onChanged: (v) => setDialogState(() => temp = v.round()),
+                  onChanged: null,
                 ),
               ),
               Row(
@@ -145,17 +183,14 @@ class _MyPageScreenState extends State<MyPageScreen> {
               ),
             ],
           ),
+          actionsPadding: EdgeInsets.zero,
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('취소', style: TextStyle(color: AppColors.textSecondary)),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                setState(() => onConfirm(temp));
+            _buildActions(
+              ctx,
+              () => Navigator.pop(ctx),
+              () {
+                if (mounted) context.go(AppRoutes.onboarding);
               },
-              child: Text('확인', style: TextStyle(color: AppColors.primary)),
             ),
           ],
         ),
@@ -169,8 +204,13 @@ class _MyPageScreenState extends State<MyPageScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('[한달 식비 예산]', style: TextStyle(fontWeight: FontWeight.bold)),
+          backgroundColor: AppColors.background,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            '[한달 식비 예산]',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -180,9 +220,10 @@ class _MyPageScreenState extends State<MyPageScreen> {
               ),
               SliderTheme(
                 data: SliderTheme.of(ctx).copyWith(
-                  activeTrackColor: AppColors.primary,
-                  inactiveTrackColor: AppColors.surfaceDim,
-                  thumbColor: AppColors.primary,
+                  disabledActiveTrackColor: AppColors.primary,
+                  disabledInactiveTrackColor: AppColors.surfaceDim,
+                  disabledThumbColor: AppColors.primary,
+
                   trackHeight: 6,
                 ),
                 child: Slider(
@@ -190,7 +231,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
                   min: 100000,
                   max: 1000000,
                   divisions: 18,
-                  onChanged: (v) => setDialogState(() => temp = v.round()),
+                  onChanged: null,
                 ),
               ),
               Row(
@@ -202,17 +243,14 @@ class _MyPageScreenState extends State<MyPageScreen> {
               ),
             ],
           ),
+          actionsPadding: EdgeInsets.zero,
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('취소', style: TextStyle(color: AppColors.textSecondary)),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                setState(() => _monthlyBudget = temp);
+            _buildActions(
+              ctx,
+              () => Navigator.pop(ctx),
+              () {
+                if (mounted) context.go(AppRoutes.onboarding);
               },
-              child: Text('확인', style: TextStyle(color: AppColors.primary)),
             ),
           ],
         ),
@@ -229,102 +267,36 @@ class _MyPageScreenState extends State<MyPageScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('[제외 재료]', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: controller,
-                      decoration: InputDecoration(
-                        hintText: '제외할 재료 입력',
-                        hintStyle: const TextStyle(color: AppColors.textHint),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: error != null ? AppColors.error : AppColors.border,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.primary),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      if (controller.text.isNotEmpty) {
-                        if (temp.contains(controller.text)) {
-                          setDialogState(() => error = '이미 입력된 재료입니다.');
-                          Future.delayed(const Duration(seconds: 2), () {
-                            setDialogState(() => error = null);
-                          });
-                        } else {
-                          setDialogState(() {
-                            temp.add(controller.text);
-                            controller.clear();
-                            error = null;
-                          });
-                        }
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      minimumSize: Size.zero,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text('추가', style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-              if (error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 4, left: 4),
-                  child: Text(error!, style: const TextStyle(fontSize: 12, color: AppColors.error)),
-                ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: temp.map((allergy) => Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceDim,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(allergy, style: const TextStyle(fontSize: 13)),
-                      const SizedBox(width: 4),
-                      GestureDetector(
-                        onTap: () => setDialogState(() => temp.remove(allergy)),
-                        child: const Icon(Icons.close, size: 14, color: AppColors.textSecondary),
-                      ),
-                    ],
-                  ),
-                )).toList(),
-              ),
-            ],
+          backgroundColor: AppColors.background,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            '[제외 재료]',
+            style: TextStyle(fontWeight: FontWeight.bold),
           ),
+          content: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _allergies.map((allergy) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceDim,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                allergy,
+                style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+              ),
+            )).toList(),
+          ),
+          actionsPadding: EdgeInsets.zero,
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('취소', style: TextStyle(color: AppColors.textSecondary)),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                setState(() => _allergies = temp);
+            _buildActions(
+              ctx,
+              () => Navigator.pop(ctx),
+              () {
+                if (mounted) context.go(AppRoutes.onboarding);
               },
-              child: Text('확인', style: TextStyle(color: AppColors.primary)),
             ),
           ],
         ),
@@ -333,42 +305,26 @@ class _MyPageScreenState extends State<MyPageScreen> {
   }
 
   void _showLogoutDialog(BuildContext context) {
-    showDialog(
+    showAppPopup(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('로그아웃'),
-        content: const Text('정말 로그아웃 하시겠어요?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('로그아웃', style: TextStyle(color: AppColors.primary)),
-          ),
-        ],
-      ),
+      content: '정말 로그아웃 하시겠어요?',
+      leftButtonText: '취소',
+      rightButtonText: '로그아웃',
+      onLeftTap: () => Navigator.pop(context),
+      onRightTap: () => Navigator.pop(context),
+      rightButtonColor: AppColors.primary,
     );
   }
 
   void _showDeleteAccountDialog(BuildContext context) {
-    showDialog(
+    showAppPopup(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('회원탈퇴'),
-        content: const Text('정말 탈퇴하시겠어요?\n모든 데이터가 삭제됩니다.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('탈퇴하기', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+      content: '정말 탈퇴하시겠어요?\n모든 데이터가 삭제됩니다.',
+      leftButtonText: '취소',
+      rightButtonText: '탈퇴하기',
+      onLeftTap: () => Navigator.pop(context),
+      onRightTap: () => Navigator.pop(context),
+      rightButtonColor: Colors.red,
     );
   }
 
@@ -379,12 +335,8 @@ class _MyPageScreenState extends State<MyPageScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // 프로필 섹션
             ProfileSection(persona: _persona),
-
             const SizedBox(height: 24),
-
-            // 내 설정
             const SectionTitle(title: '내 설정'),
             SettingItem(
               emoji: '😊',
@@ -475,10 +427,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
               value: '${(_monthlyBudget / 10000).round()}만원',
               onTap: () => _showBudgetDialog(),
             ),
-
             const SizedBox(height: 24),
-
-            // 앱 설정
             const SectionTitle(title: '앱 설정'),
             SettingItem(
               emoji: '🔔',
@@ -488,10 +437,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
               showToggle: true,
               showArrow: false,
             ),
-
             const SizedBox(height: 24),
-
-            // 계정 설정
             const SectionTitle(title: '계정 설정'),
             SettingItem(
               emoji: '🚪',
@@ -508,7 +454,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
               onTap: () => _showDeleteAccountDialog(context),
               showArrow: false,
             ),
-
             const SizedBox(height: 40),
           ],
         ),

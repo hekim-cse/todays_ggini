@@ -6,13 +6,13 @@ class AppColors {
 
   // Brand greens (sage / olive)
   static const Color primary = Color(0xFF3EB440); // main 녹색
-  static const Color mypage = Color(0xFFE1F3D8); // 마이페이지용 - 변경 필요
-  static const Color primaryLight = Color(0xFFFAFAF8); // 팝업창, 로그인창
+  static const Color mypage = Color(0xFFE1F3D8); // 마이페이지 프로필 부분
+  static const Color primaryLight = Color(0xFFFAFAF8); 
 
   // Background / surfaces
   static const Color background = Color(0xFFFFFBF0); // 전체적인 배경 - 아이보리
-  static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceDim = Color(0xFFD9D9D9); // 회색 배경용
+  static const Color surface = Color(0xFFEEEEEE); // 더 옅은 회색
+  static const Color surfaceDim = Color(0xFFD9D9D9); // 회색 배경용 (버튼)
 
   // Text (warm dark brown 계열)
   static const Color textPrimary = Color(0xFF4A3F35); // 기본 글씨 색

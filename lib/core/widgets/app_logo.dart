@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class AppLogo extends StatelessWidget {
   final double size;
   final double topPadding;
-  const AppLogo({super.key, this.size = 120, this.topPadding = 20});
+  const AppLogo({super.key, this.size = 100, this.topPadding = 20});
 
   @override
   Widget build(BuildContext context) {

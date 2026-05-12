@@ -6,6 +6,8 @@ import '../../../../core/theme/app_colors.dart';
 
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/widgets/popup.dart';
+
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
 
@@ -127,7 +129,7 @@ class _AuthScreenState extends State<AuthScreen> {
               padding: const EdgeInsets.only(bottom: 30),
               child: Text(
                 _currentPage < _pages.length - 1
-                    ? '화면을 터치해 주세요'
+                    ? '다음 >>'
                     : '시작하기',
                 style: TextStyle(
                   fontSize: 18,
@@ -242,80 +244,17 @@ class _LoginSheetState extends State<_LoginSheet> {
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  showDialog(
+                  showAppPopup(  // ← onPressed 안에 넣어야 해!
                     context: context,
-                    builder: (dialogContext) => AlertDialog(
-                      backgroundColor: AppColors.background,
-                      insetPadding:
-                          const EdgeInsets.symmetric(horizontal: 40),
-                      contentPadding:
-                          const EdgeInsets.fromLTRB(24, 32, 24, 20),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      content: const Text(
-                        '로그인 없이 시작할 시,\n어플리케이션을 삭제하면\n저장된 정보가 모두 삭제됩니다.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      actionsPadding: EdgeInsets.zero,
-                      actions: [
-                        Column(
-                          children: [
-                            // 가로 구분선
-                            Divider(
-                              height: 1,
-                              color: AppColors.textSecondary,
-                            ),
-
-                            // 버튼들
-                            Row(
-                              children: [
-                                // 로그인하기
-                                Expanded(
-                                  child: TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(dialogContext),
-                                    child: const Text(
-                                      '로그인하기',
-                                      style: TextStyle(
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-
-                                // 세로 구분선
-                                Container(
-                                  width: 1,
-                                  height: 48,
-                                  color: AppColors.textSecondary
-                                ),
-
-                                // 확인
-                                Expanded(
-                                  child: TextButton(
-                                    onPressed: () {
-                                      Navigator.pop(dialogContext);
-                                      Navigator.pop(context);
-                                      context.go(AppRoutes.personaSelect);
-                                    },
-                                    child: Text(
-                                      '확인',
-                                      style: TextStyle(
-                                        color: AppColors.textGray,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                    content: '로그인 없이 시작할 시,\n어플리케이션을 삭제하면\n저장된 정보가 모두 삭제됩니다.',
+                    leftButtonText: '로그인하기',
+                    rightButtonText: '확인',
+                    onLeftTap: () => Navigator.pop(context),
+                    onRightTap: () {
+                      Navigator.pop(context);
+                      Navigator.pop(context);
+                      context.go(AppRoutes.personaSelect);
+                    },
                   );
                 },
                 child: const Text('로그인 없이 시작하기'),

@@ -49,7 +49,7 @@ class _SettingItemState extends State<SettingItem> {
               ),
             ),
             if (widget.showToggle)
-              Switch(
+              Switch( // 토글
                 value: _toggleValue,
                 onChanged: (v) => setState(() => _toggleValue = v),
                 activeColor: AppColors.primary,
