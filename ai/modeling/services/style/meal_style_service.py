@@ -2,6 +2,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 
 from services.recommendation.recommendation_service import recommend_menus
+from services.plan.monthly_plan_test_service import are_menus_similar
 
 
 GOAL_STYLE_META = {
@@ -85,14 +86,14 @@ def normalize_weights(weights: dict) -> dict:
 def boost_style_weights(
     base_weights: dict,
     focus_key: str,
-    boost_amount: float = 0.2
+    boost_amount: float = 0.45
 ) -> dict:
     """
-    사용자의 전체 목표 가중치를 유지하되,
-    특정 스타일의 핵심 항목만 강화한다.
+    사용자의 기본 가중치를 유지하되,
+    스타일 카드에서는 각 스타일의 차이가 더 잘 보이도록 핵심 항목을 강하게 보정한다.
 
-    boost_amount를 너무 작게 두면 스타일별 추천 결과가 거의 같아질 수 있으므로
-    샘플 카드 단계에서는 0.2 정도로 차이를 준다.
+    스타일 후보 단계는 사용자가 '어떤 방향의 식단을 선호하는지' 선택하는 구간이므로
+    월간 식단보다 스타일별 특징이 더 분명해야 한다.
     """
 
     style_weights = deepcopy(base_weights)
@@ -102,19 +103,50 @@ def boost_style_weights(
 
     style_weights[focus_key] += boost_amount
 
+    # 스타일 샘플은 사용자에게 다양한 선택지를 보여주는 것이 중요하므로
+    # 다양성도 함께 강화한다.
+    if "diversity" in style_weights:
+        style_weights["diversity"] += 0.25
+
+    # focus별 보조 조정
+    if focus_key == "budget":
+        style_weights["nutrition"] = max(style_weights.get("nutrition", 0) - 0.05, 0)
+
+    if focus_key == "nutrition":
+        style_weights["budget"] = max(style_weights.get("budget", 0) - 0.05, 0)
+
+    if focus_key == "difficulty":
+        style_weights["preference"] = max(style_weights.get("preference", 0) - 0.05, 0)
+
+    if focus_key == "preference":
+        style_weights["difficulty"] = max(style_weights.get("difficulty", 0) - 0.05, 0)
+
     return normalize_weights(style_weights)
 
 
 def build_profile_with_style_weights(
     profile: dict,
-    style_weights: dict
+    style_weights: dict,
+    style_goal: str
 ) -> dict:
     """
-    기존 profile은 유지하고, weights만 스타일 가중치로 교체한다.
+    기존 profile은 유지하되,
+    스타일 샘플 추천 단계에서는 해당 스타일의 목표가 더 잘 드러나도록 goals와 weights를 함께 조정한다.
+
+    예:
+    - 영양 균형식 -> goals: ["영양 균형"]
+    - 고단백 관리식 -> goals: ["고단백"]
+    - 가벼운 관리식 -> goals: ["다이어트"]
     """
 
     style_profile = deepcopy(profile)
+
+    style_profile["goals"] = [style_goal]
     style_profile["weights"] = style_weights
+
+    # 스타일 샘플은 사용자의 다양성 설정과 무관하게
+    # 사용자가 비교할 수 있는 선택지를 보여주는 단계이므로 다양성을 높게 고정한다.
+    style_profile["diversity_penalty_strength"] = 0.65
 
     return style_profile
 
@@ -338,8 +370,7 @@ def build_meal_style_candidates(
     required_sample_meal_count = sample_period_days * meal_count_per_day
 
     # 스타일 후보 간 메뉴 중복 방지용
-    used_menu_ids = set()
-    used_similar_menu_ids = set()
+    used_menus = []
 
     for style_meta in style_metas:
         focus_key = style_meta["focus_key"]
@@ -347,31 +378,30 @@ def build_meal_style_candidates(
         style_weights = boost_style_weights(
             base_weights=profile["weights"],
             focus_key=focus_key,
-            boost_amount=0.2
+            boost_amount=0.45
         )
 
         style_profile = build_profile_with_style_weights(
             profile=profile,
-            style_weights=style_weights
+            style_weights=style_weights,
+            style_goal=style_meta["source_goal"]
         )
 
         raw_recommendations = recommend_menus(
             menus=candidate_menus,
             profile=style_profile,
-            top_n=required_sample_meal_count * 2
+            top_n=len(candidate_menus)
         )
 
         recommendations = select_diverse_recommendations_for_style(
             recommendations=raw_recommendations,
-            used_menu_ids=used_menu_ids,
-            used_similar_menu_ids=used_similar_menu_ids,
+            used_menus=used_menus,
             required_count=required_sample_meal_count
         )
 
-        update_used_menu_sets(
+        update_used_menus(
             recommendations=recommendations,
-            used_menu_ids=used_menu_ids,
-            used_similar_menu_ids=used_similar_menu_ids
+            used_menus=used_menus
         )
 
         if len(recommendations) < required_sample_meal_count:
@@ -417,25 +447,18 @@ def build_meal_style_candidates(
 
 def is_duplicate_or_similar_menu(
     recommendation: dict,
-    used_menu_ids: set[int],
-    used_similar_menu_ids: set[int]
+    used_menus: list[dict]
 ) -> bool:
     """
     이미 다른 스타일 샘플에서 사용한 메뉴이거나,
     그 메뉴와 유사한 메뉴인지 확인한다.
+
+    단순 menu_id뿐만 아니라
+    similar_menu_ids, 정규화된 메뉴명, 재료 유사도까지 함께 본다.
     """
 
-    menu_id = recommendation.get("menu_id")
-    similar_menu_ids = recommendation.get("similar_menu_ids", [])
-
-    if menu_id in used_menu_ids:
-        return True
-
-    if menu_id in used_similar_menu_ids:
-        return True
-
-    for similar_menu_id in similar_menu_ids:
-        if similar_menu_id in used_menu_ids:
+    for used_menu in used_menus:
+        if are_menus_similar(recommendation, used_menu):
             return True
 
     return False
@@ -443,37 +466,63 @@ def is_duplicate_or_similar_menu(
 
 def select_diverse_recommendations_for_style(
     recommendations: list[dict],
-    used_menu_ids: set[int],
-    used_similar_menu_ids: set[int],
+    used_menus: list[dict],
     required_count: int
 ) -> list[dict]:
     """
     3개 스타일 후보 간 메뉴 중복을 줄이기 위해,
-    이미 사용한 메뉴 또는 유사 메뉴를 가능하면 제외한다.
+    이미 다른 스타일에서 사용한 메뉴 또는 유사 메뉴를 최대한 제외한다.
 
-    단, 후보가 부족하면 기존 추천 메뉴를 다시 사용한다.
+    선택 우선순위:
+    1. 다른 스타일과도 안 겹치고, 현재 스타일 내부에서도 안 겹치는 메뉴
+    2. 다른 스타일과는 겹칠 수 있지만, 현재 스타일 내부에서는 안 겹치는 메뉴
+    3. 그래도 부족할 때만 menu_id 중복만 피해서 채움
     """
 
     selected_recommendations = []
 
-    # 1차 선택: 아직 사용하지 않은 메뉴 우선
+    # 1차 선택: 다른 스타일과도 안 겹치고, 현재 스타일 내부에서도 안 겹치는 메뉴
     for recommendation in recommendations:
         if len(selected_recommendations) >= required_count:
             break
 
         if is_duplicate_or_similar_menu(
             recommendation=recommendation,
-            used_menu_ids=used_menu_ids,
-            used_similar_menu_ids=used_similar_menu_ids
+            used_menus=used_menus
+        ):
+            continue
+
+        if is_duplicate_or_similar_menu(
+            recommendation=recommendation,
+            used_menus=selected_recommendations
         ):
             continue
 
         selected_recommendations.append(recommendation)
 
-    # 2차 선택: 후보가 부족하면 중복을 일부 허용
+    # 2차 선택: 다른 스타일과의 중복은 일부 허용하되,
+    # 현재 스타일 내부에서는 유사 메뉴를 계속 막는다.
     if len(selected_recommendations) < required_count:
-        selected_ids = {
-            recommendation["menu_id"]
+        for recommendation in recommendations:
+            if len(selected_recommendations) >= required_count:
+                break
+
+            if recommendation in selected_recommendations:
+                continue
+
+            if is_duplicate_or_similar_menu(
+                recommendation=recommendation,
+                used_menus=selected_recommendations
+            ):
+                continue
+
+            selected_recommendations.append(recommendation)
+
+    # 3차 선택: 그래도 부족하면 같은 menu_id만 피해서 채운다.
+    # 이 단계는 후보가 정말 부족할 때만 작동한다.
+    if len(selected_recommendations) < required_count:
+        selected_menu_ids = {
+            recommendation.get("menu_id")
             for recommendation in selected_recommendations
         }
 
@@ -481,18 +530,20 @@ def select_diverse_recommendations_for_style(
             if len(selected_recommendations) >= required_count:
                 break
 
-            if recommendation["menu_id"] in selected_ids:
+            menu_id = recommendation.get("menu_id")
+
+            if menu_id in selected_menu_ids:
                 continue
 
             selected_recommendations.append(recommendation)
+            selected_menu_ids.add(menu_id)
 
     return selected_recommendations
 
 
-def update_used_menu_sets(
+def update_used_menus(
     recommendations: list[dict],
-    used_menu_ids: set[int],
-    used_similar_menu_ids: set[int]
+    used_menus: list[dict]
 ) -> None:
     """
     선택된 샘플 메뉴를 전역 사용 목록에 기록한다.
@@ -502,11 +553,4 @@ def update_used_menu_sets(
     """
 
     for recommendation in recommendations:
-        menu_id = recommendation.get("menu_id")
-        similar_menu_ids = recommendation.get("similar_menu_ids", [])
-
-        if menu_id is not None:
-            used_menu_ids.add(menu_id)
-
-        for similar_menu_id in similar_menu_ids:
-            used_similar_menu_ids.add(similar_menu_id)
+        used_menus.append(recommendation)

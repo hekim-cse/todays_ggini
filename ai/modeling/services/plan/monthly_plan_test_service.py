@@ -276,6 +276,22 @@ def is_similar_to_exposed_menus(
 
     return False
 
+def is_similar_to_any_menu(
+    menu: dict,
+    menus: list[dict]
+) -> bool:
+    """
+    현재 후보 메뉴가 주어진 메뉴 목록 중 하나라도 유사한지 확인한다.
+
+    대안 메뉴끼리 서로 비슷한 메뉴가 같이 들어가는 것을 막기 위해 사용한다.
+    """
+
+    for target_menu in menus:
+        if are_menus_similar(menu, target_menu):
+            return True
+
+    return False
+
 
 def calculate_max_similarity_to_exposed_menus(
     menu: dict,
@@ -422,24 +438,32 @@ def select_alternative_menus(
     """
     선택 메뉴에 대한 대체 메뉴를 고른다.
 
-    대체 메뉴는 다음 조건을 최대한 만족해야 한다.
-    1. selected_menu와 같지 않아야 한다.
-    2. selected_menu와 유사하지 않아야 한다.
-    3. 최근 노출 메뉴와도 유사하지 않아야 한다.
-    4. 대체 메뉴끼리도 서로 유사하지 않아야 한다.
+    대안 메뉴는 사용자의 다양성 설정과 관계없이
+    항상 높은 다양성 기준을 적용한다.
+
+    이유:
+    - 대안 메뉴는 사용자에게 비교 선택지를 제공하는 영역이다.
+    - 대표 메뉴와 비슷한 메뉴가 대안으로 나오면 선택 의미가 약해진다.
+    - 따라서 월간 식단의 다양성 설정보다 더 강하게 중복을 제한한다.
     """
 
     alternative_menus = []
 
+    # 대안 메뉴는 항상 다양성을 강하게 적용한다.
+    alternative_diversity_strength = max(diversity_penalty_strength, 0.8)
+
+    # selected_menu도 이미 노출된 메뉴로 간주한다.
     local_exposed_menus = exposed_menus + [selected_menu]
 
     reranked_menus = rerank_menus_by_mmr(
         recommendations=recommendations,
         exposed_menus=local_exposed_menus,
         used_menu_count=used_menu_count,
-        diversity_penalty_strength=diversity_penalty_strength
+        diversity_penalty_strength=alternative_diversity_strength
     )
 
+    # 1차 선택:
+    # selected_menu, 최근 노출 메뉴, 이미 고른 대안 메뉴와 모두 유사하지 않은 메뉴만 선택한다.
     for candidate_menu in reranked_menus:
         if candidate_menu.get("menu_id") == selected_menu.get("menu_id"):
             continue
@@ -453,14 +477,25 @@ def select_alternative_menus(
         ):
             continue
 
+        if is_similar_to_any_menu(
+            menu=candidate_menu,
+            menus=alternative_menus
+        ):
+            continue
+
         alternative_menus.append(candidate_menu)
         local_exposed_menus.append(candidate_menu)
 
         if len(alternative_menus) >= alternative_count:
             return alternative_menus
 
-    # 후보가 부족하면 조건을 조금 완화하되, selected_menu와 유사한 메뉴는 계속 피한다.
+    # 2차 선택:
+    # 후보가 부족한 경우 최근 노출 조건만 완화한다.
+    # 그래도 selected_menu와 대안 메뉴끼리 유사한 것은 계속 금지한다.
     for candidate_menu in reranked_menus:
+        if len(alternative_menus) >= alternative_count:
+            break
+
         if candidate_menu.get("menu_id") == selected_menu.get("menu_id"):
             continue
 
@@ -470,24 +505,14 @@ def select_alternative_menus(
         if candidate_menu in alternative_menus:
             continue
 
+        if is_similar_to_any_menu(
+            menu=candidate_menu,
+            menus=alternative_menus
+        ):
+            continue
+
         alternative_menus.append(candidate_menu)
         local_exposed_menus.append(candidate_menu)
-
-        if len(alternative_menus) >= alternative_count:
-            return alternative_menus
-
-    # 그래도 부족하면 최후 fallback으로 같은 메뉴 ID만 제외한다.
-    for candidate_menu in reranked_menus:
-        if candidate_menu.get("menu_id") == selected_menu.get("menu_id"):
-            continue
-
-        if candidate_menu in alternative_menus:
-            continue
-
-        alternative_menus.append(candidate_menu)
-
-        if len(alternative_menus) >= alternative_count:
-            break
 
     return alternative_menus
 
