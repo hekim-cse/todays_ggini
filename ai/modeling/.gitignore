@@ -26,3 +26,5 @@ env/
 .vscode/result.json
 result.json
 .DS_Store
+result.json
+debug_result.json
