@@ -83,6 +83,46 @@ def normalize_weights(weights: dict) -> dict:
         for key, value in weights.items()
     }
 
+def build_nutrition_detail_weights(selected_style: dict) -> dict:
+    """
+    사용자가 선택한 스타일에 따라 영양 세부 점수 가중치를 만든다.
+
+    nutrition 점수 안에서도
+    고단백 / 다이어트 / 영양 균형을 동일하게 보지 않고,
+    선택한 스타일에 맞는 세부 기준을 더 강하게 반영한다.
+    """
+
+    source_goal = selected_style.get("source_goal")
+
+    if source_goal == "고단백":
+        return {
+            "diet": 0.15,
+            "high_protein": 0.65,
+            "balance": 0.20
+        }
+
+    if source_goal == "다이어트":
+        return {
+            "diet": 0.65,
+            "high_protein": 0.15,
+            "balance": 0.20
+        }
+
+    if source_goal == "영양 균형":
+        return {
+            "diet": 0.20,
+            "high_protein": 0.20,
+            "balance": 0.60
+        }
+
+    # 식비 절약, 간편식, 맛 중심처럼 영양이 핵심 목표가 아닌 경우
+    # 영양 세부 점수는 균형 있게 반영한다.
+    return {
+        "diet": 0.33,
+        "high_protein": 0.34,
+        "balance": 0.33
+    }
+
 
 def apply_selected_style_to_profile(
     profile: dict,
@@ -96,7 +136,9 @@ def apply_selected_style_to_profile(
 
     예:
     - 가성비 최우선 선택 -> budget 가중치 증가
-    - 고단백/영양/다이어트 선택 -> nutrition 가중치 증가
+    - 고단백 관리식 선택 -> nutrition 가중치 증가 + protein 세부 비중 증가
+    - 가벼운 관리식 선택 -> nutrition 가중치 증가 + diet 세부 비중 증가
+    - 영양 균형식 선택 -> nutrition 가중치 증가 + balance 세부 비중 증가
     - 간편 조리식 선택 -> difficulty 가중치 증가
     - 취향 맞춤식 선택 -> preference 가중치 증가
     """
@@ -135,6 +177,11 @@ def apply_selected_style_to_profile(
         weights["diversity"] += 0.05
 
     monthly_profile["weights"] = normalize_weights(weights)
+
+    # nutrition 내부 세부 기준도 스타일에 따라 다르게 반영한다.
+    monthly_profile["nutrition_detail_weights"] = build_nutrition_detail_weights(
+        selected_style=selected_style
+    )
 
     return monthly_profile
 
@@ -795,6 +842,7 @@ def build_monthly_plan_by_random_style(
             "base_weights": profile.get("weights"),
             "applied_style_focus_key": selected_style_summary.get("focus_key"),
             "applied_monthly_weights": monthly_profile.get("weights"),
+            "applied_nutrition_detail_weights": monthly_profile.get("nutrition_detail_weights"),
             "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
         },
         "monthly_plan": monthly_plan
