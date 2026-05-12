@@ -9,15 +9,11 @@ class ShoppingList(Base):
     # 유저당 하나의 목록만 가지도록 unique=True 설정
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
     
-    # 전체 요약 정보 (API 응답 최적화를 위해 미리 계산하여 저장 가능)
-    total_items = Column(Integer, default=0)
-    total_price = Column(Integer, default=0)
-    
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
 
     # 관계 설정
-    owner = relationship("User", back_populates="shopping_lists")
+    owner = relationship("User", back_populates="shopping_list")
     items = relationship("ShoppingItem", back_populates="shopping_list", cascade="all, delete-orphan")
 
 class ShoppingItem(Base):
