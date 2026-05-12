@@ -157,16 +157,17 @@ def get_menu_nutrients(menu: dict) -> dict:
     }
 
 
-def calculate_diet_nutrition_score(nutrients: dict) -> float:
+def calculate_diet_score(
+    calories: float,
+    fat: float
+) -> float:
     """
-    다이어트 목표의 영양 점수를 계산한다.
+    다이어트 목표에 대한 영양 점수를 계산한다.
 
-    다이어트는 칼로리와 지방을 중심으로 본다.
-    칼로리가 낮고 지방이 과하지 않으면 높은 점수를 준다.
+    다이어트 식단에서는 칼로리와 지방을 중심으로 본다.
+    단순히 칼로리만 낮은 메뉴가 아니라,
+    지방이 과도하지 않은지도 함께 확인한다.
     """
-
-    calories = nutrients["calories"]
-    fat = nutrients["fat"]
 
     if calories <= 500 and fat <= 15:
         return 100
@@ -183,14 +184,14 @@ def calculate_diet_nutrition_score(nutrients: dict) -> float:
     return 40
 
 
-def calculate_high_protein_nutrition_score(nutrients: dict) -> float:
+def calculate_high_protein_score(
+    protein: float
+) -> float:
     """
-    고단백 목표의 영양 점수를 계산한다.
+    고단백 목표에 대한 영양 점수를 계산한다.
 
-    고단백은 단백질 함량을 가장 중요하게 본다.
+    고단백 식단에서는 단백질 함량을 가장 중요하게 본다.
     """
-
-    protein = nutrients["protein"]
 
     if protein >= 35:
         return 100
@@ -213,21 +214,17 @@ def calculate_high_protein_nutrition_score(nutrients: dict) -> float:
     return 35
 
 
-def calculate_nutrition_balance_score(nutrients: dict) -> float:
+def calculate_balanced_nutrition_score(
+    calories: float,
+    carbohydrate: float,
+    protein: float,
+    fat: float
+) -> float:
     """
-    영양 균형 목표의 영양 점수를 계산한다.
+    영양 균형 목표에 대한 영양 점수를 계산한다.
 
-    영양 균형은 단순히 단백질만 보는 것이 아니라,
-    칼로리와 탄수화물/단백질/지방 비율을 함께 본다.
-
-    현재는 g 단위 기준의 비율을 사용한다.
-    추후 더 정교하게 하려면 kcal 환산 비율을 사용할 수 있다.
+    영양 균형 식단에서는 탄수화물, 단백질, 지방의 비율을 함께 본다.
     """
-
-    calories = nutrients["calories"]
-    carbohydrate = nutrients["carbohydrate"]
-    protein = nutrients["protein"]
-    fat = nutrients["fat"]
 
     total_macro = carbohydrate + protein + fat
 
@@ -238,7 +235,6 @@ def calculate_nutrition_balance_score(nutrients: dict) -> float:
     protein_ratio = protein / total_macro
     fat_ratio = fat / total_macro
 
-    # 가장 이상적인 균형 범위
     if (
         0.45 <= carbohydrate_ratio <= 0.65
         and 0.15 <= protein_ratio <= 0.35
@@ -247,7 +243,6 @@ def calculate_nutrition_balance_score(nutrients: dict) -> float:
     ):
         return 100
 
-    # 어느 정도 허용 가능한 균형 범위
     if (
         0.35 <= carbohydrate_ratio <= 0.70
         and 0.10 <= protein_ratio <= 0.40
@@ -263,38 +258,48 @@ def calculate_nutrition_score(menu: dict, goals: list[str]) -> float:
     """
     사용자의 목적에 따라 영양 점수를 계산한다.
 
-    고단백, 다이어트, 영양 균형은 모두 nutrition이라는 큰 항목에 포함되지만,
-    내부 계산 기준은 서로 다르다.
+    목표별로 다른 기준을 사용한다.
 
     - 다이어트: 칼로리와 지방 중심
     - 고단백: 단백질 중심
-    - 영양 균형: 칼로리와 탄단지 비율 중심
+    - 영양 균형: 탄수화물/단백질/지방 비율 중심
 
-    여러 목표가 선택된 경우 각 목표별 영양 점수를 계산한 뒤 평균을 낸다.
-
+    여러 목표가 선택된 경우 각 목표 점수의 평균을 사용한다.
     예:
-    goals = ["고단백", "영양 균형"]
-
-    high_protein_score = 단백질 기준 점수
-    balance_score = 탄단지 균형 기준 점수
-
-    nutrition_score = (high_protein_score + balance_score) / 2
+    ["고단백", "영양 균형"]이면
+    고단백 점수와 영양 균형 점수를 각각 계산한 뒤 평균을 낸다.
     """
 
     nutrients = get_menu_nutrients(menu)
+
+    calories = nutrients["calories"]
+    carbohydrate = nutrients["carbohydrate"]
+    protein = nutrients["protein"]
+    fat = nutrients["fat"]
+
     nutrition_scores = []
 
     if "다이어트" in goals:
-        diet_score = calculate_diet_nutrition_score(nutrients)
+        diet_score = calculate_diet_score(
+            calories=calories,
+            fat=fat
+        )
         nutrition_scores.append(diet_score)
 
     if "고단백" in goals:
-        high_protein_score = calculate_high_protein_nutrition_score(nutrients)
+        high_protein_score = calculate_high_protein_score(
+            protein=protein
+        )
         nutrition_scores.append(high_protein_score)
 
     if "영양 균형" in goals:
-        balance_score = calculate_nutrition_balance_score(nutrients)
-        nutrition_scores.append(balance_score)
+        balanced_score = calculate_balanced_nutrition_score(
+            calories=calories,
+            carbohydrate=carbohydrate,
+            protein=protein,
+            fat=fat
+        )
+        nutrition_scores.append(balanced_score)
 
     # 식비 절약, 간편식, 맛 중심만 선택된 경우 기본 영양 점수
     if not nutrition_scores:
