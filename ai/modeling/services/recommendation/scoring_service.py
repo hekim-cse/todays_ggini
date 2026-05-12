@@ -118,24 +118,6 @@ def get_menu_nutrients(menu: dict) -> dict:
 
     기존 sample_menus 구조와
     RAG nutrient_summary 구조를 모두 지원한다.
-
-    지원 구조 1:
-    {
-        "calories": 580,
-        "protein": 24,
-        "carbohydrate": 72,
-        "fat": 14
-    }
-
-    지원 구조 2:
-    {
-        "calories": 580,
-        "nutrient_summary": {
-            "carbohydrate": 72,
-            "protein": 24,
-            "fat": 14
-        }
-    }
     """
 
     nutrient_summary = menu.get("nutrient_summary", {})
@@ -165,18 +147,26 @@ def calculate_diet_score(
     다이어트 목표에 대한 영양 점수를 계산한다.
 
     다이어트 식단에서는 칼로리와 지방을 중심으로 본다.
-    단순히 칼로리만 낮은 메뉴가 아니라,
-    지방이 과도하지 않은지도 함께 확인한다.
+    특히 지방이 높은 메뉴는 칼로리가 적당해도 다이어트 적합도가 낮아지도록 제한한다.
     """
+
+    if fat >= 35:
+        return 35
+
+    if fat >= 30:
+        return 45
+
+    if fat >= 25:
+        return 60
 
     if calories <= 500 and fat <= 15:
         return 100
 
     if calories <= 650 and fat <= 20:
-        return 85
+        return 90
 
-    if calories <= 800 and fat <= 25:
-        return 70
+    if calories <= 800 and fat <= 22:
+        return 75
 
     if calories <= 950:
         return 55
@@ -258,16 +248,12 @@ def calculate_nutrition_score(menu: dict, profile: dict) -> float:
     """
     사용자의 목적에 따라 영양 점수를 계산한다.
 
-    기존에는 고단백 / 다이어트 / 영양 균형 점수를 단순 평균으로 계산했다.
-    이제는 사용자가 선택한 스타일에 따라 nutrition 내부 세부 가중치를 다르게 적용한다.
-
-    예:
-    - 고단백 관리식 선택 -> high_protein 점수 비중 증가
-    - 가벼운 관리식 선택 -> diet 점수 비중 증가
-    - 영양 균형식 선택 -> balance 점수 비중 증가
+    기본 goals뿐만 아니라,
+    사용자가 선택한 3일 샘플 스타일의 nutrition_detail_weights도 함께 반영한다.
     """
 
     goals = profile.get("goals", [])
+    nutrition_detail_weights = profile.get("nutrition_detail_weights", {})
 
     nutrients = get_menu_nutrients(menu)
 
@@ -276,57 +262,48 @@ def calculate_nutrition_score(menu: dict, profile: dict) -> float:
     protein = nutrients["protein"]
     fat = nutrients["fat"]
 
-    detail_scores = {}
-
-    if "다이어트" in goals:
-        detail_scores["diet"] = calculate_diet_score(
+    detail_scores = {
+        "diet": calculate_diet_score(
             calories=calories,
             fat=fat
-        )
-
-    if "고단백" in goals:
-        detail_scores["high_protein"] = calculate_high_protein_score(
+        ),
+        "high_protein": calculate_high_protein_score(
             protein=protein
-        )
-
-    if "영양 균형" in goals:
-        detail_scores["balance"] = calculate_balanced_nutrition_score(
+        ),
+        "balance": calculate_balanced_nutrition_score(
             calories=calories,
             carbohydrate=carbohydrate,
             protein=protein,
             fat=fat
         )
+    }
 
-    # 식비 절약, 간편식, 맛 중심만 선택된 경우 기본 영양 점수
-    if not detail_scores:
+    if nutrition_detail_weights:
+        total_weight = sum(nutrition_detail_weights.values())
+
+        if total_weight > 0:
+            weighted_score = 0
+
+            for key, weight in nutrition_detail_weights.items():
+                weighted_score += detail_scores.get(key, 0) * weight
+
+            return round(weighted_score / total_weight, 2)
+
+    nutrition_scores = []
+
+    if "다이어트" in goals:
+        nutrition_scores.append(detail_scores["diet"])
+
+    if "고단백" in goals:
+        nutrition_scores.append(detail_scores["high_protein"])
+
+    if "영양 균형" in goals:
+        nutrition_scores.append(detail_scores["balance"])
+
+    if not nutrition_scores:
         return 70
 
-    nutrition_detail_weights = profile.get("nutrition_detail_weights")
-
-    # 세부 가중치가 없으면 기존 방식처럼 단순 평균을 사용한다.
-    if not nutrition_detail_weights:
-        return round(
-            sum(detail_scores.values()) / len(detail_scores),
-            2
-        )
-
-    weighted_score_sum = 0
-    weight_sum = 0
-
-    for score_key, score in detail_scores.items():
-        weight = nutrition_detail_weights.get(score_key, 0)
-
-        weighted_score_sum += score * weight
-        weight_sum += weight
-
-    # 선택된 goal과 nutrition_detail_weights가 맞지 않는 경우를 대비한 fallback
-    if weight_sum == 0:
-        return round(
-            sum(detail_scores.values()) / len(detail_scores),
-            2
-        )
-
-    return round(weighted_score_sum / weight_sum, 2)
+    return round(sum(nutrition_scores) / len(nutrition_scores), 2)
 
 
 def calculate_diversity_score(
