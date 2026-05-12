@@ -683,6 +683,80 @@ def calculate_day_total_calories(meals: list[dict]) -> int:
     return total_calories
 
 
+def build_monthly_plan_summary(days: list[dict]) -> dict:
+    """
+    월간 식단 결과를 빠르게 검증하기 위한 요약 정보를 만든다.
+
+    전체 monthly_plan을 다 펼쳐보지 않아도
+    평균 칼로리, 평균 단백질, 총 비용, 메뉴 반복 수 등을 확인할 수 있다.
+    """
+
+    selected_menus = []
+    total_estimated_cost = 0
+    total_calories = 0
+    total_protein = 0
+    total_carbohydrate = 0
+    total_fat = 0
+
+    for day in days:
+        total_estimated_cost += day.get("total_estimated_cost", 0)
+
+        for meal in day.get("meals", []):
+            selected_menu = meal.get("selected_menu", {})
+
+            if not selected_menu:
+                continue
+
+            selected_menus.append(selected_menu)
+
+            total_calories += selected_menu.get("calories", 0) or 0
+            total_protein += selected_menu.get("protein", 0) or 0
+            total_carbohydrate += selected_menu.get("carbohydrate", 0) or 0
+            total_fat += selected_menu.get("fat", 0) or 0
+
+    selected_menu_count = len(selected_menus)
+
+    if selected_menu_count == 0:
+        return {
+            "selected_menu_count": 0,
+            "unique_menu_count": 0,
+            "duplicate_menu_count": 0,
+            "total_estimated_cost": 0,
+            "average_daily_cost": 0,
+            "average_calories": 0,
+            "average_protein": 0,
+            "average_carbohydrate": 0,
+            "average_fat": 0
+        }
+
+    menu_ids = [
+        menu.get("menu_id")
+        for menu in selected_menus
+        if menu.get("menu_id") is not None
+    ]
+
+    unique_menu_count = len(set(menu_ids))
+    duplicate_menu_count = len(menu_ids) - unique_menu_count
+    day_count = len(days)
+
+    average_daily_cost = 0
+
+    if day_count > 0:
+        average_daily_cost = round(total_estimated_cost / day_count)
+
+    return {
+        "selected_menu_count": selected_menu_count,
+        "unique_menu_count": unique_menu_count,
+        "duplicate_menu_count": duplicate_menu_count,
+        "total_estimated_cost": total_estimated_cost,
+        "average_daily_cost": average_daily_cost,
+        "average_calories": round(total_calories / selected_menu_count, 2),
+        "average_protein": round(total_protein / selected_menu_count, 2),
+        "average_carbohydrate": round(total_carbohydrate / selected_menu_count, 2),
+        "average_fat": round(total_fat / selected_menu_count, 2)
+    }
+
+
 def build_monthly_plan(
     recommendations: list[dict],
     profile: dict,
@@ -774,6 +848,8 @@ def build_monthly_plan(
             "total_calories": calculate_day_total_calories(meals)
         })
 
+    summary = build_monthly_plan_summary(days)
+
     return {
         "period_days": period_days,
         "meal_count_per_day": meal_count_per_day,
@@ -782,6 +858,7 @@ def build_monthly_plan(
         "diversity_penalty_strength": diversity_penalty_strength,
         "recent_day_window": recent_day_window,
         "warnings": warnings,
+        "summary": summary,
         "days": days
     }
 
