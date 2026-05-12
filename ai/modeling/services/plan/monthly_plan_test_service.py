@@ -16,7 +16,9 @@ STYLE_PREFIX_WORDS = [
     "간편",
     "건강한",
     "저염",
-    "다이어트"
+    "다이어트",
+    "구운",
+    "라이트",
 ]
 
 
@@ -32,6 +34,23 @@ def get_recent_day_window(diversity_penalty_strength: float) -> int:
         return 1
 
     return 2
+
+
+def get_mmr_lambda(diversity_penalty_strength: float) -> float:
+    """
+    MMR에서 추천 점수와 다양성 중 무엇을 더 볼지 결정한다.
+
+    lambda 값이 높을수록 final_score를 더 중요하게 본다.
+    lambda 값이 낮을수록 다양성을 더 강하게 반영한다.
+    """
+
+    if diversity_penalty_strength >= 0.6:
+        return 0.55
+
+    if diversity_penalty_strength >= 0.4:
+        return 0.65
+
+    return 0.8
 
 
 def build_selected_style_summary(selected_style: dict) -> dict:
@@ -75,9 +94,32 @@ def get_menu_ingredient_set(menu: dict) -> set:
     메뉴의 재료 목록을 set 형태로 가져온다.
     """
 
-    ingredients = menu.get("ingredients", [])
+    return set(menu.get("ingredients", []))
 
-    return set(ingredients)
+
+def get_menu_ingredient_group_set(menu: dict) -> set:
+    """
+    메뉴의 재료군 목록을 set 형태로 가져온다.
+    """
+
+    return set(menu.get("ingredient_groups", []))
+
+
+def calculate_jaccard_similarity(first_values: set, second_values: set) -> float:
+    """
+    두 집합의 Jaccard 유사도를 계산한다.
+    """
+
+    if not first_values or not second_values:
+        return 0
+
+    intersection_count = len(first_values & second_values)
+    union_count = len(first_values | second_values)
+
+    if union_count == 0:
+        return 0
+
+    return intersection_count / union_count
 
 
 def calculate_ingredient_similarity(
@@ -86,24 +128,81 @@ def calculate_ingredient_similarity(
 ) -> float:
     """
     두 메뉴의 재료 유사도를 계산한다.
-
-    Jaccard 유사도:
-    공통 재료 수 / 전체 재료 수
     """
 
-    first_ingredients = get_menu_ingredient_set(first_menu)
-    second_ingredients = get_menu_ingredient_set(second_menu)
+    return calculate_jaccard_similarity(
+        get_menu_ingredient_set(first_menu),
+        get_menu_ingredient_set(second_menu)
+    )
 
-    if not first_ingredients or not second_ingredients:
-        return 0
 
-    intersection_count = len(first_ingredients & second_ingredients)
-    union_count = len(first_ingredients | second_ingredients)
+def calculate_ingredient_group_similarity(
+    first_menu: dict,
+    second_menu: dict
+) -> float:
+    """
+    두 메뉴의 재료군 유사도를 계산한다.
+    """
 
-    if union_count == 0:
-        return 0
+    return calculate_jaccard_similarity(
+        get_menu_ingredient_group_set(first_menu),
+        get_menu_ingredient_group_set(second_menu)
+    )
 
-    return intersection_count / union_count
+
+def calculate_menu_similarity_score(
+    first_menu: dict,
+    second_menu: dict
+) -> float:
+    """
+    두 메뉴의 유사도를 0~1 사이 점수로 계산한다.
+
+    menu_id, similar_menu_ids, 정규화된 이름이 같으면 거의 같은 메뉴로 본다.
+    그 외에는 재료 유사도와 재료군 유사도를 함께 본다.
+    """
+
+    first_menu_id = first_menu.get("menu_id")
+    second_menu_id = second_menu.get("menu_id")
+
+    if first_menu_id is not None and second_menu_id is not None:
+        if first_menu_id == second_menu_id:
+            return 1
+
+    first_similar_menu_ids = first_menu.get("similar_menu_ids", [])
+    second_similar_menu_ids = second_menu.get("similar_menu_ids", [])
+
+    if second_menu_id in first_similar_menu_ids:
+        return 1
+
+    if first_menu_id in second_similar_menu_ids:
+        return 1
+
+    first_name = normalize_menu_name(first_menu.get("name"))
+    second_name = normalize_menu_name(second_menu.get("name"))
+
+    if first_name and second_name and first_name == second_name:
+        return 1
+
+    ingredient_similarity = calculate_ingredient_similarity(
+        first_menu=first_menu,
+        second_menu=second_menu
+    )
+
+    ingredient_group_similarity = calculate_ingredient_group_similarity(
+        first_menu=first_menu,
+        second_menu=second_menu
+    )
+
+    category_similarity = 0
+
+    if first_menu.get("category") == second_menu.get("category"):
+        category_similarity = 0.2
+
+    return max(
+        ingredient_similarity,
+        ingredient_group_similarity * 0.8,
+        category_similarity
+    )
 
 
 def are_menus_similar(
@@ -117,39 +216,16 @@ def are_menus_similar(
     1. menu_id가 같으면 유사
     2. similar_menu_ids에 서로 포함되면 유사
     3. 수식어를 제거한 메뉴명이 같으면 유사
-    4. 재료 구성이 70% 이상 같으면 유사
+    4. 재료 구성이 60% 이상 같으면 유사
+    5. 재료군 구성이 80% 이상 같으면 유사
     """
 
-    first_menu_id = first_menu.get("menu_id")
-    second_menu_id = second_menu.get("menu_id")
-
-    if first_menu_id is None or second_menu_id is None:
-        return False
-
-    if first_menu_id == second_menu_id:
-        return True
-
-    first_similar_menu_ids = first_menu.get("similar_menu_ids", [])
-    second_similar_menu_ids = second_menu.get("similar_menu_ids", [])
-
-    if second_menu_id in first_similar_menu_ids:
-        return True
-
-    if first_menu_id in second_similar_menu_ids:
-        return True
-
-    first_name = normalize_menu_name(first_menu.get("name"))
-    second_name = normalize_menu_name(second_menu.get("name"))
-
-    if first_name and second_name and first_name == second_name:
-        return True
-
-    ingredient_similarity = calculate_ingredient_similarity(
+    similarity_score = calculate_menu_similarity_score(
         first_menu=first_menu,
         second_menu=second_menu
     )
 
-    if ingredient_similarity >= 0.7:
+    if similarity_score >= 0.6:
         return True
 
     return False
@@ -201,43 +277,138 @@ def is_similar_to_exposed_menus(
     return False
 
 
+def calculate_max_similarity_to_exposed_menus(
+    menu: dict,
+    exposed_menus: list[dict]
+) -> float:
+    """
+    후보 메뉴가 이미 노출된 메뉴들과 얼마나 유사한지 계산한다.
+    """
+
+    if not exposed_menus:
+        return 0
+
+    max_similarity = 0
+
+    for exposed_menu in exposed_menus:
+        similarity_score = calculate_menu_similarity_score(
+            first_menu=menu,
+            second_menu=exposed_menu
+        )
+
+        if similarity_score > max_similarity:
+            max_similarity = similarity_score
+
+    return max_similarity
+
+
+def calculate_mmr_score(
+    menu: dict,
+    exposed_menus: list[dict],
+    used_menu_count: dict,
+    diversity_penalty_strength: float
+) -> float:
+    """
+    MMR 방식으로 메뉴 점수를 계산한다.
+
+    MMR = 추천 적합도 * lambda - 유사도 패널티 * (1 - lambda)
+
+    여기에 사용 횟수 패널티를 추가해 특정 메뉴가 반복 선택되는 것을 줄인다.
+    """
+
+    lambda_score = get_mmr_lambda(diversity_penalty_strength)
+
+    final_score = menu.get("final_score", 0)
+    max_similarity = calculate_max_similarity_to_exposed_menus(
+        menu=menu,
+        exposed_menus=exposed_menus
+    )
+
+    menu_id = menu.get("menu_id")
+    use_count = used_menu_count.get(menu_id, 0)
+
+    relevance_score = final_score
+    diversity_penalty = max_similarity * 100
+    use_count_penalty = use_count * 8
+
+    mmr_score = (
+        relevance_score * lambda_score
+        - diversity_penalty * (1 - lambda_score)
+        - use_count_penalty
+    )
+
+    return mmr_score
+
+
+def rerank_menus_by_mmr(
+    recommendations: list[dict],
+    exposed_menus: list[dict],
+    used_menu_count: dict,
+    diversity_penalty_strength: float
+) -> list[dict]:
+    """
+    추천 후보를 MMR 점수 기준으로 재정렬한다.
+    """
+
+    reranked_menus = []
+
+    for menu in recommendations:
+        mmr_score = calculate_mmr_score(
+            menu=menu,
+            exposed_menus=exposed_menus,
+            used_menu_count=used_menu_count,
+            diversity_penalty_strength=diversity_penalty_strength
+        )
+
+        reranked_menu = {
+            **menu,
+            "mmr_score": round(mmr_score, 2)
+        }
+
+        reranked_menus.append(reranked_menu)
+
+    reranked_menus.sort(
+        key=lambda menu: (
+            menu.get("mmr_score", 0),
+            -used_menu_count.get(menu.get("menu_id"), 0),
+            menu.get("final_score", 0)
+        ),
+        reverse=True
+    )
+
+    return reranked_menus
+
+
 def select_menu_for_meal(
     recommendations: list[dict],
     exposed_menus: list[dict],
-    used_menu_count: dict
+    used_menu_count: dict,
+    diversity_penalty_strength: float
 ) -> dict:
     """
     한 끼에 들어갈 대표 메뉴를 선택한다.
 
     선택 기준:
-    1. 최근 노출 메뉴(selected + alternative)와 유사하지 않은 메뉴 우선
-    2. 사용 횟수가 적은 메뉴 우선
-    3. 사용 횟수가 같으면 final_score가 높은 메뉴 우선
+    1. MMR 점수가 높은 메뉴 우선
+    2. 최근 노출 메뉴(selected + alternative)와 유사하지 않은 메뉴 우선
+    3. 사용 횟수가 적은 메뉴 우선
     """
 
-    non_similar_candidates = []
+    reranked_menus = rerank_menus_by_mmr(
+        recommendations=recommendations,
+        exposed_menus=exposed_menus,
+        used_menu_count=used_menu_count,
+        diversity_penalty_strength=diversity_penalty_strength
+    )
 
-    for menu in recommendations:
+    for menu in reranked_menus:
         if not is_similar_to_exposed_menus(
             menu=menu,
             exposed_menus=exposed_menus
         ):
-            non_similar_candidates.append(menu)
+            return menu
 
-    if non_similar_candidates:
-        candidates = non_similar_candidates
-    else:
-        candidates = recommendations
-
-    sorted_candidates = sorted(
-        candidates,
-        key=lambda menu: (
-            used_menu_count.get(menu.get("menu_id"), 0),
-            -menu.get("final_score", 0)
-        )
-    )
-
-    return sorted_candidates[0]
+    return reranked_menus[0]
 
 
 def select_alternative_menus(
@@ -245,12 +416,13 @@ def select_alternative_menus(
     selected_menu: dict,
     exposed_menus: list[dict],
     used_menu_count: dict,
+    diversity_penalty_strength: float,
     alternative_count: int = 2
 ) -> list[dict]:
     """
     선택 메뉴에 대한 대체 메뉴를 고른다.
 
-    대체 메뉴는 다음 조건을 만족해야 한다.
+    대체 메뉴는 다음 조건을 최대한 만족해야 한다.
     1. selected_menu와 같지 않아야 한다.
     2. selected_menu와 유사하지 않아야 한다.
     3. 최근 노출 메뉴와도 유사하지 않아야 한다.
@@ -259,15 +431,16 @@ def select_alternative_menus(
 
     alternative_menus = []
 
-    sorted_candidates = sorted(
-        recommendations,
-        key=lambda menu: (
-            used_menu_count.get(menu.get("menu_id"), 0),
-            -menu.get("final_score", 0)
-        )
+    local_exposed_menus = exposed_menus + [selected_menu]
+
+    reranked_menus = rerank_menus_by_mmr(
+        recommendations=recommendations,
+        exposed_menus=local_exposed_menus,
+        used_menu_count=used_menu_count,
+        diversity_penalty_strength=diversity_penalty_strength
     )
 
-    for candidate_menu in sorted_candidates:
+    for candidate_menu in reranked_menus:
         if candidate_menu.get("menu_id") == selected_menu.get("menu_id"):
             continue
 
@@ -276,34 +449,36 @@ def select_alternative_menus(
 
         if is_similar_to_exposed_menus(
             menu=candidate_menu,
-            exposed_menus=exposed_menus
+            exposed_menus=local_exposed_menus
         ):
             continue
 
-        is_similar_to_alternative = False
-
-        for alternative_menu in alternative_menus:
-            if are_menus_similar(candidate_menu, alternative_menu):
-                is_similar_to_alternative = True
-                break
-
-        if is_similar_to_alternative:
-            continue
-
         alternative_menus.append(candidate_menu)
+        local_exposed_menus.append(candidate_menu)
 
         if len(alternative_menus) >= alternative_count:
-            break
+            return alternative_menus
 
-    if len(alternative_menus) >= alternative_count:
-        return alternative_menus
-
-    # 후보가 부족한 경우에도 selected_menu와 유사한 메뉴는 최대한 피한다.
-    for candidate_menu in sorted_candidates:
+    # 후보가 부족하면 조건을 조금 완화하되, selected_menu와 유사한 메뉴는 계속 피한다.
+    for candidate_menu in reranked_menus:
         if candidate_menu.get("menu_id") == selected_menu.get("menu_id"):
             continue
 
         if are_menus_similar(candidate_menu, selected_menu):
+            continue
+
+        if candidate_menu in alternative_menus:
+            continue
+
+        alternative_menus.append(candidate_menu)
+        local_exposed_menus.append(candidate_menu)
+
+        if len(alternative_menus) >= alternative_count:
+            return alternative_menus
+
+    # 그래도 부족하면 최후 fallback으로 같은 메뉴 ID만 제외한다.
+    for candidate_menu in reranked_menus:
+        if candidate_menu.get("menu_id") == selected_menu.get("menu_id"):
             continue
 
         if candidate_menu in alternative_menus:
@@ -315,6 +490,27 @@ def select_alternative_menus(
             break
 
     return alternative_menus
+
+
+def increase_used_menu_count(
+    used_menu_count: dict,
+    menu: dict,
+    amount: float = 1
+) -> None:
+    """
+    메뉴 사용 횟수를 증가시킨다.
+
+    selected_menu는 1점,
+    alternative_menus는 0.5점 정도로 반영해
+    대안으로 노출된 메뉴도 다음 추천에서 너무 자주 나오지 않게 한다.
+    """
+
+    menu_id = menu.get("menu_id")
+
+    if menu_id is None:
+        return
+
+    used_menu_count[menu_id] = used_menu_count.get(menu_id, 0) + amount
 
 
 def calculate_day_total_estimated_cost(meals: list[dict]) -> int:
@@ -393,7 +589,8 @@ def build_monthly_plan(
             selected_menu = select_menu_for_meal(
                 recommendations=recommendations,
                 exposed_menus=exposed_menus,
-                used_menu_count=used_menu_count
+                used_menu_count=used_menu_count,
+                diversity_penalty_strength=diversity_penalty_strength
             )
 
             alternative_menus = select_alternative_menus(
@@ -401,18 +598,25 @@ def build_monthly_plan(
                 selected_menu=selected_menu,
                 exposed_menus=exposed_menus,
                 used_menu_count=used_menu_count,
+                diversity_penalty_strength=diversity_penalty_strength,
                 alternative_count=2
             )
 
-            selected_menu_id = selected_menu.get("menu_id")
-
-            used_menu_count[selected_menu_id] = (
-                used_menu_count.get(selected_menu_id, 0) + 1
+            increase_used_menu_count(
+                used_menu_count=used_menu_count,
+                menu=selected_menu,
+                amount=1
             )
 
             exposed_menus.append(selected_menu)
 
             for alternative_menu in alternative_menus:
+                increase_used_menu_count(
+                    used_menu_count=used_menu_count,
+                    menu=alternative_menu,
+                    amount=0.5
+                )
+
                 exposed_menus.append(alternative_menu)
 
             meals.append({
