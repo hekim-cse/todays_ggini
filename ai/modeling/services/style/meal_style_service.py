@@ -445,6 +445,23 @@ def build_meal_style_candidates(
         "meal_style_candidates": meal_style_candidates
     }
 
+def is_same_menu_id(
+    recommendation: dict,
+    used_menus: list[dict]
+) -> bool:
+    """
+    이미 다른 스타일 샘플에서 같은 menu_id가 사용되었는지 확인한다.
+    """
+
+    menu_id = recommendation.get("menu_id")
+
+    for used_menu in used_menus:
+        if menu_id == used_menu.get("menu_id"):
+            return True
+
+    return False
+
+
 def is_duplicate_or_similar_menu(
     recommendation: dict,
     used_menus: list[dict]
@@ -453,8 +470,7 @@ def is_duplicate_or_similar_menu(
     이미 다른 스타일 샘플에서 사용한 메뉴이거나,
     그 메뉴와 유사한 메뉴인지 확인한다.
 
-    단순 menu_id뿐만 아니라
-    similar_menu_ids, 정규화된 메뉴명, 재료 유사도까지 함께 본다.
+    menu_id, similar_menu_ids, 정규화된 메뉴명, 재료 유사도까지 함께 본다.
     """
 
     for used_menu in used_menus:
@@ -470,21 +486,27 @@ def select_diverse_recommendations_for_style(
     required_count: int
 ) -> list[dict]:
     """
-    3개 스타일 후보 간 메뉴 중복을 줄이기 위해,
-    이미 다른 스타일에서 사용한 메뉴 또는 유사 메뉴를 최대한 제외한다.
+    3개 스타일 후보 간 메뉴 중복을 최대한 줄인다.
 
     선택 우선순위:
-    1. 다른 스타일과도 안 겹치고, 현재 스타일 내부에서도 안 겹치는 메뉴
-    2. 다른 스타일과는 겹칠 수 있지만, 현재 스타일 내부에서는 안 겹치는 메뉴
-    3. 그래도 부족할 때만 menu_id 중복만 피해서 채움
+    1. 다른 스타일과 menu_id도 다르고 유사하지 않으며, 현재 스타일 내부에서도 유사하지 않은 메뉴
+    2. 다른 스타일과 유사할 수는 있지만, menu_id는 겹치지 않고 현재 스타일 내부에서도 유사하지 않은 메뉴
+    3. 그래도 부족하면 menu_id만 중복되지 않는 메뉴
+    4. 정말 부족할 때만 최후 fallback으로 기존 추천 순서에서 채움
     """
 
     selected_recommendations = []
 
-    # 1차 선택: 다른 스타일과도 안 겹치고, 현재 스타일 내부에서도 안 겹치는 메뉴
+    # 1차: 다른 스타일과도 안 겹치고, 현재 스타일 내부에서도 안 겹치는 메뉴
     for recommendation in recommendations:
         if len(selected_recommendations) >= required_count:
             break
+
+        if is_same_menu_id(
+            recommendation=recommendation,
+            used_menus=used_menus
+        ):
+            continue
 
         if is_duplicate_or_similar_menu(
             recommendation=recommendation,
@@ -500,14 +522,23 @@ def select_diverse_recommendations_for_style(
 
         selected_recommendations.append(recommendation)
 
-    # 2차 선택: 다른 스타일과의 중복은 일부 허용하되,
-    # 현재 스타일 내부에서는 유사 메뉴를 계속 막는다.
+    # 2차: 다른 스타일과 유사 메뉴는 허용하지만,
+    # 같은 menu_id는 계속 금지하고, 현재 스타일 내부 유사도는 계속 막는다.
     if len(selected_recommendations) < required_count:
         for recommendation in recommendations:
             if len(selected_recommendations) >= required_count:
                 break
 
-            if recommendation in selected_recommendations:
+            if is_same_menu_id(
+                recommendation=recommendation,
+                used_menus=used_menus
+            ):
+                continue
+
+            if is_same_menu_id(
+                recommendation=recommendation,
+                used_menus=selected_recommendations
+            ):
                 continue
 
             if is_duplicate_or_similar_menu(
@@ -518,25 +549,30 @@ def select_diverse_recommendations_for_style(
 
             selected_recommendations.append(recommendation)
 
-    # 3차 선택: 그래도 부족하면 같은 menu_id만 피해서 채운다.
-    # 이 단계는 후보가 정말 부족할 때만 작동한다.
+    # 3차: 그래도 부족하면 현재 스타일 내부에서 menu_id만 안 겹치게 채운다.
     if len(selected_recommendations) < required_count:
-        selected_menu_ids = {
-            recommendation.get("menu_id")
-            for recommendation in selected_recommendations
-        }
-
         for recommendation in recommendations:
             if len(selected_recommendations) >= required_count:
                 break
 
-            menu_id = recommendation.get("menu_id")
-
-            if menu_id in selected_menu_ids:
+            if is_same_menu_id(
+                recommendation=recommendation,
+                used_menus=selected_recommendations
+            ):
                 continue
 
             selected_recommendations.append(recommendation)
-            selected_menu_ids.add(menu_id)
+
+    # 4차: 정말 후보가 부족한 경우에만 fallback
+    if len(selected_recommendations) < required_count:
+        for recommendation in recommendations:
+            if len(selected_recommendations) >= required_count:
+                break
+
+            if recommendation in selected_recommendations:
+                continue
+
+            selected_recommendations.append(recommendation)
 
     return selected_recommendations
 
