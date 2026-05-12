@@ -751,9 +751,12 @@ def build_monthly_plan_by_random_style(
     해당 스타일을 기준으로 월간 식단을 생성한다.
     """
 
-    selected_style = random.choice(
-        meal_style_response.get("meal_style_candidates", [])
-    )
+    meal_style_candidates = meal_style_response.get("meal_style_candidates", [])
+
+    if not meal_style_candidates:
+        raise ValueError("meal_style_candidates가 비어 있어 월간 식단 스타일을 선택할 수 없습니다.")
+
+    selected_style = random.choice(meal_style_candidates)
 
     selected_style_summary = build_selected_style_summary(selected_style)
 
