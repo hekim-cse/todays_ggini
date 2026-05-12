@@ -72,6 +72,25 @@ def build_back_to_modeling_monthly_request(
     }
 
 
+def calculate_sample_candidate_count(
+    meal_count_per_day: int,
+    sample_period_days: int,
+    style_count: int = 3,
+    buffer_multiplier: int = 3
+) -> int:
+    """
+    3일치 스타일 후보 생성을 위한 RAG 후보 메뉴 개수를 계산한다.
+
+    스타일 후보는 3개가 생성되므로,
+    단순히 3일치 식단 수만큼만 후보를 받으면 스타일별 메뉴가 겹칠 가능성이 높다.
+
+    따라서 필요한 식사 수에 스타일 개수와 여유 배수를 곱해
+    스타일별로 서로 다른 후보를 선택할 수 있도록 한다.
+    """
+
+    return meal_count_per_day * sample_period_days * style_count * buffer_multiplier
+
+
 def main() -> None:
     """
     모델링 추천 흐름 테스트용 main 함수이다.
@@ -124,9 +143,10 @@ def main() -> None:
     # ============================================================
 
     # 5. 3일치 샘플 추천에 필요한 RAG 후보 메뉴 개수 계산
-    sample_candidate_count = calculate_candidate_count(
+    sample_candidate_count = calculate_sample_candidate_count(
         meal_count_per_day=user_input["profile"]["meal_count_per_day"],
-        period_days=user_input["profile"].get("sample_period_days", 3),
+        sample_period_days=user_input["profile"].get("sample_period_days", 3),
+        style_count=3,
         buffer_multiplier=3
     )
 
