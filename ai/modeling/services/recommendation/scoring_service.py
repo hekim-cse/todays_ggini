@@ -1,8 +1,16 @@
-def calculate_budget_score(menu_cost: int, meal_budget: int) -> float:
+def calculate_budget_score(menu_cost: int | None, meal_budget: int) -> float:
     """
     메뉴 가격이 한 끼 예산 안에 들어오면 100점이다.
     예산을 초과하면 초과 비율만큼 점수를 깎는다.
+
+    menu_cost가 없으면 가격 판단이 불가능하므로 중립 점수 70점을 부여한다.
     """
+
+    if menu_cost is None or menu_cost <= 0:
+        return 70
+
+    if meal_budget <= 0:
+        return 70
 
     if menu_cost <= meal_budget:
         return 100
@@ -108,42 +116,70 @@ def calculate_nutrition_score(menu: dict, goals: list[str]) -> float:
     """
     사용자의 목적에 따라 영양 점수를 계산한다.
 
-    goals는 여러 개 선택될 수 있으므로,
-    다이어트 / 고단백 / 영양 균형 목표가 포함되어 있는지 확인한다.
+    RAG의 nutrient_summary 구조를 지원한다.
     """
 
-    calories = menu["calories"]
-    protein = menu["protein"]
+    nutrients = get_menu_nutrients(menu)
+
+    calories = nutrients["calories"]
+    carbohydrate = nutrients["carbohydrate"]
+    protein = nutrients["protein"]
+    fat = nutrients["fat"]
 
     nutrition_scores = []
 
     if "다이어트" in goals:
-        if calories <= 500:
+        if calories <= 500 and fat <= 15:
             nutrition_scores.append(100)
-        elif calories <= 700:
-            nutrition_scores.append(80)
-        elif calories <= 900:
-            nutrition_scores.append(60)
+        elif calories <= 650 and fat <= 20:
+            nutrition_scores.append(85)
+        elif calories <= 800:
+            nutrition_scores.append(70)
+        elif calories <= 950:
+            nutrition_scores.append(55)
         else:
             nutrition_scores.append(40)
 
     if "고단백" in goals:
         if protein >= 30:
             nutrition_scores.append(100)
+        elif protein >= 25:
+            nutrition_scores.append(90)
         elif protein >= 20:
             nutrition_scores.append(80)
+        elif protein >= 15:
+            nutrition_scores.append(65)
         elif protein >= 10:
-            nutrition_scores.append(60)
+            nutrition_scores.append(50)
         else:
-            nutrition_scores.append(40)
+            nutrition_scores.append(35)
 
     if "영양 균형" in goals:
-        if 500 <= calories <= 800 and protein >= 15:
-            nutrition_scores.append(100)
-        elif 400 <= calories <= 900:
-            nutrition_scores.append(80)
-        else:
+        total_macro = carbohydrate + protein + fat
+
+        if total_macro <= 0:
             nutrition_scores.append(60)
+        else:
+            carbohydrate_ratio = carbohydrate / total_macro
+            protein_ratio = protein / total_macro
+            fat_ratio = fat / total_macro
+
+            if (
+                0.45 <= carbohydrate_ratio <= 0.65
+                and 0.15 <= protein_ratio <= 0.35
+                and 0.15 <= fat_ratio <= 0.35
+                and 400 <= calories <= 850
+            ):
+                nutrition_scores.append(100)
+            elif (
+                0.35 <= carbohydrate_ratio <= 0.70
+                and 0.10 <= protein_ratio <= 0.40
+                and 0.10 <= fat_ratio <= 0.45
+                and 350 <= calories <= 950
+            ):
+                nutrition_scores.append(80)
+            else:
+                nutrition_scores.append(60)
 
     # 식비 절약, 간편식, 맛 중심만 선택된 경우 기본 영양 점수
     if not nutrition_scores:
@@ -171,3 +207,29 @@ def calculate_diversity_score(
             return max(0, diversity_score)
 
     return 100
+
+def get_menu_nutrients(menu: dict) -> dict:
+    """
+    메뉴 영양 정보를 통일된 형태로 가져온다.
+
+    기존 sample_menus 구조와
+    RAG nutrient_summary 구조를 모두 지원한다.
+    """
+
+    nutrient_summary = menu.get("nutrient_summary", {})
+
+    return {
+        "calories": menu.get("calories", 0),
+        "carbohydrate": menu.get(
+            "carbohydrate",
+            nutrient_summary.get("carbohydrate", 0)
+        ),
+        "protein": menu.get(
+            "protein",
+            nutrient_summary.get("protein", 0)
+        ),
+        "fat": menu.get(
+            "fat",
+            nutrient_summary.get("fat", 0)
+        )
+    }

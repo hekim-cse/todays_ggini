@@ -9,13 +9,16 @@ from services.recommendation.scoring_service import (
 
 def has_excluded_ingredient(menu: dict, excluded_ingredients: list) -> bool:
     """
-    메뉴에 사용자가 제외한 재료가 포함되어 있는지 확인한다.
+    메뉴에 사용자가 제외한 재료 또는 알레르기 재료가 포함되어 있는지 확인한다.
     """
 
     menu_ingredients = menu.get("ingredients", [])
+    menu_allergy_ingredients = menu.get("allergy_ingredients", [])
+
+    check_targets = menu_ingredients + menu_allergy_ingredients
 
     for excluded_ingredient in excluded_ingredients:
-        if excluded_ingredient in menu_ingredients:
+        if excluded_ingredient in check_targets:
             return True
 
     return False
@@ -50,11 +53,14 @@ def build_budget_reason(
     예산 점수에 따른 추천 이유를 만든다.
     """
 
-    menu_cost = menu["estimated_cost"]
-    meal_budget = profile["meal_budget"]
+    menu_cost = menu.get("estimated_cost")
+    meal_budget = profile.get("meal_budget", 0)
 
     if meal_budget <= 0:
         message = "한 끼 예산 정보가 없어 예산 적합도를 정확히 판단하기 어렵습니다."
+
+    elif menu_cost is None or menu_cost <= 0:
+        message = "메뉴 예상 가격을 계산하지 못해 예산 적합도는 중립적으로 반영되었습니다."
 
     elif menu_cost <= meal_budget:
         remain_budget = meal_budget - menu_cost
@@ -118,20 +124,23 @@ def build_nutrition_reason(
 
     goals = profile.get("goals", [])
     calories = menu.get("calories", 0)
-    protein = menu.get("protein", 0)
+    nutrient_summary = menu.get("nutrient_summary", {})
+    carbohydrate = menu.get("carbohydrate", nutrient_summary.get("carbohydrate", 0))
+    protein = menu.get("protein", nutrient_summary.get("protein", 0))
+    fat = menu.get("fat", nutrient_summary.get("fat", 0))
 
     nutrition_messages = []
 
     if "다이어트" in goals:
-        if calories <= 500:
+        if calories <= 500 and fat <= 15:
             nutrition_messages.append(
-                f"칼로리가 {calories}kcal로 낮아 다이어트 목표에 매우 적합합니다."
+                f"칼로리 {calories}kcal, 지방 {fat}g으로 다이어트 목표에 매우 적합합니다."
             )
-        elif calories <= 700:
+        elif calories <= 650 and fat <= 20:
             nutrition_messages.append(
-                f"칼로리가 {calories}kcal로 다이어트 식단에 적합한 편입니다."
+                f"칼로리 {calories}kcal, 지방 {fat}g으로 다이어트 식단에 적합한 편입니다."
             )
-        elif calories <= 900:
+        elif calories <= 800:
             nutrition_messages.append(
                 f"칼로리가 {calories}kcal로 다이어트 기준에서는 보통 수준입니다."
             )
@@ -159,18 +168,39 @@ def build_nutrition_reason(
             )
 
     if "영양 균형" in goals:
-        if 500 <= calories <= 800 and protein >= 15:
+        total_macro = carbohydrate + protein + fat
+
+        if total_macro <= 0:
             nutrition_messages.append(
-                f"칼로리 {calories}kcal, 단백질 {protein}g으로 영양 균형 목표에 매우 적합합니다."
-            )
-        elif 400 <= calories <= 900:
-            nutrition_messages.append(
-                f"칼로리 {calories}kcal로 식사 구성에 무리가 적은 편입니다."
+                "탄수화물, 단백질, 지방 정보가 부족해 영양 균형은 중립적으로 반영되었습니다."
             )
         else:
-            nutrition_messages.append(
-                f"칼로리 {calories}kcal 기준으로 영양 균형 측면에서는 조정이 필요할 수 있습니다."
-            )
+            carbohydrate_ratio = carbohydrate / total_macro
+            protein_ratio = protein / total_macro
+            fat_ratio = fat / total_macro
+
+            if (
+                0.45 <= carbohydrate_ratio <= 0.65
+                and 0.15 <= protein_ratio <= 0.35
+                and 0.15 <= fat_ratio <= 0.35
+                and 400 <= calories <= 850
+            ):
+                nutrition_messages.append(
+                    "탄수화물, 단백질, 지방 비율이 안정적이어서 영양 균형 목표에 매우 적합합니다."
+                )
+            elif (
+                0.35 <= carbohydrate_ratio <= 0.70
+                and 0.10 <= protein_ratio <= 0.40
+                and 0.10 <= fat_ratio <= 0.45
+                and 350 <= calories <= 950
+            ):
+                nutrition_messages.append(
+                    "탄수화물, 단백질, 지방 비율이 대체로 무난해 영양 균형 목표에 적합한 편입니다."
+                )
+            else:
+                nutrition_messages.append(
+                    "탄수화물, 단백질, 지방 비율 기준으로는 영양 균형 조정이 필요할 수 있습니다."
+                )
 
     if not nutrition_messages:
         if nutrition_score >= 75:
@@ -217,17 +247,17 @@ def build_preference_reason(
     if preference_score >= 90:
         if category_matched and matched_ingredient_groups:
             message = (
-                f"선호 카테고리인 {menu_category}에 해당하고, "
+                f"선호 카테고리 '{menu_category}'에 해당하고, "
                 f"선호 재료군({', '.join(matched_ingredient_groups)})도 포함되어 있습니다."
             )
         elif category_matched:
-            message = f"선호 카테고리인 {menu_category}에 해당해 취향 반영도가 높습니다."
+            message = f"선호 카테고리 '{menu_category}'에 해당해 취향 반영도가 높습니다."
         else:
             message = "선호 재료군이 충분히 포함되어 취향 반영도가 높습니다."
 
     elif preference_score >= 75:
         if category_matched:
-            message = f"선호 카테고리인 {menu_category}가 반영되어 선호도 기준에 적합합니다."
+            message = f"선호 카테고리 '{menu_category}'가 반영되어 선호도 기준에 적합합니다."
         elif matched_ingredient_groups:
             message = (
                 f"선호 재료군({', '.join(matched_ingredient_groups)})이 포함되어 "
@@ -262,20 +292,15 @@ def build_difficulty_reason(
     난이도 점수에 따른 추천 이유를 만든다.
     """
 
-    menu_difficulty = menu.get("difficulty", 0)
-    max_difficulty = profile.get("max_difficulty", 0)
+    menu_difficulty = menu.get("difficulty", 3)
+    max_difficulty = profile.get("max_difficulty", 3)
+    difficulty_detail = menu.get("difficulty_detail", {})
 
     if menu_difficulty <= max_difficulty:
-        if max_difficulty - menu_difficulty >= 2:
-            message = (
-                f"메뉴 난이도 {menu_difficulty}로 사용자 가능 난이도 {max_difficulty}보다 낮아 "
-                "조리 부담이 매우 적은 메뉴입니다."
-            )
-        else:
-            message = (
-                f"메뉴 난이도 {menu_difficulty}로 사용자 가능 난이도 {max_difficulty} 이내에 있어 "
-                "충분히 조리 가능한 메뉴입니다."
-            )
+        message = (
+            f"메뉴 난이도 {menu_difficulty}로 사용자 가능 난이도 {max_difficulty} 이내에 있어 "
+            "충분히 조리 가능한 메뉴입니다."
+        )
 
     else:
         difficulty_gap = menu_difficulty - max_difficulty
@@ -295,6 +320,13 @@ def build_difficulty_reason(
                 f"메뉴 난이도 {menu_difficulty}로 사용자 가능 난이도 {max_difficulty}보다 많이 높아 "
                 "현재 조리 실력 기준에서는 적합도가 낮습니다."
             )
+
+    if difficulty_detail:
+        message += (
+            f" 재료 {difficulty_detail.get('ingredient_count', 0)}개, "
+            f"조리 단계 {difficulty_detail.get('step_count', 0)}개, "
+            f"조리 시간 {difficulty_detail.get('cooking_time', 0)}분 기준입니다."
+        )
 
     return {
         "type": "difficulty",
@@ -332,10 +364,7 @@ def build_diversity_reason(
 
     elif diversity_score >= 40:
         if matched_similar_ids:
-            message = (
-                f"최근 선택된 메뉴와 유사한 메뉴군에 포함되어 "
-                f"다양성 점수가 낮게 반영되었습니다."
-            )
+            message = "최근 선택된 메뉴와 유사한 메뉴군에 포함되어 다양성 점수가 낮게 반영되었습니다."
         else:
             message = "식단 내 반복 가능성이 있어 다양성 기준에서는 아쉬운 메뉴입니다."
 
@@ -402,7 +431,7 @@ def calculate_final_score(
     weights = profile["weights"]
 
     budget_score = calculate_budget_score(
-        menu["estimated_cost"],
+        menu.get("estimated_cost"),
         profile["meal_budget"]
     )
 
@@ -417,7 +446,7 @@ def calculate_final_score(
     )
 
     difficulty_score = calculate_difficulty_score(
-        menu["difficulty"],
+        menu.get("difficulty", 3),
         profile["max_difficulty"]
     )
 
@@ -450,19 +479,31 @@ def calculate_final_score(
         scores=scores
     )
 
+    nutrient_summary = menu.get("nutrient_summary", {})
+
     return {
-        "menu_id": menu["menu_id"],
-        "name": menu["name"],
+        "menu_id": menu.get("menu_id"),
+        "name": menu.get("name"),
         "category": menu.get("category"),
         "final_score": round(final_score, 2),
         "scores": scores,
         "reasons": reasons,
-        "estimated_cost": menu["estimated_cost"],
-        "calories": menu["calories"],
-        "protein": menu["protein"],
+        "estimated_cost": menu.get("estimated_cost"),
+        "rag_estimated_cost": menu.get("rag_estimated_cost"),
+        "pricing_status": menu.get("pricing_status"),
+        "ingredient_costs": menu.get("ingredient_costs", []),
+        "calories": menu.get("calories", 0),
+        "nutrient_summary": nutrient_summary,
+        "carbohydrate": menu.get("carbohydrate", nutrient_summary.get("carbohydrate", 0)),
+        "protein": menu.get("protein", nutrient_summary.get("protein", 0)),
+        "fat": menu.get("fat", nutrient_summary.get("fat", 0)),
+        "difficulty": menu.get("difficulty", 3),
+        "difficulty_detail": menu.get("difficulty_detail", {}),
         "ingredients": menu.get("ingredients", []),
         "ingredient_groups": menu.get("ingredient_groups", []),
+        "ingredient_usages": menu.get("ingredient_usages", []),
         "similar_menu_ids": menu.get("similar_menu_ids", []),
+        "allergy_ingredients": menu.get("allergy_ingredients", []),
         "recipe": menu.get("recipe", {})
     }
 
@@ -477,13 +518,12 @@ def recommend_menus(menus: list, profile: dict, top_n: int = 5) -> list:
 
     recommendations = []
     selected_menu_ids = []
-
     candidate_menus = []
 
     for menu in menus:
         if has_excluded_ingredient(
             menu=menu,
-            excluded_ingredients=profile["allergy_ingredients"]
+            excluded_ingredients=profile.get("allergy_ingredients", [])
         ):
             continue
 
@@ -513,11 +553,11 @@ def recommend_menus(menus: list, profile: dict, top_n: int = 5) -> list:
         best_result = scored_menus[0]["result"]
 
         recommendations.append(best_result)
-        selected_menu_ids.append(best_menu["menu_id"])
+        selected_menu_ids.append(best_menu.get("menu_id"))
 
         candidate_menus = [
             menu for menu in candidate_menus
-            if menu["menu_id"] != best_menu["menu_id"]
+            if menu.get("menu_id") != best_menu.get("menu_id")
         ]
 
     return recommendations
