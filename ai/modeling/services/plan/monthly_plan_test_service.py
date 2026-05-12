@@ -1,6 +1,6 @@
 import random
 from datetime import datetime
-
+from copy import deepcopy
 from services.recommendation.recommendation_service import recommend_menus
 
 
@@ -66,6 +66,77 @@ def build_selected_style_summary(selected_style: dict) -> dict:
         "source_goal": selected_style.get("source_goal"),
         "focus_key": selected_style.get("focus_key")
     }
+
+
+def normalize_weights(weights: dict) -> dict:
+    """
+    가중치 합이 1이 되도록 정규화한다.
+    """
+
+    total = sum(weights.values())
+
+    if total == 0:
+        raise ValueError("가중치 합이 0입니다.")
+
+    return {
+        key: round(value / total, 4)
+        for key, value in weights.items()
+    }
+
+
+def apply_selected_style_to_profile(
+    profile: dict,
+    selected_style: dict
+) -> dict:
+    """
+    사용자가 선택한 3일 샘플 스타일을 월간 식단 생성용 profile에 반영한다.
+
+    3일 샘플 스타일은 단순 표시용이 아니라,
+    사용자가 실제로 선호한 방향을 나타내는 2차 사용자화 정보이다.
+
+    예:
+    - 가성비 최우선 선택 -> budget 가중치 증가
+    - 고단백/영양/다이어트 선택 -> nutrition 가중치 증가
+    - 간편 조리식 선택 -> difficulty 가중치 증가
+    - 취향 맞춤식 선택 -> preference 가중치 증가
+    """
+
+    monthly_profile = deepcopy(profile)
+
+    focus_key = selected_style.get("focus_key")
+
+    if not focus_key:
+        return monthly_profile
+
+    weights = deepcopy(monthly_profile.get("weights", {}))
+
+    if focus_key not in weights:
+        return monthly_profile
+
+    # 사용자가 직접 선택한 스타일이므로 월간 추천에서는 적당히 강하게 반영한다.
+    weights[focus_key] += 0.2
+
+    # 스타일별 보조 조정
+    if focus_key == "budget":
+        weights["nutrition"] = max(weights.get("nutrition", 0) - 0.05, 0)
+        weights["preference"] = max(weights.get("preference", 0) - 0.03, 0)
+
+    if focus_key == "nutrition":
+        weights["budget"] = max(weights.get("budget", 0) - 0.05, 0)
+
+    if focus_key == "difficulty":
+        weights["preference"] = max(weights.get("preference", 0) - 0.03, 0)
+
+    if focus_key == "preference":
+        weights["difficulty"] = max(weights.get("difficulty", 0) - 0.03, 0)
+
+    # 월간 식단에서는 반복 방지도 중요하므로 다양성은 살짝만 보정한다.
+    if "diversity" in weights:
+        weights["diversity"] += 0.05
+
+    monthly_profile["weights"] = normalize_weights(weights)
+
+    return monthly_profile
 
 
 def normalize_menu_name(name: str | None) -> str:
@@ -691,15 +762,20 @@ def build_monthly_plan_by_random_style(
 
     required_candidate_count = period_days * meal_count_per_day * 3
 
+    monthly_profile = apply_selected_style_to_profile(
+        profile=profile,
+        selected_style=selected_style_summary
+    )
+
     recommendations = recommend_menus(
         menus=candidate_menus,
-        profile=profile,
+        profile=monthly_profile,
         top_n=len(candidate_menus)
     )
 
     monthly_plan = build_monthly_plan(
         recommendations=recommendations,
-        profile=profile,
+        profile=monthly_profile,
         period_days=period_days,
         meal_count_per_day=meal_count_per_day
     )
@@ -713,6 +789,9 @@ def build_monthly_plan_by_random_style(
             "meal_count_per_day": meal_count_per_day,
             "required_candidate_count": required_candidate_count,
             "actual_recommendation_count": len(recommendations),
+            "base_weights": profile.get("weights"),
+            "applied_style_focus_key": selected_style_summary.get("focus_key"),
+            "applied_monthly_weights": monthly_profile.get("weights"),
             "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
         },
         "monthly_plan": monthly_plan
