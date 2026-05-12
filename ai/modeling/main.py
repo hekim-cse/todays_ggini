@@ -81,11 +81,15 @@ def main() -> None:
     2. Back → Modeling 3일치 샘플 추천 요청 JSON 구성
     3. 사용자 입력을 Modeling 내부 프로필로 변환
     4. 3일치 샘플 추천용 RAG 요청 생성
-    5. 테스트용 RAG 응답 JSON 로드
+    5. 3일치 샘플 추천용 RAG 응답 로드
     6. RAG 응답을 Modeling 추천용 메뉴 구조로 변환
     7. 3일치 meal_style 후보 생성
-    8. 테스트용 월간 식단 생성
-    9. 전체 데이터 흐름을 debug_result.json으로 저장
+    8. 테스트용으로 선택된 meal_style 확인
+    9. 월간 식단 생성용 RAG 요청을 별도로 생성
+    10. 월간 식단 생성용 RAG 응답 로드
+    11. 월간용 RAG 응답을 Modeling 추천용 메뉴 구조로 변환
+    12. 월간 후보 메뉴를 기반으로 월간 식단 생성
+    13. 전체 데이터 흐름을 debug_result.json으로 저장
     """
 
     debug_result = {}
@@ -115,6 +119,10 @@ def main() -> None:
 
     debug_result["modeling_profile"] = profile
 
+    # ============================================================
+    # 1단계: 3일 샘플 식단 추천용 RAG 요청
+    # ============================================================
+
     # 5. 3일치 샘플 추천에 필요한 RAG 후보 메뉴 개수 계산
     sample_candidate_count = calculate_candidate_count(
         meal_count_per_day=user_input["profile"]["meal_count_per_day"],
@@ -129,7 +137,7 @@ def main() -> None:
         candidate_count=sample_candidate_count
     )
 
-    print_json("\nModeling → RAG 요청 JSON", sample_rag_request)
+    print_json("\nModeling → RAG 3일 샘플 후보 요청 JSON", sample_rag_request)
 
     debug_result["modeling_to_rag_sample_request"] = sample_rag_request
 
@@ -139,20 +147,20 @@ def main() -> None:
 
     debug_result["rag_to_modeling_sample_response"] = sample_rag_response
 
-    # 8. RAG 응답을 Modeling 추천 로직용 메뉴 구조로 변환
+    # 8. 3일 샘플용 RAG 응답을 Modeling 추천 로직용 메뉴 구조로 변환
     mapped_sample_rag_result = map_rag_response_to_candidate_menus(
         sample_rag_response
     )
 
     debug_result["mapped_sample_candidate_menus"] = mapped_sample_rag_result
 
-    candidate_menus = mapped_sample_rag_result["candidate_menus"]
+    sample_candidate_menus = mapped_sample_rag_result["candidate_menus"]
 
     # 9. Modeling → Back 3일치 샘플 후보 추천 JSON
     meal_style_response = build_meal_style_candidates(
         user_id=user_input["user_id"],
         profile=profile,
-        candidate_menus=candidate_menus,
+        candidate_menus=sample_candidate_menus,
         sample_period_days=user_input["profile"].get("sample_period_days", 3),
         meal_count_per_day=user_input["profile"]["meal_count_per_day"]
     )
@@ -161,22 +169,63 @@ def main() -> None:
 
     debug_result["modeling_to_back_sample_response"] = meal_style_response
 
+    # ============================================================
+    # 2단계: 월간 식단 생성용 RAG 요청
+    # ============================================================
+
     # 10. 테스트용 월간 식단 생성
-    # build_monthly_plan_by_random_style 함수 내부에서
-    # meal_style_response의 후보 중 하나를 랜덤 선택한다.
+    # 기존 build_monthly_plan_by_random_style 함수는 내부에서 meal_style_response 중 하나를 랜덤 선택한다.
+    # 다만 월간 식단에는 샘플용 후보가 아니라 월간용 후보를 넣어야 하므로,
+    # 먼저 월간용 RAG 후보를 별도로 요청한다.
+
+    # 월간 식단 생성에 필요한 후보 개수 계산
+    monthly_candidate_count = calculate_candidate_count(
+        meal_count_per_day=user_input["profile"]["meal_count_per_day"],
+        period_days=user_input["profile"].get("period_days", 30),
+        buffer_multiplier=3
+    )
+
+    # Modeling → RAG 월간 후보 요청 JSON 생성
+    monthly_rag_request = build_rag_request(
+        user_input=user_input,
+        profile=profile,
+        candidate_count=monthly_candidate_count
+    )
+
+    print_json("\nModeling → RAG 월간 후보 요청 JSON", monthly_rag_request)
+
+    debug_result["modeling_to_rag_monthly_request"] = monthly_rag_request
+
+    # RAG → Modeling 월간 후보 응답 JSON
+    monthly_rag_response = request_candidate_menus_from_rag(monthly_rag_request)
+
+    debug_result["rag_to_modeling_monthly_response"] = monthly_rag_response
+
+    # 월간용 RAG 응답을 Modeling 추천 로직용 메뉴 구조로 변환
+    mapped_monthly_rag_result = map_rag_response_to_candidate_menus(
+        monthly_rag_response
+    )
+
+    debug_result["mapped_monthly_candidate_menus"] = mapped_monthly_rag_result
+
+    monthly_candidate_menus = mapped_monthly_rag_result["candidate_menus"]
+
+    # 월간 식단 생성
+    # 여기서 핵심은 candidate_menus에 sample_candidate_menus가 아니라
+    # monthly_candidate_menus를 넣는 것이다.
     monthly_plan_response = build_monthly_plan_by_random_style(
         user_id=user_input["user_id"],
-        candidate_menus=candidate_menus,
+        candidate_menus=monthly_candidate_menus,
         profile=profile,
         meal_style_response=meal_style_response
     )
 
-    # 11. 월간 식단 생성 결과에서 실제 선택된 스타일을 꺼낸다.
+    # 월간 식단 생성 결과에서 실제 선택된 스타일을 꺼낸다.
     selected_style_summary = monthly_plan_response["selected_style"]
 
     debug_result["selected_style"] = selected_style_summary
 
-    # 12. Back → Modeling 월간 식단 추천 요청 JSON
+    # 11. Back → Modeling 월간 식단 추천 요청 JSON
     back_to_modeling_monthly_request = build_back_to_modeling_monthly_request(
         user_input=user_input,
         selected_style=selected_style_summary
@@ -188,7 +237,7 @@ def main() -> None:
 
     debug_result["modeling_to_back_monthly_response"] = monthly_plan_response
 
-    # 13. 전체 데이터 흐름 저장
+    # 12. 전체 데이터 흐름 저장
     save_debug_result(debug_result)
 
 
