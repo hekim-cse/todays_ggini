@@ -7,8 +7,8 @@ class MealPlanLoadingRepository {
   MealPlanLoadingRepository(this._dio);
 
   Future<MealPlanJob> generateMealPlan() async {
-    // baseUrl 뒤에 '/meal-plans/generate' 경로를 붙여 POST 요청
-    final response = await _dio.post('/meal-plans/generate');
+    // 백엔드: POST /api/v1/meal/generate
+    final response = await _dio.post('/meal/generate');
     // 서버 응답 데이터를 Map<String, dynamic>으로 변환한 뒤,
     // MealPlanJob.fromJson을 통해 Domain 객체로 변환
     return MealPlanJob.fromJson(response.data as Map<String, dynamic>);

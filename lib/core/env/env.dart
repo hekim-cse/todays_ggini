@@ -13,8 +13,10 @@ class Env {
   );
 
   /// 백엔드 base URL.
+  /// FastAPI 백엔드 기준: 호스트 + `/api/v1` 까지 포함.
+  /// 각 repository 의 path 는 `/meal/...`, `/shopping/...` 식으로 그룹부터 시작.
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:3000/v1',
+    defaultValue: 'http://localhost:8000/api/v1',
   );
 }

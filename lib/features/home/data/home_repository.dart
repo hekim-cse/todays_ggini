@@ -9,17 +9,18 @@ class HomeRepository {
   HomeRepository(this._dio);
 
   // 특정 날짜의 하루 식단 (slot별 요약 정보)
-  // API 명세서 5번: GET /meal-plans/{date}
+  // 백엔드: GET /api/v1/meal/{date}
   Future<DailyMealPlan> fetchDailyMealPlan(DateTime date) async {
     final dateStr = formatDate(date);
-    final response = await _dio.get('/meal-plans/$dateStr');
+    final response = await _dio.get('/meal/$dateStr');
     return DailyMealPlan.fromJson(response.data as Map<String, dynamic>);
   }
 
   // 특정 메뉴의 상세 정보 (재료 + 마켓별 가격)
-  // API 명세서 6번: GET /menus/{meal_id}
+  // 백엔드: GET /api/v1/meal/menus/{meal_id} — 단, 현재 백엔드 미구현
+  // 백엔드 팀에 추가 요청 필요. 그 전까지는 mock 응답으로 동작
   Future<MenuDetail> fetchMenuDetail(String mealId) async {
-    final response = await _dio.get('/menus/$mealId');
+    final response = await _dio.get('/meal/menus/$mealId');
     return MenuDetail.fromJson(response.data as Map<String, dynamic>);
   }
 }

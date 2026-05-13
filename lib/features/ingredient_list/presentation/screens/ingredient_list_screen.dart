@@ -205,7 +205,7 @@ class IngredientListScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '장볼 재료 ${checkedCount}개 · 부재료 0개 포함',
+              '장볼 재료 $checkedCount개 · 부재료 0개 포함',
               style: const TextStyle(
                 fontSize: 13,
                 color: AppColors.textPrimary,

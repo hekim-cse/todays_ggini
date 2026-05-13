@@ -16,82 +16,83 @@ class MockInterceptor extends Interceptor {
     // 'POST /auth/social-login': 'assets/mocks/auth/social-login_new-user.json',
     // 'GET /meal-plan/preview':  'assets/mocks/meal-plan/preview_single-value.json',
     // ...
-    'POST /meal-plans/generate': 'assets/mocks/meal-plans/generate.json',
-    'GET /shopping-list': 'assets/mocks/shopping-list/shopping-list.json',
+    'POST /meal/generate': 'assets/mocks/meal-plans/generate.json', // 식단 생성 트리거
+    'GET /shopping/shopping-list':
+        'assets/mocks/shopping-list/shopping-list.json', // 장보기 목록
   };
 
   // 패턴 매칭 (신규). path parameter가 있는 엔드포인트용
   // 정규식과 mock asset 경로 쌍
   static final List<({RegExp pattern, String asset})> _mockPatterns = [
-    // GET /meal-plans/{date} → 날짜 무관하게 같은 mock
+    // GET /meal/{date} → 날짜 무관하게 같은 mock
     (
-      pattern: RegExp(r'^GET /meal-plans/\d{4}-\d{2}-\d{2}$'),
+      pattern: RegExp(r'^GET /meal/\d{4}-\d{2}-\d{2}$'),
       asset: 'assets/mocks/meal-plans/daily.json',
     ),
-    // GET /menus/{meal_id} → meal_id별로 분기
+    // GET /meal/menus/{meal_id} → meal_id별로 분기
     (
-      pattern: RegExp(r'^GET /menus/M_001$'),
+      pattern: RegExp(r'^GET /meal/menus/M_001$'),
       asset: 'assets/mocks/menus/M_001.json',
     ),
     (
-      pattern: RegExp(r'^GET /menus/M_002$'),
+      pattern: RegExp(r'^GET /meal/menus/M_002$'),
       asset: 'assets/mocks/menus/M_002.json',
     ),
     (
-      pattern: RegExp(r'^GET /menus/M_003$'),
+      pattern: RegExp(r'^GET /meal/menus/M_003$'),
       asset: 'assets/mocks/menus/M_003.json',
     ),
     // 캘린더: 월별로 분기
     (
-      pattern: RegExp(r'^GET /meal-plans/calendar\?month=2026-04$'),
+      pattern: RegExp(r'^GET /meal/calendar\?month=2026-04$'),
       asset: 'assets/mocks/meal-plans/calendar_2026-04.json',
     ),
     (
-      pattern: RegExp(r'^GET /meal-plans/calendar\?month=2026-05$'),
+      pattern: RegExp(r'^GET /meal/calendar\?month=2026-05$'),
       asset: 'assets/mocks/meal-plans/calendar_2026-05.json',
     ),
-    // 다른 달은 빈 응답 (식단 없음) — 새 파일 만들어야 함
+    // 다른 달은 빈 응답 (식단 없음)
     (
-      pattern: RegExp(r'^GET /meal-plans/calendar\?month=\d{4}-\d{2}$'),
+      pattern: RegExp(r'^GET /meal/calendar\?month=\d{4}-\d{2}$'),
       asset: 'assets/mocks/meal-plans/calendar_empty.json',
     ),
     // 재료 가격 비교 — 재료 ID별로 분기
     (
-      pattern: RegExp(r'^GET /ingredients/I_001/prices$'),
+      pattern: RegExp(r'^GET /shopping/ingredients/I_001/prices$'),
       asset: 'assets/mocks/ingredients/I_001_prices.json',
     ),
     (
-      pattern: RegExp(r'^GET /ingredients/I_002/prices$'),
+      pattern: RegExp(r'^GET /shopping/ingredients/I_002/prices$'),
       asset: 'assets/mocks/ingredients/I_002_prices.json',
     ),
     (
-      pattern: RegExp(r'^GET /ingredients/I_003/prices$'),
+      pattern: RegExp(r'^GET /shopping/ingredients/I_003/prices$'),
       asset: 'assets/mocks/ingredients/I_003_prices.json',
     ),
     (
-      pattern: RegExp(r'^GET /ingredients/I_004/prices$'),
+      pattern: RegExp(r'^GET /shopping/ingredients/I_004/prices$'),
       asset: 'assets/mocks/ingredients/I_004_prices.json',
     ),
     (
-      pattern: RegExp(r'^GET /ingredients/I_005/prices$'),
+      pattern: RegExp(r'^GET /shopping/ingredients/I_005/prices$'),
       asset: 'assets/mocks/ingredients/I_005_prices.json',
     ),
     (
-      pattern: RegExp(r'^GET /ingredients/I_006/prices$'),
+      pattern: RegExp(r'^GET /shopping/ingredients/I_006/prices$'),
       asset: 'assets/mocks/ingredients/I_006_prices.json',
     ),
     (
-      pattern: RegExp(r'^GET /ingredients/I_007/prices$'),
+      pattern: RegExp(r'^GET /shopping/ingredients/I_007/prices$'),
       asset: 'assets/mocks/ingredients/I_007_prices.json',
     ),
-    // GET /menus/{meal_id}/alternatives → 어떤 meal_id 든 같은 mock 응답
+    // GET /meal/menus/{meal_id}/alternatives → 어떤 meal_id 든 같은 mock 응답
     (
-      pattern: RegExp(r'^GET /menus/M_\d+/alternatives$'),
+      pattern: RegExp(r'^GET /meal/menus/M_\d+/alternatives$'),
       asset: 'assets/mocks/menus/M_001_alternatives.json',
     ),
-    // PUT /meal-plans/{date}/menus/{slot} → 어떤 date·slot 이든 같은 mock 응답
+    // PUT /meal/{date}/menus/{slot} → 어떤 date·slot 이든 같은 mock 응답
     (
-      pattern: RegExp(r'^PUT /meal-plans/\d{4}-\d{2}-\d{2}/menus/\d+$'),
+      pattern: RegExp(r'^PUT /meal/\d{4}-\d{2}-\d{2}/menus/\d+$'),
       asset: 'assets/mocks/meal-plans/menu-change-response.json',
     ),
   ];
