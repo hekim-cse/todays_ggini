@@ -21,7 +21,11 @@ class IngredientRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final lowest = ingredient.lowestPrice;
+    // 사용자가 선택한 마켓이 있으면 그 가격/마켓을 우선 표시.
+    // 선택 없거나 재고 없으면 최저가 마켓으로 폴백 (effective* 가 처리).
+    final shownPrice = ingredient.effectivePrice(selectedMarket);
+    final shownMarket = ingredient.effectiveMarket(selectedMarket);
+    final isUserPick = selectedMarket != null && shownMarket == selectedMarket;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -82,7 +86,7 @@ class IngredientRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '₩${formatPrice(lowest.price)}',
+                '₩${formatPrice(shownPrice)}',
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
@@ -91,7 +95,9 @@ class IngredientRow extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                '${_marketLabel(lowest.market)} 최저가',
+                isUserPick
+                    ? _marketLabel(shownMarket)
+                    : '${_marketLabel(shownMarket)} 최저가',
                 style: const TextStyle(
                   fontSize: 11,
                   color: AppColors.textPrimary,
