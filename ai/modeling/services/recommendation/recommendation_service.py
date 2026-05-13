@@ -410,28 +410,28 @@ def calculate_high_protein_soft_constraint_score(menu: dict) -> float:
     """
     고단백 스타일에서 단백질 함량을 기준으로 추가 보정 점수를 계산한다.
 
-    protein이 높은 메뉴는 가산하고,
-    protein이 낮은 메뉴는 감점한다.
+    월간 식단에서는 단백질만 과도하게 높이는 것보다
+    단백질 적합성과 메뉴 다양성을 함께 유지하는 것이 중요하다.
     """
 
     protein = menu.get("protein", 0)
 
     if protein >= 35:
-        return 5
+        return 3
 
     if protein >= 30:
-        return 3
+        return 2
 
     if protein >= 25:
         return 1
 
-    if protein >= 20:
+    if protein >= 22:
+        return 0
+
+    if protein >= 18:
         return -2
 
-    if protein >= 15:
-        return -5
-
-    return -8
+    return -4
 
 
 def calculate_easy_cooking_soft_constraint_score(scores: dict) -> float:
@@ -439,26 +439,27 @@ def calculate_easy_cooking_soft_constraint_score(scores: dict) -> float:
     간편식 스타일에서 difficulty_score를 기준으로 추가 보정 점수를 계산한다.
 
     difficulty_score가 높다는 것은 사용자 조리 실력 대비 부담이 낮다는 뜻이다.
+    간편식 스타일에서는 조리 부담이 낮은 메뉴가 더 우선되도록 보정한다.
     """
 
     difficulty_score = scores.get("difficulty", 0)
 
     if difficulty_score >= 90:
-        return 5
+        return 8
 
     if difficulty_score >= 80:
-        return 3
+        return 6
 
     if difficulty_score >= 70:
-        return 1
+        return 4
 
     if difficulty_score >= 60:
-        return -2
+        return 0
 
     if difficulty_score >= 40:
-        return -5
+        return -6
 
-    return -8
+    return -10
 
 
 def build_recommendation_reasons(

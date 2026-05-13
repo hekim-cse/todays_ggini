@@ -493,27 +493,158 @@ def rerank_menus_by_mmr(
     return reranked_menus
 
 
+def filter_menus_by_style_priority(
+    menus: list[dict],
+    profile: dict
+) -> list[dict]:
+    """
+    선택된 스타일에 따라 월간 배치에서 우선적으로 고려할 후보 메뉴를 걸러낸다.
+
+    이 함수는 하드 필터가 아니다.
+    스타일에 더 잘 맞는 후보를 먼저 시도하되,
+    후보가 너무 좁아져 반복이 심해지면 전체 후보를 유지한다.
+    """
+
+    selected_style_goal = profile.get("selected_style_goal")
+
+    if selected_style_goal == "고단백":
+        protein_30_menus = [
+            menu for menu in menus
+            if menu.get("protein", 0) >= 30
+        ]
+
+        # 30g 이상 메뉴가 충분히 많을 때만 사용한다.
+        if len(protein_30_menus) >= 20:
+            return protein_30_menus
+
+        protein_25_menus = [
+            menu for menu in menus
+            if menu.get("protein", 0) >= 25
+        ]
+
+        # 월간 식단에서는 후보 폭이 중요하므로 최소 20개 이상일 때만 제한한다.
+        if len(protein_25_menus) >= 20:
+            return protein_25_menus
+
+        protein_22_menus = [
+            menu for menu in menus
+            if menu.get("protein", 0) >= 22
+        ]
+
+        if len(protein_22_menus) >= 20:
+            return protein_22_menus
+
+        # 후보가 부족하면 전체 후보를 유지한다.
+        return menus
+
+    if selected_style_goal == "간편식":
+        difficulty_70_menus = [
+            menu for menu in menus
+            if menu.get("scores", {}).get("difficulty", 0) >= 70
+        ]
+
+        if len(difficulty_70_menus) >= 20:
+            return difficulty_70_menus
+
+        difficulty_60_menus = [
+            menu for menu in menus
+            if menu.get("scores", {}).get("difficulty", 0) >= 60
+        ]
+
+        if len(difficulty_60_menus) >= 20:
+            return difficulty_60_menus
+
+    return menus
+
+
+def sort_style_priority_menus(
+    menus: list[dict],
+    profile: dict
+) -> list[dict]:
+    """
+    스타일별 우선 후보 안에서도 더 적합한 메뉴가 먼저 오도록 정렬한다.
+    """
+
+    selected_style_goal = profile.get("selected_style_goal")
+
+    if selected_style_goal == "고단백":
+        return sorted(
+            menus,
+            key=lambda menu: (
+                menu.get("mmr_score", 0),
+                menu.get("protein", 0),
+                menu.get("final_score", 0)
+            ),
+            reverse=True
+        )
+
+    if selected_style_goal == "간편식":
+        return sorted(
+            menus,
+            key=lambda menu: (
+                menu.get("mmr_score", 0),
+                menu.get("scores", {}).get("difficulty", 0),
+                menu.get("final_score", 0)
+            ),
+            reverse=True
+        )
+
+    return menus
+
+
 def select_menu_for_meal(
     recommendations: list[dict],
     exposed_menus: list[dict],
     used_menu_count: dict,
-    diversity_penalty_strength: float
+    diversity_penalty_strength: float,
+    profile: dict
 ) -> dict:
     """
     한 끼에 들어갈 대표 메뉴를 선택한다.
+
+    선택 기준:
+    1. MMR 점수가 높은 메뉴 우선
+    2. 선택된 스타일에 맞는 후보 우선
+       - 고단백: protein 25g 이상 메뉴 우선
+       - 간편식: difficulty_score 70 이상 메뉴 우선
+    3. 최근 노출 메뉴(selected + alternative)와 유사하지 않은 메뉴 우선
+    4. 조건을 만족하는 후보가 없으면 기존 MMR 순서로 fallback
     """
 
     reranked_menus = rerank_menus_by_mmr(
         recommendations=recommendations,
         exposed_menus=exposed_menus,
         used_menu_count=used_menu_count,
-        diversity_penalty_strength=diversity_penalty_strength,
+        diversity_penalty_strength=diversity_penalty_strength
     )
 
+    style_priority_menus = filter_menus_by_style_priority(
+        menus=reranked_menus,
+        profile=profile
+    )
+
+    style_priority_menus = sort_style_priority_menus(
+        menus=style_priority_menus,
+        profile=profile
+    )
+
+    # 1차 선택: 스타일 우선 후보 중 최근 노출 메뉴와 유사하지 않은 메뉴 선택
+    for menu in style_priority_menus:
+        if not is_similar_to_exposed_menus(
+            menu=menu,
+            exposed_menus=exposed_menus
+        ):
+            return menu
+
+    # 2차 선택: 스타일 우선 후보는 유지하되, 유사도 조건만 완화
+    if style_priority_menus:
+        return style_priority_menus[0]
+
+    # 3차 fallback: 기존 MMR 후보 중 유사하지 않은 메뉴 선택
     for menu in reranked_menus:
         if not is_similar_to_exposed_menus(
             menu=menu,
-            exposed_menus=exposed_menus,
+            exposed_menus=exposed_menus
         ):
             return menu
 
@@ -826,16 +957,20 @@ def validate_high_protein_style(
 ) -> dict:
     """
     고단백 스타일 검증.
+
+    월간 식단은 여러 메뉴를 섞어 구성되므로,
+    모든 끼니가 30g 이상 단백질을 가지기는 어렵다.
+    따라서 평균 28g 이상이면 고단백 스타일이 충분히 반영된 것으로 본다.
     """
 
     average_protein = summary.get("average_protein", 0)
 
-    if average_protein >= 30:
+    if average_protein >= 28:
         status = "pass"
-        message = "고단백 스타일에 맞게 평균 단백질이 높게 구성되었습니다."
+        message = "고단백 스타일에 맞게 평균 단백질이 충분히 높게 구성되었습니다."
     elif average_protein >= 25:
         status = "warning"
-        message = "고단백 스타일이 어느 정도 반영되었지만, 평균 단백질을 더 높일 여지가 있습니다."
+        message = "고단백 스타일이 어느 정도 반영되었지만, 평균 단백질을 조금 더 높일 여지가 있습니다."
     else:
         status = "fail"
         message = "고단백 스타일에 비해 평균 단백질이 낮아 보완이 필요합니다."
@@ -846,7 +981,7 @@ def validate_high_protein_style(
         "message": message,
         "checked_metrics": {
             "average_protein": average_protein,
-            "recommended_minimum_protein": 30,
+            "recommended_minimum_protein": 28,
         },
     }
 
@@ -1007,14 +1142,17 @@ def validate_easy_cooking_style(
 ) -> dict:
     """
     간편식 스타일 검증.
+
+    현재 난이도는 재료 수, 조리 단계 수, 조리 시간, 조리 동작 키워드를 기반으로 계산된다.
+    월간 식단 전체 평균 기준에서는 75점 이상이면 간편식 스타일이 잘 반영된 것으로 본다.
     """
 
     average_difficulty_score = summary.get("average_difficulty_score", 0)
 
-    if average_difficulty_score >= 85:
+    if average_difficulty_score >= 75:
         status = "pass"
-        message = "조리 난이도 점수가 높아 간편식 스타일이 잘 반영되었습니다."
-    elif average_difficulty_score >= 70:
+        message = "조리 난이도 점수가 충분히 높아 간편식 스타일이 잘 반영되었습니다."
+    elif average_difficulty_score >= 65:
         status = "warning"
         message = "간편식 스타일이 어느 정도 반영되었지만, 더 쉬운 메뉴를 늘릴 수 있습니다."
     else:
@@ -1027,7 +1165,7 @@ def validate_easy_cooking_style(
         "message": message,
         "checked_metrics": {
             "average_difficulty_score": average_difficulty_score,
-            "recommended_minimum_difficulty_score": 85,
+            "recommended_minimum_difficulty_score": 75,
         },
     }
 
@@ -1115,6 +1253,7 @@ def build_monthly_plan(
                 exposed_menus=exposed_menus,
                 used_menu_count=used_menu_count,
                 diversity_penalty_strength=diversity_penalty_strength,
+                profile=profile
             )
 
             alternative_menus = select_alternative_menus(
@@ -1195,13 +1334,13 @@ def build_secondary_warnings(summary: dict) -> list[dict]:
             "recommended_minimum": 60
         })
 
-    if average_preference_score < 65:
+    if average_preference_score < 60:
         warnings.append({
             "type": "preference",
             "level": "warning",
             "message": "선호도 점수가 낮아 사용자 취향 반영이 약할 수 있습니다.",
             "value": average_preference_score,
-            "recommended_minimum": 65
+            "recommended_minimum": 60
         })
 
     if average_diversity_score < 75:
@@ -1265,17 +1404,39 @@ def enrich_style_validation(
 ) -> dict:
     """
     기본 style_validation 결과에 보조 경고와 개선 힌트를 추가한다.
+
+    스타일 자체 기준은 통과해도,
+    동일 메뉴 반복이 많으면 사용자 경험상 완전한 pass로 보기 어렵다.
     """
 
     secondary_warnings = build_secondary_warnings(summary)
 
+    duplicate_menu_count = summary.get("duplicate_menu_count", 0)
+    selected_menu_count = summary.get("selected_menu_count", 0)
+
+    validation_status = style_validation.get("status", "unknown")
+
+    if selected_menu_count > 0:
+        duplicate_rate = duplicate_menu_count / selected_menu_count
+    else:
+        duplicate_rate = 0
+
+    adjusted_style_validation = dict(style_validation)
+
+    if validation_status == "pass" and duplicate_rate >= 0.25:
+        adjusted_style_validation["status"] = "warning"
+        adjusted_style_validation["message"] = (
+            adjusted_style_validation.get("message", "")
+            + " 다만 동일 메뉴 반복 비율이 높아 월간 식단 다양성 보완이 필요합니다."
+        )
+
     recommendation_hint = build_recommendation_hint(
         selected_style=selected_style,
-        validation_status=style_validation.get("status", "unknown")
+        validation_status=adjusted_style_validation.get("status", "unknown")
     )
 
     return {
-        **style_validation,
+        **adjusted_style_validation,
         "secondary_warnings": secondary_warnings,
         "recommendation_hint": recommendation_hint
     }
