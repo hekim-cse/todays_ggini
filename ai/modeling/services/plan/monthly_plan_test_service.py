@@ -1,6 +1,7 @@
 import random
 from datetime import datetime
 from copy import deepcopy
+
 from services.recommendation.recommendation_service import recommend_menus
 
 
@@ -64,7 +65,7 @@ def build_selected_style_summary(selected_style: dict) -> dict:
         "description": selected_style.get("description"),
         "summary_comment": selected_style.get("summary_comment"),
         "source_goal": selected_style.get("source_goal"),
-        "focus_key": selected_style.get("focus_key")
+        "focus_key": selected_style.get("focus_key"),
     }
 
 
@@ -84,7 +85,6 @@ def normalize_weights(weights: dict) -> dict:
     }
 
 
-
 def get_nutrition_detail_weights_by_style(selected_style: dict) -> dict:
     """
     사용자가 선택한 스타일에 따라 nutrition 내부 세부 가중치를 만든다.
@@ -95,11 +95,6 @@ def get_nutrition_detail_weights_by_style(selected_style: dict) -> dict:
     - diet: 칼로리와 지방 중심
     - high_protein: 단백질 중심
     - balance: 탄수화물/단백질/지방 비율 중심
-
-    예:
-    - 다이어트 스타일 선택 -> diet 비중 강화
-    - 고단백 스타일 선택 -> high_protein 비중 강화
-    - 영양 균형 스타일 선택 -> balance 비중 강화
     """
 
     source_goal = selected_style.get("source_goal")
@@ -108,27 +103,27 @@ def get_nutrition_detail_weights_by_style(selected_style: dict) -> dict:
         return {
             "diet": 0.75,
             "high_protein": 0.10,
-            "balance": 0.15
+            "balance": 0.15,
         }
 
     if source_goal == "고단백":
         return {
             "diet": 0.15,
             "high_protein": 0.65,
-            "balance": 0.20
+            "balance": 0.20,
         }
 
     if source_goal == "영양 균형":
         return {
             "diet": 0.20,
             "high_protein": 0.20,
-            "balance": 0.60
+            "balance": 0.60,
         }
 
     return {
         "diet": 0.33,
         "high_protein": 0.34,
-        "balance": 0.33
+        "balance": 0.33,
     }
 
 
@@ -141,7 +136,6 @@ def apply_selected_style_to_profile(
     """
 
     monthly_profile = deepcopy(profile)
-
     focus_key = selected_style.get("focus_key")
 
     if not focus_key:
@@ -188,10 +182,6 @@ def apply_selected_style_to_profile(
 def normalize_menu_name(name: str | None) -> str:
     """
     메뉴 이름에서 스타일 수식어를 제거해 유사 메뉴 비교용 이름을 만든다.
-
-    예:
-    - 담백한 닭가슴살 포케 -> 닭가슴살 포케
-    - 저칼로리 닭가슴살 포케 -> 닭가슴살 포케
     """
 
     if not name:
@@ -249,7 +239,7 @@ def calculate_ingredient_similarity(
 
     return calculate_jaccard_similarity(
         get_menu_ingredient_set(first_menu),
-        get_menu_ingredient_set(second_menu)
+        get_menu_ingredient_set(second_menu),
     )
 
 
@@ -263,7 +253,7 @@ def calculate_ingredient_group_similarity(
 
     return calculate_jaccard_similarity(
         get_menu_ingredient_group_set(first_menu),
-        get_menu_ingredient_group_set(second_menu)
+        get_menu_ingredient_group_set(second_menu),
     )
 
 
@@ -302,12 +292,12 @@ def calculate_menu_similarity_score(
 
     ingredient_similarity = calculate_ingredient_similarity(
         first_menu=first_menu,
-        second_menu=second_menu
+        second_menu=second_menu,
     )
 
     ingredient_group_similarity = calculate_ingredient_group_similarity(
         first_menu=first_menu,
-        second_menu=second_menu
+        second_menu=second_menu,
     )
 
     category_similarity = 0
@@ -318,7 +308,7 @@ def calculate_menu_similarity_score(
     return max(
         ingredient_similarity,
         ingredient_group_similarity * 0.8,
-        category_similarity
+        category_similarity,
     )
 
 
@@ -328,18 +318,11 @@ def are_menus_similar(
 ) -> bool:
     """
     두 메뉴가 서로 유사한지 판단한다.
-
-    판단 기준:
-    1. menu_id가 같으면 유사
-    2. similar_menu_ids에 서로 포함되면 유사
-    3. 수식어를 제거한 메뉴명이 같으면 유사
-    4. 재료 구성이 60% 이상 같으면 유사
-    5. 재료군 구성이 80% 이상 같으면 유사
     """
 
     similarity_score = calculate_menu_similarity_score(
         first_menu=first_menu,
-        second_menu=second_menu
+        second_menu=second_menu,
     )
 
     if similarity_score >= 0.6:
@@ -371,9 +354,7 @@ def get_recent_exposed_menus(
             if selected_menu:
                 exposed_menus.append(selected_menu)
 
-            alternative_menus = meal.get("alternative_menus", [])
-
-            for alternative_menu in alternative_menus:
+            for alternative_menu in meal.get("alternative_menus", []):
                 exposed_menus.append(alternative_menu)
 
     return exposed_menus
@@ -393,14 +374,13 @@ def is_similar_to_exposed_menus(
 
     return False
 
+
 def is_similar_to_any_menu(
     menu: dict,
     menus: list[dict]
 ) -> bool:
     """
     현재 후보 메뉴가 주어진 메뉴 목록 중 하나라도 유사한지 확인한다.
-
-    대안 메뉴끼리 서로 비슷한 메뉴가 같이 들어가는 것을 막기 위해 사용한다.
     """
 
     for target_menu in menus:
@@ -426,7 +406,7 @@ def calculate_max_similarity_to_exposed_menus(
     for exposed_menu in exposed_menus:
         similarity_score = calculate_menu_similarity_score(
             first_menu=menu,
-            second_menu=exposed_menu
+            second_menu=exposed_menu,
         )
 
         if similarity_score > max_similarity:
@@ -443,10 +423,6 @@ def calculate_mmr_score(
 ) -> float:
     """
     MMR 방식으로 메뉴 점수를 계산한다.
-
-    MMR = 추천 적합도 * lambda - 유사도 패널티 * (1 - lambda)
-
-    여기에 사용 횟수 패널티를 추가해 특정 메뉴가 반복 선택되는 것을 줄인다.
     """
 
     lambda_score = get_mmr_lambda(diversity_penalty_strength)
@@ -454,7 +430,7 @@ def calculate_mmr_score(
     final_score = menu.get("final_score", 0)
     max_similarity = calculate_max_similarity_to_exposed_menus(
         menu=menu,
-        exposed_menus=exposed_menus
+        exposed_menus=exposed_menus,
     )
 
     menu_id = menu.get("menu_id")
@@ -490,12 +466,12 @@ def rerank_menus_by_mmr(
             menu=menu,
             exposed_menus=exposed_menus,
             used_menu_count=used_menu_count,
-            diversity_penalty_strength=diversity_penalty_strength
+            diversity_penalty_strength=diversity_penalty_strength,
         )
 
         reranked_menu = {
             **menu,
-            "mmr_score": round(mmr_score, 2)
+            "mmr_score": round(mmr_score, 2),
         }
 
         reranked_menus.append(reranked_menu)
@@ -504,9 +480,9 @@ def rerank_menus_by_mmr(
         key=lambda menu: (
             menu.get("mmr_score", 0),
             -used_menu_count.get(menu.get("menu_id"), 0),
-            menu.get("final_score", 0)
+            menu.get("final_score", 0),
         ),
-        reverse=True
+        reverse=True,
     )
 
     return reranked_menus
@@ -520,24 +496,19 @@ def select_menu_for_meal(
 ) -> dict:
     """
     한 끼에 들어갈 대표 메뉴를 선택한다.
-
-    선택 기준:
-    1. MMR 점수가 높은 메뉴 우선
-    2. 최근 노출 메뉴(selected + alternative)와 유사하지 않은 메뉴 우선
-    3. 사용 횟수가 적은 메뉴 우선
     """
 
     reranked_menus = rerank_menus_by_mmr(
         recommendations=recommendations,
         exposed_menus=exposed_menus,
         used_menu_count=used_menu_count,
-        diversity_penalty_strength=diversity_penalty_strength
+        diversity_penalty_strength=diversity_penalty_strength,
     )
 
     for menu in reranked_menus:
         if not is_similar_to_exposed_menus(
             menu=menu,
-            exposed_menus=exposed_menus
+            exposed_menus=exposed_menus,
         ):
             return menu
 
@@ -555,32 +526,20 @@ def select_alternative_menus(
     """
     선택 메뉴에 대한 대체 메뉴를 고른다.
 
-    대안 메뉴는 사용자의 다양성 설정과 관계없이
-    항상 높은 다양성 기준을 적용한다.
-
-    이유:
-    - 대안 메뉴는 사용자에게 비교 선택지를 제공하는 영역이다.
-    - 대표 메뉴와 비슷한 메뉴가 대안으로 나오면 선택 의미가 약해진다.
-    - 따라서 월간 식단의 다양성 설정보다 더 강하게 중복을 제한한다.
+    대안 메뉴는 사용자의 다양성 설정과 관계없이 항상 높은 다양성 기준을 적용한다.
     """
 
     alternative_menus = []
-
-    # 대안 메뉴는 항상 다양성을 강하게 적용한다.
     alternative_diversity_strength = max(diversity_penalty_strength, 0.8)
-
-    # selected_menu도 이미 노출된 메뉴로 간주한다.
     local_exposed_menus = exposed_menus + [selected_menu]
 
     reranked_menus = rerank_menus_by_mmr(
         recommendations=recommendations,
         exposed_menus=local_exposed_menus,
         used_menu_count=used_menu_count,
-        diversity_penalty_strength=alternative_diversity_strength
+        diversity_penalty_strength=alternative_diversity_strength,
     )
 
-    # 1차 선택:
-    # selected_menu, 최근 노출 메뉴, 이미 고른 대안 메뉴와 모두 유사하지 않은 메뉴만 선택한다.
     for candidate_menu in reranked_menus:
         if candidate_menu.get("menu_id") == selected_menu.get("menu_id"):
             continue
@@ -590,13 +549,13 @@ def select_alternative_menus(
 
         if is_similar_to_exposed_menus(
             menu=candidate_menu,
-            exposed_menus=local_exposed_menus
+            exposed_menus=local_exposed_menus,
         ):
             continue
 
         if is_similar_to_any_menu(
             menu=candidate_menu,
-            menus=alternative_menus
+            menus=alternative_menus,
         ):
             continue
 
@@ -606,9 +565,6 @@ def select_alternative_menus(
         if len(alternative_menus) >= alternative_count:
             return alternative_menus
 
-    # 2차 선택:
-    # 후보가 부족한 경우 최근 노출 조건만 완화한다.
-    # 그래도 selected_menu와 대안 메뉴끼리 유사한 것은 계속 금지한다.
     for candidate_menu in reranked_menus:
         if len(alternative_menus) >= alternative_count:
             break
@@ -624,7 +580,7 @@ def select_alternative_menus(
 
         if is_similar_to_any_menu(
             menu=candidate_menu,
-            menus=alternative_menus
+            menus=alternative_menus,
         ):
             continue
 
@@ -641,10 +597,6 @@ def increase_used_menu_count(
 ) -> None:
     """
     메뉴 사용 횟수를 증가시킨다.
-
-    selected_menu는 1점,
-    alternative_menus는 0.5점 정도로 반영해
-    대안으로 노출된 메뉴도 다음 추천에서 너무 자주 나오지 않게 한다.
     """
 
     menu_id = menu.get("menu_id")
@@ -683,36 +635,22 @@ def calculate_day_total_calories(meals: list[dict]) -> int:
     return total_calories
 
 
-def build_monthly_plan_summary(days: list[dict]) -> dict:
+def calculate_monthly_plan_summary(days: list[dict]) -> dict:
     """
-    월간 식단 결과를 빠르게 검증하기 위한 요약 정보를 만든다.
+    월간 식단 결과를 요약한다.
 
     전체 monthly_plan을 다 펼쳐보지 않아도
-    평균 칼로리, 평균 단백질, 총 비용, 메뉴 반복 수 등을 확인할 수 있다.
+    평균 칼로리, 평균 단백질, 총 비용, 메뉴 반복 수, 평균 점수를 확인할 수 있다.
     """
 
     selected_menus = []
-    total_estimated_cost = 0
-    total_calories = 0
-    total_protein = 0
-    total_carbohydrate = 0
-    total_fat = 0
 
     for day in days:
-        total_estimated_cost += day.get("total_estimated_cost", 0)
-
         for meal in day.get("meals", []):
-            selected_menu = meal.get("selected_menu", {})
+            selected_menu = meal.get("selected_menu")
 
-            if not selected_menu:
-                continue
-
-            selected_menus.append(selected_menu)
-
-            total_calories += selected_menu.get("calories", 0) or 0
-            total_protein += selected_menu.get("protein", 0) or 0
-            total_carbohydrate += selected_menu.get("carbohydrate", 0) or 0
-            total_fat += selected_menu.get("fat", 0) or 0
+            if selected_menu:
+                selected_menus.append(selected_menu)
 
     selected_menu_count = len(selected_menus)
 
@@ -726,7 +664,12 @@ def build_monthly_plan_summary(days: list[dict]) -> dict:
             "average_calories": 0,
             "average_protein": 0,
             "average_carbohydrate": 0,
-            "average_fat": 0
+            "average_fat": 0,
+            "average_nutrition_score": 0,
+            "average_budget_score": 0,
+            "average_preference_score": 0,
+            "average_difficulty_score": 0,
+            "average_diversity_score": 0,
         }
 
     menu_ids = [
@@ -736,7 +679,58 @@ def build_monthly_plan_summary(days: list[dict]) -> dict:
     ]
 
     unique_menu_count = len(set(menu_ids))
-    duplicate_menu_count = len(menu_ids) - unique_menu_count
+    duplicate_menu_count = selected_menu_count - unique_menu_count
+
+    total_estimated_cost = sum(
+        menu.get("estimated_cost", 0) or 0
+        for menu in selected_menus
+    )
+
+    total_calories = sum(
+        menu.get("calories", 0) or 0
+        for menu in selected_menus
+    )
+
+    total_protein = sum(
+        menu.get("protein", 0) or 0
+        for menu in selected_menus
+    )
+
+    total_carbohydrate = sum(
+        menu.get("carbohydrate", 0) or 0
+        for menu in selected_menus
+    )
+
+    total_fat = sum(
+        menu.get("fat", 0) or 0
+        for menu in selected_menus
+    )
+
+    total_nutrition_score = sum(
+        menu.get("scores", {}).get("nutrition", 0) or 0
+        for menu in selected_menus
+    )
+
+    total_budget_score = sum(
+        menu.get("scores", {}).get("budget", 0) or 0
+        for menu in selected_menus
+    )
+
+    total_preference_score = sum(
+        menu.get("scores", {}).get("preference", 0) or 0
+        for menu in selected_menus
+    )
+
+    total_difficulty_score = sum(
+        menu.get("scores", {}).get("difficulty", 0) or 0
+        for menu in selected_menus
+    )
+
+    total_diversity_score = sum(
+        menu.get("scores", {}).get("diversity", 0) or 0
+        for menu in selected_menus
+    )
+
     day_count = len(days)
 
     average_daily_cost = 0
@@ -753,7 +747,316 @@ def build_monthly_plan_summary(days: list[dict]) -> dict:
         "average_calories": round(total_calories / selected_menu_count, 2),
         "average_protein": round(total_protein / selected_menu_count, 2),
         "average_carbohydrate": round(total_carbohydrate / selected_menu_count, 2),
-        "average_fat": round(total_fat / selected_menu_count, 2)
+        "average_fat": round(total_fat / selected_menu_count, 2),
+        "average_nutrition_score": round(total_nutrition_score / selected_menu_count, 2),
+        "average_budget_score": round(total_budget_score / selected_menu_count, 2),
+        "average_preference_score": round(total_preference_score / selected_menu_count, 2),
+        "average_difficulty_score": round(total_difficulty_score / selected_menu_count, 2),
+        "average_diversity_score": round(total_diversity_score / selected_menu_count, 2),
+    }
+
+
+def build_style_validation(
+    selected_style: dict,
+    summary: dict,
+    profile: dict
+) -> dict:
+    """
+    선택한 스타일이 월간 식단 결과에 잘 반영되었는지 검증한다.
+    """
+
+    source_goal = selected_style.get("source_goal")
+    focus_key = selected_style.get("focus_key")
+    style_name = selected_style.get("style_name")
+
+    if source_goal == "고단백":
+        return validate_high_protein_style(
+            style_name=style_name,
+            summary=summary,
+        )
+
+    if source_goal == "다이어트":
+        return validate_diet_style(
+            style_name=style_name,
+            summary=summary,
+        )
+
+    if source_goal == "영양 균형":
+        return validate_balance_style(
+            style_name=style_name,
+            summary=summary,
+        )
+
+    if source_goal == "식비 절약":
+        return validate_budget_style(
+            style_name=style_name,
+            summary=summary,
+            profile=profile,
+        )
+
+    if source_goal == "간편식":
+        return validate_easy_cooking_style(
+            style_name=style_name,
+            summary=summary,
+        )
+
+    if source_goal == "맛 중심":
+        return validate_preference_style(
+            style_name=style_name,
+            summary=summary,
+            focus_key=focus_key,
+        )
+
+    return {
+        "target_style": source_goal,
+        "status": "unknown",
+        "message": "지원하지 않는 스타일이므로 검증 기준을 적용하지 못했습니다.",
+        "checked_metrics": {},
+    }
+
+
+def validate_high_protein_style(
+    style_name: str,
+    summary: dict
+) -> dict:
+    """
+    고단백 스타일 검증.
+    """
+
+    average_protein = summary.get("average_protein", 0)
+
+    if average_protein >= 30:
+        status = "pass"
+        message = "고단백 스타일에 맞게 평균 단백질이 높게 구성되었습니다."
+    elif average_protein >= 25:
+        status = "warning"
+        message = "고단백 스타일이 어느 정도 반영되었지만, 평균 단백질을 더 높일 여지가 있습니다."
+    else:
+        status = "fail"
+        message = "고단백 스타일에 비해 평균 단백질이 낮아 보완이 필요합니다."
+
+    return {
+        "target_style": style_name,
+        "status": status,
+        "message": message,
+        "checked_metrics": {
+            "average_protein": average_protein,
+            "recommended_minimum_protein": 30,
+        },
+    }
+
+
+def validate_diet_style(
+    style_name: str,
+    summary: dict
+) -> dict:
+    """
+    다이어트 스타일 검증.
+    """
+
+    average_calories = summary.get("average_calories", 0)
+    average_fat = summary.get("average_fat", 0)
+
+    if average_calories <= 650 and average_fat <= 23:
+        status = "pass"
+        message = "다이어트 스타일에 맞게 평균 칼로리와 지방이 낮게 구성되었습니다."
+    elif average_calories <= 750 and average_fat <= 28:
+        status = "warning"
+        message = "다이어트 스타일이 어느 정도 반영되었지만, 일부 메뉴의 칼로리나 지방을 더 낮출 수 있습니다."
+    else:
+        status = "fail"
+        message = "다이어트 스타일에 비해 평균 칼로리 또는 지방이 높아 보완이 필요합니다."
+
+    return {
+        "target_style": style_name,
+        "status": status,
+        "message": message,
+        "checked_metrics": {
+            "average_calories": average_calories,
+            "average_fat": average_fat,
+            "recommended_max_calories": 650,
+            "recommended_max_fat": 23,
+        },
+    }
+
+
+def validate_balance_style(
+    style_name: str,
+    summary: dict
+) -> dict:
+    """
+    영양 균형 스타일 검증.
+    """
+
+    average_carbohydrate = summary.get("average_carbohydrate", 0)
+    average_protein = summary.get("average_protein", 0)
+    average_fat = summary.get("average_fat", 0)
+
+    total_macro = average_carbohydrate + average_protein + average_fat
+
+    if total_macro <= 0:
+        return {
+            "target_style": style_name,
+            "status": "unknown",
+            "message": "탄수화물, 단백질, 지방 정보가 부족해 영양 균형을 검증할 수 없습니다.",
+            "checked_metrics": {},
+        }
+
+    carbohydrate_ratio = average_carbohydrate / total_macro
+    protein_ratio = average_protein / total_macro
+    fat_ratio = average_fat / total_macro
+
+    is_strict_balance = (
+        0.45 <= carbohydrate_ratio <= 0.65
+        and 0.15 <= protein_ratio <= 0.35
+        and 0.15 <= fat_ratio <= 0.35
+    )
+
+    is_loose_balance = (
+        0.35 <= carbohydrate_ratio <= 0.70
+        and 0.10 <= protein_ratio <= 0.40
+        and 0.10 <= fat_ratio <= 0.45
+    )
+
+    if is_strict_balance:
+        status = "pass"
+        message = "탄수화물, 단백질, 지방 비율이 안정적이어서 영양 균형 스타일이 잘 반영되었습니다."
+    elif is_loose_balance:
+        status = "warning"
+        message = "영양 균형이 대체로 무난하지만, 일부 영양 비율은 조정할 여지가 있습니다."
+    else:
+        status = "fail"
+        message = "영양 균형 스타일에 비해 탄수화물, 단백질, 지방 비율 조정이 필요합니다."
+
+    return {
+        "target_style": style_name,
+        "status": status,
+        "message": message,
+        "checked_metrics": {
+            "carbohydrate_ratio": round(carbohydrate_ratio, 4),
+            "protein_ratio": round(protein_ratio, 4),
+            "fat_ratio": round(fat_ratio, 4),
+            "average_carbohydrate": average_carbohydrate,
+            "average_protein": average_protein,
+            "average_fat": average_fat,
+        },
+    }
+
+
+def validate_budget_style(
+    style_name: str,
+    summary: dict,
+    profile: dict
+) -> dict:
+    """
+    가성비 스타일 검증.
+    """
+
+    total_estimated_cost = summary.get("total_estimated_cost", 0)
+    average_daily_cost = summary.get("average_daily_cost", 0)
+
+    monthly_budget = profile.get("monthly_budget", 0)
+    period_days = profile.get("period_days", 30)
+    meal_count_per_day = profile.get("meal_count_per_day", 1)
+    meal_budget = profile.get("meal_budget", 0)
+
+    if monthly_budget <= 0:
+        monthly_budget = meal_budget * period_days * meal_count_per_day
+
+    if monthly_budget <= 0:
+        return {
+            "target_style": style_name,
+            "status": "unknown",
+            "message": "예산 정보가 부족해 가성비 스타일을 검증할 수 없습니다.",
+            "checked_metrics": {},
+        }
+
+    budget_usage_rate = total_estimated_cost / monthly_budget
+
+    if budget_usage_rate <= 0.85:
+        status = "pass"
+        message = "월 예산 안에서 여유 있게 식단이 구성되어 가성비 스타일이 잘 반영되었습니다."
+    elif budget_usage_rate <= 1.0:
+        status = "warning"
+        message = "월 예산 안에는 들어오지만, 예산 여유가 크지는 않습니다."
+    else:
+        status = "fail"
+        message = "월 예산을 초과하여 가성비 스타일 보완이 필요합니다."
+
+    return {
+        "target_style": style_name,
+        "status": status,
+        "message": message,
+        "checked_metrics": {
+            "total_estimated_cost": total_estimated_cost,
+            "monthly_budget": monthly_budget,
+            "budget_usage_rate": round(budget_usage_rate, 4),
+            "average_daily_cost": average_daily_cost,
+        },
+    }
+
+
+def validate_easy_cooking_style(
+    style_name: str,
+    summary: dict
+) -> dict:
+    """
+    간편식 스타일 검증.
+    """
+
+    average_difficulty_score = summary.get("average_difficulty_score", 0)
+
+    if average_difficulty_score >= 85:
+        status = "pass"
+        message = "조리 난이도 점수가 높아 간편식 스타일이 잘 반영되었습니다."
+    elif average_difficulty_score >= 70:
+        status = "warning"
+        message = "간편식 스타일이 어느 정도 반영되었지만, 더 쉬운 메뉴를 늘릴 수 있습니다."
+    else:
+        status = "fail"
+        message = "간편식 스타일에 비해 조리 난이도 부담이 있어 보완이 필요합니다."
+
+    return {
+        "target_style": style_name,
+        "status": status,
+        "message": message,
+        "checked_metrics": {
+            "average_difficulty_score": average_difficulty_score,
+            "recommended_minimum_difficulty_score": 85,
+        },
+    }
+
+
+def validate_preference_style(
+    style_name: str,
+    summary: dict,
+    focus_key: str
+) -> dict:
+    """
+    취향 맞춤 스타일 검증.
+    """
+
+    average_preference_score = summary.get("average_preference_score", 0)
+
+    if average_preference_score >= 85:
+        status = "pass"
+        message = "선호도 점수가 높아 취향 맞춤식 스타일이 잘 반영되었습니다."
+    elif average_preference_score >= 70:
+        status = "warning"
+        message = "취향 맞춤식이 어느 정도 반영되었지만, 선호 카테고리나 재료 반영을 더 강화할 수 있습니다."
+    else:
+        status = "fail"
+        message = "취향 맞춤식에 비해 선호도 점수가 낮아 보완이 필요합니다."
+
+    return {
+        "target_style": style_name,
+        "status": status,
+        "message": message,
+        "checked_metrics": {
+            "average_preference_score": average_preference_score,
+            "applied_focus_key": focus_key,
+            "recommended_minimum_preference_score": 85,
+        },
     }
 
 
@@ -775,11 +1078,11 @@ def build_monthly_plan(
 
     diversity_penalty_strength = profile.get(
         "diversity_penalty_strength",
-        0.2
+        0.2,
     )
 
     recent_day_window = get_recent_day_window(
-        diversity_penalty_strength
+        diversity_penalty_strength,
     )
 
     warnings = []
@@ -798,7 +1101,7 @@ def build_monthly_plan(
 
         exposed_menus = get_recent_exposed_menus(
             days=days,
-            recent_day_window=recent_day_window
+            recent_day_window=recent_day_window,
         )
 
         for meal_order in range(1, meal_count_per_day + 1):
@@ -806,7 +1109,7 @@ def build_monthly_plan(
                 recommendations=recommendations,
                 exposed_menus=exposed_menus,
                 used_menu_count=used_menu_count,
-                diversity_penalty_strength=diversity_penalty_strength
+                diversity_penalty_strength=diversity_penalty_strength,
             )
 
             alternative_menus = select_alternative_menus(
@@ -815,13 +1118,13 @@ def build_monthly_plan(
                 exposed_menus=exposed_menus,
                 used_menu_count=used_menu_count,
                 diversity_penalty_strength=diversity_penalty_strength,
-                alternative_count=2
+                alternative_count=2,
             )
 
             increase_used_menu_count(
                 used_menu_count=used_menu_count,
                 menu=selected_menu,
-                amount=1
+                amount=1,
             )
 
             exposed_menus.append(selected_menu)
@@ -830,7 +1133,7 @@ def build_monthly_plan(
                 increase_used_menu_count(
                     used_menu_count=used_menu_count,
                     menu=alternative_menu,
-                    amount=0.5
+                    amount=0.5,
                 )
 
                 exposed_menus.append(alternative_menu)
@@ -838,17 +1141,17 @@ def build_monthly_plan(
             meals.append({
                 "meal_order": meal_order,
                 "selected_menu": selected_menu,
-                "alternative_menus": alternative_menus
+                "alternative_menus": alternative_menus,
             })
 
         days.append({
             "day": day_number,
             "meals": meals,
             "total_estimated_cost": calculate_day_total_estimated_cost(meals),
-            "total_calories": calculate_day_total_calories(meals)
+            "total_calories": calculate_day_total_calories(meals),
         })
 
-    summary = build_monthly_plan_summary(days)
+    summary = calculate_monthly_plan_summary(days)
 
     return {
         "period_days": period_days,
@@ -859,7 +1162,7 @@ def build_monthly_plan(
         "recent_day_window": recent_day_window,
         "warnings": warnings,
         "summary": summary,
-        "days": days
+        "days": days,
     }
 
 
@@ -880,7 +1183,6 @@ def build_monthly_plan_by_random_style(
         raise ValueError("meal_style_candidates가 비어 있어 월간 식단 스타일을 선택할 수 없습니다.")
 
     selected_style = random.choice(meal_style_candidates)
-
     selected_style_summary = build_selected_style_summary(selected_style)
 
     period_days = profile.get("period_days", 30)
@@ -890,21 +1192,29 @@ def build_monthly_plan_by_random_style(
 
     monthly_profile = apply_selected_style_to_profile(
         profile=profile,
-        selected_style=selected_style_summary
+        selected_style=selected_style_summary,
     )
 
     recommendations = recommend_menus(
         menus=candidate_menus,
         profile=monthly_profile,
-        top_n=len(candidate_menus)
+        top_n=len(candidate_menus),
     )
 
     monthly_plan = build_monthly_plan(
         recommendations=recommendations,
         profile=monthly_profile,
         period_days=period_days,
-        meal_count_per_day=meal_count_per_day
+        meal_count_per_day=meal_count_per_day,
     )
+
+    style_validation = build_style_validation(
+        selected_style=selected_style_summary,
+        summary=monthly_plan["summary"],
+        profile=monthly_profile,
+    )
+
+    monthly_plan["style_validation"] = style_validation
 
     return {
         "user_id": user_id,
@@ -921,5 +1231,5 @@ def build_monthly_plan_by_random_style(
             "applied_nutrition_detail_weights": monthly_profile.get("nutrition_detail_weights"),
             "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
         },
-        "monthly_plan": monthly_plan
+        "monthly_plan": monthly_plan,
     }
