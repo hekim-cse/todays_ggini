@@ -1166,6 +1166,116 @@ def build_monthly_plan(
     }
 
 
+def build_secondary_warnings(summary: dict) -> list[dict]:
+    """
+    월간 식단 결과의 보조 경고 목록을 만든다.
+
+    style_validation은 선택한 스타일이 잘 반영되었는지 보는 1차 검증이고,
+    secondary_warnings는 그 외에 사용자 경험상 아쉬울 수 있는 부분을 알려준다.
+    """
+
+    warnings = []
+
+    average_difficulty_score = summary.get("average_difficulty_score", 0)
+    average_preference_score = summary.get("average_preference_score", 0)
+    average_diversity_score = summary.get("average_diversity_score", 0)
+    duplicate_menu_count = summary.get("duplicate_menu_count", 0)
+
+    if average_difficulty_score < 60:
+        warnings.append({
+            "type": "difficulty",
+            "level": "warning",
+            "message": "평균 조리 난이도 점수가 낮아 사용자에게 조리 부담이 있을 수 있습니다.",
+            "value": average_difficulty_score,
+            "recommended_minimum": 60
+        })
+
+    if average_preference_score < 65:
+        warnings.append({
+            "type": "preference",
+            "level": "warning",
+            "message": "선호도 점수가 낮아 사용자 취향 반영이 약할 수 있습니다.",
+            "value": average_preference_score,
+            "recommended_minimum": 65
+        })
+
+    if average_diversity_score < 75:
+        warnings.append({
+            "type": "diversity",
+            "level": "warning",
+            "message": "다양성 점수가 낮아 유사 메뉴 반복 가능성이 있습니다.",
+            "value": average_diversity_score,
+            "recommended_minimum": 75
+        })
+
+    if duplicate_menu_count > 0:
+        warnings.append({
+            "type": "duplicate_menu",
+            "level": "info",
+            "message": "월간 식단 내 동일 menu_id가 일부 반복되었습니다.",
+            "value": duplicate_menu_count
+        })
+
+    return warnings
+
+
+def build_recommendation_hint(
+    selected_style: dict,
+    validation_status: str
+) -> str:
+    """
+    스타일 검증 결과에 따른 다음 개선 방향 힌트를 만든다.
+    """
+
+    source_goal = selected_style.get("source_goal")
+
+    if validation_status == "pass":
+        return "현재 선택한 스타일이 월간 식단에 안정적으로 반영되었습니다."
+
+    if source_goal == "고단백":
+        return "고단백 스타일에서는 단백질 25g 이상 메뉴를 우선 배치하거나, protein 기준 soft constraint를 강화할 수 있습니다."
+
+    if source_goal == "다이어트":
+        return "다이어트 스타일에서는 지방 25g 이상 메뉴의 감점을 강화하고, 평균 칼로리 기준을 더 엄격하게 적용할 수 있습니다."
+
+    if source_goal == "영양 균형":
+        return "영양 균형 스타일에서는 탄수화물, 단백질, 지방 비율이 안정적인 메뉴를 더 우선하도록 balance 점수 가중치를 조정할 수 있습니다."
+
+    if source_goal == "식비 절약":
+        return "가성비 스타일에서는 월 예산 사용률과 한 끼 예산 초과율을 기준으로 예산 soft constraint를 강화할 수 있습니다."
+
+    if source_goal == "간편식":
+        return "간편식 스타일에서는 조리 시간, 재료 수, 조리 단계 수를 함께 반영해 난이도 점수를 더 세분화할 수 있습니다."
+
+    if source_goal == "맛 중심":
+        return "취향 맞춤식에서는 선호 카테고리와 선호 재료군 일치도를 더 강하게 반영할 수 있습니다."
+
+    return "선택한 스타일의 검증 기준을 추가로 정의할 수 있습니다."
+
+
+def enrich_style_validation(
+    style_validation: dict,
+    selected_style: dict,
+    summary: dict
+) -> dict:
+    """
+    기본 style_validation 결과에 보조 경고와 개선 힌트를 추가한다.
+    """
+
+    secondary_warnings = build_secondary_warnings(summary)
+
+    recommendation_hint = build_recommendation_hint(
+        selected_style=selected_style,
+        validation_status=style_validation.get("status", "unknown")
+    )
+
+    return {
+        **style_validation,
+        "secondary_warnings": secondary_warnings,
+        "recommendation_hint": recommendation_hint
+    }
+
+
 def build_monthly_plan_by_random_style(
     user_id: str,
     candidate_menus: list[dict],
@@ -1183,6 +1293,7 @@ def build_monthly_plan_by_random_style(
         raise ValueError("meal_style_candidates가 비어 있어 월간 식단 스타일을 선택할 수 없습니다.")
 
     selected_style = random.choice(meal_style_candidates)
+
     selected_style_summary = build_selected_style_summary(selected_style)
 
     period_days = profile.get("period_days", 30)
@@ -1192,26 +1303,34 @@ def build_monthly_plan_by_random_style(
 
     monthly_profile = apply_selected_style_to_profile(
         profile=profile,
-        selected_style=selected_style_summary,
+        selected_style=selected_style_summary
     )
 
     recommendations = recommend_menus(
         menus=candidate_menus,
         profile=monthly_profile,
-        top_n=len(candidate_menus),
+        top_n=len(candidate_menus)
     )
 
     monthly_plan = build_monthly_plan(
         recommendations=recommendations,
         profile=monthly_profile,
         period_days=period_days,
-        meal_count_per_day=meal_count_per_day,
+        meal_count_per_day=meal_count_per_day
     )
 
-    style_validation = build_style_validation(
+    summary = monthly_plan.get("summary", {})
+
+    base_style_validation = build_style_validation(
         selected_style=selected_style_summary,
-        summary=monthly_plan["summary"],
-        profile=monthly_profile,
+        summary=summary,
+        profile=monthly_profile
+    )
+
+    style_validation = enrich_style_validation(
+        style_validation=base_style_validation,
+        selected_style=selected_style_summary,
+        summary=summary
     )
 
     monthly_plan["style_validation"] = style_validation
@@ -1229,7 +1348,7 @@ def build_monthly_plan_by_random_style(
             "applied_style_focus_key": selected_style_summary.get("focus_key"),
             "applied_monthly_weights": monthly_profile.get("weights"),
             "applied_nutrition_detail_weights": monthly_profile.get("nutrition_detail_weights"),
-            "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
         },
-        "monthly_plan": monthly_plan,
+        "monthly_plan": monthly_plan
     }
