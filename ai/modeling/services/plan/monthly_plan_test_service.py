@@ -136,6 +136,10 @@ def apply_selected_style_to_profile(
     """
 
     monthly_profile = deepcopy(profile)
+
+    monthly_profile["selected_style_goal"] = selected_style.get("source_goal")
+    monthly_profile["selected_style_id"] = selected_style.get("style_id")
+
     focus_key = selected_style.get("focus_key")
 
     if not focus_key:
@@ -175,6 +179,7 @@ def apply_selected_style_to_profile(
     monthly_profile["nutrition_detail_weights"] = get_nutrition_detail_weights_by_style(
         selected_style=selected_style
     )
+
 
     return monthly_profile
 

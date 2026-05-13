@@ -378,6 +378,88 @@ def build_diversity_reason(
         "message": message
     }
 
+def calculate_style_soft_constraint_score(
+    menu: dict,
+    profile: dict,
+    scores: dict
+) -> float:
+    """
+    사용자가 선택한 스타일에 따라 final_score에 추가 보정 점수를 부여한다.
+
+    이 점수는 하드 필터가 아니라 soft constraint이다.
+    즉, 조건에 맞지 않는 메뉴를 무조건 제거하지 않고,
+    스타일 적합도가 높은 메뉴는 올리고 낮은 메뉴는 내린다.
+    """
+
+    selected_style_goal = profile.get("selected_style_goal")
+    source_goal = profile.get("source_goal")
+
+    # 둘 중 하나라도 들어오면 사용할 수 있게 처리한다.
+    style_goal = selected_style_goal or source_goal
+
+    if style_goal == "고단백":
+        return calculate_high_protein_soft_constraint_score(menu)
+
+    if style_goal == "간편식":
+        return calculate_easy_cooking_soft_constraint_score(scores)
+
+    return 0
+
+
+def calculate_high_protein_soft_constraint_score(menu: dict) -> float:
+    """
+    고단백 스타일에서 단백질 함량을 기준으로 추가 보정 점수를 계산한다.
+
+    protein이 높은 메뉴는 가산하고,
+    protein이 낮은 메뉴는 감점한다.
+    """
+
+    protein = menu.get("protein", 0)
+
+    if protein >= 35:
+        return 5
+
+    if protein >= 30:
+        return 3
+
+    if protein >= 25:
+        return 1
+
+    if protein >= 20:
+        return -2
+
+    if protein >= 15:
+        return -5
+
+    return -8
+
+
+def calculate_easy_cooking_soft_constraint_score(scores: dict) -> float:
+    """
+    간편식 스타일에서 difficulty_score를 기준으로 추가 보정 점수를 계산한다.
+
+    difficulty_score가 높다는 것은 사용자 조리 실력 대비 부담이 낮다는 뜻이다.
+    """
+
+    difficulty_score = scores.get("difficulty", 0)
+
+    if difficulty_score >= 90:
+        return 5
+
+    if difficulty_score >= 80:
+        return 3
+
+    if difficulty_score >= 70:
+        return 1
+
+    if difficulty_score >= 60:
+        return -2
+
+    if difficulty_score >= 40:
+        return -5
+
+    return -8
+
 
 def build_recommendation_reasons(
     menu: dict,
@@ -464,13 +546,21 @@ def calculate_final_score(
         "diversity": round(diversity_score, 2)
     }
 
-    final_score = (
+    base_final_score = (
         budget_score * weights["budget"]
         + nutrition_score * weights["nutrition"]
         + preference_score * weights["preference"]
         + difficulty_score * weights["difficulty"]
         + diversity_score * weights["diversity"]
     )
+
+    style_soft_constraint_score = calculate_style_soft_constraint_score(
+        menu=menu,
+        profile=profile,
+        scores=scores
+    )
+
+    final_score = base_final_score + style_soft_constraint_score
 
     reasons = build_recommendation_reasons(
         menu=menu,
@@ -486,6 +576,8 @@ def calculate_final_score(
         "name": menu.get("name"),
         "category": menu.get("category"),
         "final_score": round(final_score, 2),
+        "base_final_score": round(base_final_score, 2),
+        "style_soft_constraint_score": round(style_soft_constraint_score, 2),
         "scores": scores,
         "reasons": reasons,
         "estimated_cost": menu.get("estimated_cost"),
