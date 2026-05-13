@@ -1,0 +1,105 @@
+{
+    "total_items": 6,
+    "checked_items_count": 4,
+    "total_price_per_shopping": 17400,
+    "market_counts": [
+        {
+            "market": "coupang",
+            "count": 3
+        },
+        {
+            "market": "market_kurly",
+            "count": 0
+        },
+        {
+            "market": "naver_shopping",
+            "count": 1
+        }
+    ],
+    "market_groups": [
+        {
+            "market": "coupang",
+            "subtotal": 15600,
+            "items": [
+                {
+                    "item_id": "item_001",
+                    "ingredient_id": "I_001",
+                    "ingredient_name": "제철 나물",
+                    "standard_unit": "100g",
+                    "delivery_type": "로켓프레시",
+                    "lowest_price": 1200,
+                    "product_title": "제철 나물 100g",
+                    "purchase_link": "https://www.coupang.com/vp/products/...",
+                    "is_checked": true
+                },
+                {
+                    "item_id": "item_002",
+                    "ingredient_id": "I_002",
+                    "ingredient_name": "계란 (10구)",
+                    "standard_unit": "1팩",
+                    "delivery_type": "로켓프레시",
+                    "lowest_price": 4500,
+                    "product_title": "신선란 10구",
+                    "purchase_link": "https://www.coupang.com/vp/products/...",
+                    "is_checked": true
+                },
+                {
+                    "item_id": "item_004",
+                    "ingredient_id": "I_004",
+                    "ingredient_name": "닭가슴살",
+                    "standard_unit": "200g x 5",
+                    "delivery_type": "로켓프레시",
+                    "lowest_price": 9900,
+                    "product_title": "냉동 닭가슴살 200g x 5팩",
+                    "purchase_link": "https://www.coupang.com/vp/products/...",
+                    "is_checked": true
+                }
+            ]
+        },
+        {
+            "market": "market_kurly",
+            "subtotal": 0,
+            "items": [
+                {
+                    "item_id": "item_003",
+                    "ingredient_id": "I_003",
+                    "ingredient_name": "현미밥",
+                    "standard_unit": "1kg",
+                    "delivery_type": "샛별배송",
+                    "lowest_price": 6800,
+                    "product_title": "현미밥 1kg",
+                    "purchase_link": "https://www.kurly.com/goods/...",
+                    "is_checked": false
+                },
+                {
+                    "item_id": "item_005",
+                    "ingredient_id": "I_005",
+                    "ingredient_name": "된장",
+                    "standard_unit": "500g",
+                    "delivery_type": "샛별배송",
+                    "lowest_price": 4200,
+                    "product_title": "재래식 된장 500g",
+                    "purchase_link": "https://www.kurly.com/goods/...",
+                    "is_checked": false
+                }
+            ]
+        },
+        {
+            "market": "naver_shopping",
+            "subtotal": 1800,
+            "items": [
+                {
+                    "item_id": "item_006",
+                    "ingredient_id": "I_006",
+                    "ingredient_name": "두부",
+                    "standard_unit": "1모",
+                    "delivery_type": "일반배송",
+                    "lowest_price": 1800,
+                    "product_title": "국산콩 두부 1모",
+                    "purchase_link": "https://smartstore.naver.com/...",
+                    "is_checked": true
+                }
+            ]
+        }
+    ]
+}

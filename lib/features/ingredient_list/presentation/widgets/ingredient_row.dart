@@ -6,6 +6,7 @@ import '../../../home/domain/menu_detail.dart';
 class IngredientRow extends StatelessWidget {
   final Ingredient ingredient;
   final bool isChecked;
+  final String? selectedMarket;
   final VoidCallback onToggle;
   final VoidCallback onTapDetail;
 
@@ -13,6 +14,7 @@ class IngredientRow extends StatelessWidget {
     super.key,
     required this.ingredient,
     required this.isChecked,
+    this.selectedMarket,
     required this.onToggle,
     required this.onTapDetail,
   });
@@ -44,9 +46,10 @@ class IngredientRow extends StatelessWidget {
                 ),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: isChecked
-                  ? const Icon(Icons.check, size: 16, color: Colors.white)
-                  : null,
+              child:
+                  isChecked
+                      ? const Icon(Icons.check, size: 16, color: Colors.white)
+                      : null,
             ),
           ),
           const SizedBox(width: 12),
@@ -111,10 +114,14 @@ class IngredientRow extends StatelessWidget {
 
   String _marketLabel(String market) {
     switch (market) {
-      case 'coupang': return '쿠팡';
-      case 'market_kurly': return '컬리';
-      case 'naver_shopping': return '네이버';
-      default: return market;
+      case 'coupang':
+        return '쿠팡';
+      case 'market_kurly':
+        return '컬리';
+      case 'naver_shopping':
+        return '네이버';
+      default:
+        return market;
     }
   }
 }

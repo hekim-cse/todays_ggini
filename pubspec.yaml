@@ -29,6 +29,10 @@ flutter:
   # mock JSON을 asset 으로 등록
   assets:
     - assets/mocks/users/
+    - assets/mocks/meal-plans/
+    - assets/mocks/menus/
+    - assets/mocks/ingredients/
+    - assets/mocks/shopping-list/
     - assets/images/
   fonts:
     - family: MemomentKkukkukk

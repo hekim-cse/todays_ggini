@@ -6,6 +6,7 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format.dart';
 import '../../../../core/widgets/bottom_nav_bar.dart';
+import '../../../shopping_selection/presentation/providers/shopping_selection_provider.dart';
 import '../providers/ingredient_list_provider.dart';
 import '../widgets/ingredient_row.dart';
 import '../widgets/menu_summary_card.dart';
@@ -24,8 +25,13 @@ class IngredientListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(ingredientListProvider(mealId));
-    final notifier = ref.read(ingredientListProvider(mealId).notifier);
+    final args = (
+      mealId: mealId,
+      date: sourceDate ?? DateTime.now(),
+      slot: sourceSlot ?? 1,
+    );
+    final state = ref.watch(ingredientListProvider(args));
+    final notifier = ref.read(ingredientListProvider(args).notifier);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -33,7 +39,7 @@ class IngredientListScreen extends ConsumerWidget {
         child: Column(
           children: [
             _buildHeader(context),
-            Expanded(child: _buildBodyContent(context, state, notifier)),
+            Expanded(child: _buildBodyContent(context, ref, state, notifier)),
           ],
         ),
       ),
@@ -49,7 +55,10 @@ class IngredientListScreen extends ConsumerWidget {
           Align(
             alignment: Alignment.centerLeft,
             child: IconButton(
-              icon: const Icon(Icons.chevron_left, color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.chevron_left,
+                color: AppColors.textPrimary,
+              ),
               onPressed: () {
                 if (context.canPop()) {
                   context.pop();
@@ -77,6 +86,7 @@ class IngredientListScreen extends ConsumerWidget {
 
   Widget _buildBodyContent(
     BuildContext context,
+    WidgetRef ref,
     IngredientListState state,
     IngredientListNotifier notifier,
   ) {
@@ -99,6 +109,17 @@ class IngredientListScreen extends ConsumerWidget {
 
     final menu = state.menu!;
 
+    final selection = ref.watch(shoppingSelectionProvider);
+    final checkedSet =
+        selection.selectionFor(sourceDate ?? DateTime.now(), sourceSlot ?? 1) ??
+        <String>{};
+    final totalPrice = menu.ingredients
+        .where((i) => checkedSet.contains(i.ingredientId))
+        .fold<int>(0, (sum, i) {
+          final selectedMarket = selection.selectedMarketFor(i.ingredientId);
+          return sum + i.effectivePrice(selectedMarket);
+        });
+
     return Column(
       children: [
         Expanded(
@@ -118,12 +139,15 @@ class IngredientListScreen extends ConsumerWidget {
                 ...menu.ingredients.map(
                   (ing) => IngredientRow(
                     ingredient: ing,
-                    isChecked: state.checkedIngredientIds.contains(
+                    isChecked: checkedSet.contains(ing.ingredientId),
+                    selectedMarket: selection.selectedMarketFor(
                       ing.ingredientId,
                     ),
                     onToggle: () => notifier.toggleIngredient(ing.ingredientId),
                     onTapDetail: () {
-                      context.push(AppRoutes.ingredientDetailPath(ing.ingredientId));
+                      context.push(
+                        AppRoutes.ingredientDetailPath(ing.ingredientId),
+                      );
                     },
                   ),
                 ),
@@ -132,7 +156,10 @@ class IngredientListScreen extends ConsumerWidget {
             ),
           ),
         ),
-        _buildBottomSummary(state),
+        _buildBottomSummary(
+          checkedCount: checkedSet.length,
+          totalPrice: totalPrice,
+        ),
       ],
     );
   }
@@ -161,7 +188,10 @@ class IngredientListScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildBottomSummary(IngredientListState state) {
+  Widget _buildBottomSummary({
+    required int checkedCount,
+    required int totalPrice,
+  }) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Container(
@@ -175,7 +205,7 @@ class IngredientListScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '장볼 재료 ${state.checkedCount}개 · 부재료 0개 포함',
+              '장볼 재료 ${checkedCount}개 · 부재료 0개 포함',
               style: const TextStyle(
                 fontSize: 13,
                 color: AppColors.textPrimary,
@@ -183,7 +213,7 @@ class IngredientListScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              '합계 ₩${formatPrice(state.totalPrice)}',
+              '합계 ₩${formatPrice(totalPrice)}',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
