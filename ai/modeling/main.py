@@ -114,8 +114,15 @@ def main() -> None:
     debug_result = {}
 
     # 1. 샘플 사용자 중 랜덤 사용자 선택
+    # sample_users = load_sample_users()
+    # user_input = random.choice(sample_users)
+
     sample_users = load_sample_users()
-    user_input = random.choice(sample_users)
+
+    user_input = next(
+        user for user in sample_users
+        if user["user_id"] == "user_004"
+    )
 
     print(f"랜덤 선택 사용자\n{user_input['user_id']}\n")
     print_json("사용자 입력 원본", user_input)

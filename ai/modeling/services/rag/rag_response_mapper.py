@@ -82,6 +82,37 @@ def convert_usage_to_base_unit(
     return None
 
 
+def build_failed_ingredient_cost(
+    ingredient_id: str | None,
+    ingredient_name: str | None,
+    display_amount: str | None,
+    amount: float | int | None,
+    unit: str | None,
+    is_estimated: bool,
+    pricing_status: str,
+    extra_data: dict | None = None
+) -> dict:
+    """
+    재료 비용 계산 실패 시 공통 반환 구조를 만든다.
+    """
+
+    result = {
+        "ingredient_id": ingredient_id,
+        "ingredient_name": ingredient_name,
+        "display_amount": display_amount,
+        "amount": amount,
+        "unit": unit,
+        "is_estimated": is_estimated,
+        "estimated_cost": 0,
+        "pricing_status": pricing_status
+    }
+
+    if extra_data:
+        result.update(extra_data)
+
+    return result
+
+
 def calculate_ingredient_cost(
     ingredient_usage: dict,
     ingredients_pool: dict
@@ -103,59 +134,64 @@ def calculate_ingredient_cost(
     ingredient = ingredients_pool.get(ingredient_id)
 
     if not ingredient:
-        return {
-            "ingredient_id": ingredient_id,
-            "ingredient_name": ingredient_name,
-            "display_amount": display_amount,
-            "amount": amount,
-            "unit": unit,
-            "is_estimated": is_estimated,
-            "estimated_cost": 0,
-            "pricing_status": "ingredient_not_found"
-        }
+        return build_failed_ingredient_cost(
+            ingredient_id=ingredient_id,
+            ingredient_name=ingredient_name,
+            display_amount=display_amount,
+            amount=amount,
+            unit=unit,
+            is_estimated=is_estimated,
+            pricing_status="ingredient_not_found"
+        )
+
+    ingredient_name = ingredient_name or ingredient.get("ingredient_name")
 
     lowest_price_info = get_lowest_price_info(ingredient)
 
     if lowest_price_info is None:
-        return {
-            "ingredient_id": ingredient_id,
-            "ingredient_name": ingredient_name or ingredient.get("ingredient_name"),
-            "display_amount": display_amount,
-            "amount": amount,
-            "unit": unit,
-            "is_estimated": is_estimated,
-            "estimated_cost": 0,
-            "pricing_status": "price_not_found"
-        }
+        return build_failed_ingredient_cost(
+            ingredient_id=ingredient_id,
+            ingredient_name=ingredient_name,
+            display_amount=display_amount,
+            amount=amount,
+            unit=unit,
+            is_estimated=is_estimated,
+            pricing_status="price_not_found"
+        )
 
     standard_amount = ingredient.get("standard_amount")
     standard_unit_type = ingredient.get("standard_unit_type")
 
     if standard_amount is None or standard_amount <= 0:
-        return {
-            "ingredient_id": ingredient_id,
-            "ingredient_name": ingredient_name or ingredient.get("ingredient_name"),
-            "display_amount": display_amount,
-            "amount": amount,
-            "unit": unit,
-            "is_estimated": is_estimated,
-            "lowest_price": lowest_price_info["lowest_price"],
-            "estimated_cost": 0,
-            "pricing_status": "standard_amount_missing"
-        }
+        return build_failed_ingredient_cost(
+            ingredient_id=ingredient_id,
+            ingredient_name=ingredient_name,
+            display_amount=display_amount,
+            amount=amount,
+            unit=unit,
+            is_estimated=is_estimated,
+            pricing_status="standard_amount_missing",
+            extra_data={
+                "lowest_price": lowest_price_info["lowest_price"],
+                "lowest_market": lowest_price_info["market"]
+            }
+        )
 
     if not standard_unit_type:
-        return {
-            "ingredient_id": ingredient_id,
-            "ingredient_name": ingredient_name or ingredient.get("ingredient_name"),
-            "display_amount": display_amount,
-            "amount": amount,
-            "unit": unit,
-            "is_estimated": is_estimated,
-            "lowest_price": lowest_price_info["lowest_price"],
-            "estimated_cost": 0,
-            "pricing_status": "standard_unit_type_missing"
-        }
+        return build_failed_ingredient_cost(
+            ingredient_id=ingredient_id,
+            ingredient_name=ingredient_name,
+            display_amount=display_amount,
+            amount=amount,
+            unit=unit,
+            is_estimated=is_estimated,
+            pricing_status="standard_unit_type_missing",
+            extra_data={
+                "standard_amount": standard_amount,
+                "lowest_price": lowest_price_info["lowest_price"],
+                "lowest_market": lowest_price_info["market"]
+            }
+        )
 
     usage_amount = convert_usage_to_base_unit(
         amount=amount,
@@ -163,35 +199,41 @@ def calculate_ingredient_cost(
     )
 
     if usage_amount is None:
-        return {
-            "ingredient_id": ingredient_id,
-            "ingredient_name": ingredient_name or ingredient.get("ingredient_name"),
-            "display_amount": display_amount,
-            "amount": amount,
-            "unit": unit,
-            "is_estimated": is_estimated,
-            "lowest_price": lowest_price_info["lowest_price"],
-            "estimated_cost": 0,
-            "pricing_status": "usage_unit_not_supported"
-        }
+        return build_failed_ingredient_cost(
+            ingredient_id=ingredient_id,
+            ingredient_name=ingredient_name,
+            display_amount=display_amount,
+            amount=amount,
+            unit=unit,
+            is_estimated=is_estimated,
+            pricing_status="usage_unit_not_supported",
+            extra_data={
+                "standard_amount": standard_amount,
+                "standard_unit_type": standard_unit_type,
+                "lowest_price": lowest_price_info["lowest_price"],
+                "lowest_market": lowest_price_info["market"]
+            }
+        )
 
     normalized_usage_unit = normalize_unit(unit)
     normalized_standard_unit_type = normalize_unit(standard_unit_type)
 
     if normalized_usage_unit != normalized_standard_unit_type:
-        return {
-            "ingredient_id": ingredient_id,
-            "ingredient_name": ingredient_name or ingredient.get("ingredient_name"),
-            "display_amount": display_amount,
-            "amount": amount,
-            "unit": unit,
-            "is_estimated": is_estimated,
-            "standard_amount": standard_amount,
-            "standard_unit_type": standard_unit_type,
-            "lowest_price": lowest_price_info["lowest_price"],
-            "estimated_cost": 0,
-            "pricing_status": "unit_mismatch"
-        }
+        return build_failed_ingredient_cost(
+            ingredient_id=ingredient_id,
+            ingredient_name=ingredient_name,
+            display_amount=display_amount,
+            amount=amount,
+            unit=unit,
+            is_estimated=is_estimated,
+            pricing_status="unit_mismatch",
+            extra_data={
+                "standard_amount": standard_amount,
+                "standard_unit_type": standard_unit_type,
+                "lowest_price": lowest_price_info["lowest_price"],
+                "lowest_market": lowest_price_info["market"]
+            }
+        )
 
     estimated_cost = lowest_price_info["lowest_price"] * (
         usage_amount / standard_amount
@@ -199,7 +241,7 @@ def calculate_ingredient_cost(
 
     return {
         "ingredient_id": ingredient_id,
-        "ingredient_name": ingredient_name or ingredient.get("ingredient_name"),
+        "ingredient_name": ingredient_name,
         "display_amount": display_amount,
         "amount": amount,
         "unit": unit,
@@ -208,6 +250,7 @@ def calculate_ingredient_cost(
         "standard_unit_type": standard_unit_type,
         "lowest_price": lowest_price_info["lowest_price"],
         "lowest_market": lowest_price_info["market"],
+        "delivery_type": lowest_price_info.get("delivery_type"),
         "product_title": lowest_price_info.get("product_title"),
         "purchase_link": lowest_price_info.get("purchase_link"),
         "estimated_cost": round(estimated_cost),
@@ -271,16 +314,22 @@ def calculate_menu_estimated_cost(
 def calculate_ingredient_count(candidate_menu: dict) -> int:
     """
     메뉴의 재료 개수를 계산한다.
+
+    ingredient_usages가 일부 재료만 포함할 수 있으므로,
+    ingredients, recipe.required_ingredients까지 함께 보고 가장 큰 값을 사용한다.
     """
 
     ingredient_usages = candidate_menu.get("ingredient_usages", [])
-
-    if ingredient_usages:
-        return len(ingredient_usages)
-
     ingredients = candidate_menu.get("ingredients", [])
 
-    return len(ingredients)
+    recipe = candidate_menu.get("recipe", {})
+    required_ingredients = recipe.get("required_ingredients", [])
+
+    return max(
+        len(ingredient_usages),
+        len(ingredients),
+        len(required_ingredients)
+    )
 
 
 def calculate_recipe_step_count(candidate_menu: dict) -> int:
@@ -297,40 +346,18 @@ def calculate_recipe_step_count(candidate_menu: dict) -> int:
 def calculate_cooking_time(candidate_menu: dict) -> int:
     """
     레시피 조리 시간을 가져온다.
-    없으면 기본값 20분으로 처리한다.
+
+    조리 시간이 없으면 0으로 처리한다.
+    0은 '정보 없음'에 가깝기 때문에 난이도 가산점에는 크게 반영하지 않는다.
     """
 
     recipe = candidate_menu.get("recipe", {})
+    cooking_time = recipe.get("cooking_time")
 
-    return recipe.get("cooking_time", 20)
+    if cooking_time is None:
+        return 0
 
-
-def calculate_action_difficulty_points(steps: list[str]) -> int:
-    """
-    레시피 문장에 포함된 조리 동작 키워드를 바탕으로
-    난이도 가산점을 계산한다.
-    """
-
-    normal_keywords = [
-        "삶", "굽", "볶", "끓", "데우"
-    ]
-
-    hard_keywords = [
-        "튀기", "반죽", "숙성", "졸이", "손질", "데치"
-    ]
-
-    joined_steps = " ".join(steps)
-    points = 0
-
-    for keyword in normal_keywords:
-        if keyword in joined_steps:
-            points += 1
-
-    for keyword in hard_keywords:
-        if keyword in joined_steps:
-            points += 2
-
-    return points
+    return cooking_time
 
 
 def calculate_estimated_usage_ratio(candidate_menu: dict) -> float:
@@ -338,7 +365,7 @@ def calculate_estimated_usage_ratio(candidate_menu: dict) -> float:
     ingredient_usages 중 is_estimated가 true인 재료 비율을 계산한다.
 
     추정 단위가 많은 메뉴는 계량 불확실성이 있으므로
-    난이도 계산에 약간 반영한다.
+    난이도 계산에 약하게 반영한다.
     """
 
     ingredient_usages = candidate_menu.get("ingredient_usages", [])
@@ -353,6 +380,148 @@ def calculate_estimated_usage_ratio(candidate_menu: dict) -> float:
             estimated_count += 1
 
     return estimated_count / len(ingredient_usages)
+
+
+def calculate_ingredient_count_points(ingredient_count: int) -> int:
+    """
+    재료 개수에 따른 난이도 가산점을 계산한다.
+    """
+
+    if ingredient_count <= 4:
+        return 0
+
+    if ingredient_count <= 6:
+        return 1
+
+    if ingredient_count <= 8:
+        return 2
+
+    return 3
+
+
+def calculate_step_count_points(step_count: int) -> int:
+    """
+    레시피 단계 수에 따른 난이도 가산점을 계산한다.
+    """
+
+    if step_count <= 3:
+        return 0
+
+    if step_count <= 5:
+        return 1
+
+    if step_count <= 7:
+        return 2
+
+    return 3
+
+
+def calculate_cooking_time_points(cooking_time: int) -> int:
+    """
+    조리 시간에 따른 난이도 가산점을 계산한다.
+    """
+
+    if cooking_time <= 0:
+        return 0
+
+    if cooking_time <= 10:
+        return 0
+
+    if cooking_time <= 20:
+        return 1
+
+    if cooking_time <= 30:
+        return 2
+
+    return 3
+
+
+def calculate_estimated_usage_points(estimated_usage_ratio: float) -> int:
+    """
+    추정 재료 비율에 따른 보조 난이도 가산점을 계산한다.
+    """
+
+    if estimated_usage_ratio <= 0.3:
+        return 0
+
+    if estimated_usage_ratio <= 0.6:
+        return 1
+
+    return 1
+
+
+def calculate_action_difficulty_points(steps: list[str]) -> int:
+    """
+    레시피 문장에 포함된 조리 동작 키워드를 바탕으로
+    난이도 가산점을 계산한다.
+
+    너무 과하게 반영되지 않도록 최대 2점까지만 부여한다.
+    """
+
+    if not steps:
+        return 0
+
+    basic_action_keywords = [
+        "자르",
+        "썰",
+        "손질",
+        "올리",
+        "섞",
+        "곁들"
+    ]
+
+    heat_action_keywords = [
+        "삶",
+        "굽",
+        "볶",
+        "끓",
+        "데우",
+        "익히"
+    ]
+
+    hard_action_keywords = [
+        "튀기",
+        "반죽",
+        "숙성",
+        "졸이",
+        "데치",
+        "찜"
+    ]
+
+    joined_steps = " ".join(steps)
+
+    points = 0
+
+    if any(keyword in joined_steps for keyword in basic_action_keywords):
+        points += 1
+
+    if any(keyword in joined_steps for keyword in heat_action_keywords):
+        points += 1
+
+    if any(keyword in joined_steps for keyword in hard_action_keywords):
+        points += 2
+
+    return min(points, 2)
+
+
+def convert_points_to_difficulty(difficulty_points: int) -> int:
+    """
+    difficulty_points를 1~5 난이도로 변환한다.
+    """
+
+    if difficulty_points <= 1:
+        return 1
+
+    if difficulty_points <= 3:
+        return 2
+
+    if difficulty_points <= 5:
+        return 3
+
+    if difficulty_points <= 7:
+        return 4
+
+    return 5
 
 
 def calculate_difficulty_from_recipe(candidate_menu: dict) -> dict:
@@ -374,48 +543,39 @@ def calculate_difficulty_from_recipe(candidate_menu: dict) -> dict:
     recipe = candidate_menu.get("recipe", {})
     steps = recipe.get("steps", [])
 
-    points = 0
-
-    if ingredient_count >= 10:
-        points += 3
-    elif ingredient_count >= 7:
-        points += 2
-    elif ingredient_count >= 4:
-        points += 1
-
-    if step_count >= 7:
-        points += 3
-    elif step_count >= 5:
-        points += 2
-    elif step_count >= 3:
-        points += 1
-
-    if cooking_time > 45:
-        points += 4
-    elif cooking_time > 30:
-        points += 3
-    elif cooking_time > 20:
-        points += 2
-    elif cooking_time > 10:
-        points += 1
-
-    points += calculate_action_difficulty_points(steps)
-
     estimated_usage_ratio = calculate_estimated_usage_ratio(candidate_menu)
 
-    if estimated_usage_ratio >= 0.6:
-        points += 1
+    ingredient_points = calculate_ingredient_count_points(
+        ingredient_count=ingredient_count
+    )
 
-    if points <= 1:
-        difficulty = 1
-    elif points <= 3:
-        difficulty = 2
-    elif points <= 5:
-        difficulty = 3
-    elif points <= 7:
-        difficulty = 4
-    else:
-        difficulty = 5
+    step_points = calculate_step_count_points(
+        step_count=step_count
+    )
+
+    cooking_time_points = calculate_cooking_time_points(
+        cooking_time=cooking_time
+    )
+
+    action_points = calculate_action_difficulty_points(
+        steps=steps
+    )
+
+    estimated_usage_points = calculate_estimated_usage_points(
+        estimated_usage_ratio=estimated_usage_ratio
+    )
+
+    difficulty_points = (
+        ingredient_points
+        + step_points
+        + cooking_time_points
+        + action_points
+        + estimated_usage_points
+    )
+
+    difficulty = convert_points_to_difficulty(
+        difficulty_points=difficulty_points
+    )
 
     return {
         "difficulty": difficulty,
@@ -424,7 +584,12 @@ def calculate_difficulty_from_recipe(candidate_menu: dict) -> dict:
             "step_count": step_count,
             "cooking_time": cooking_time,
             "estimated_usage_ratio": round(estimated_usage_ratio, 2),
-            "difficulty_points": points
+            "ingredient_points": ingredient_points,
+            "step_points": step_points,
+            "cooking_time_points": cooking_time_points,
+            "action_points": action_points,
+            "estimated_usage_points": estimated_usage_points,
+            "difficulty_points": difficulty_points
         }
     }
 
