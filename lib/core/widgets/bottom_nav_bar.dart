@@ -18,18 +18,16 @@ class BottomNavBar extends StatelessWidget {
     ];
 
     final routes = [
-      AppRoutes.mealStyleSelect,
+      AppRoutes.home,
       AppRoutes.calendar,
-      AppRoutes.bulkPurchase,
+      AppRoutes.shoppingList,
       AppRoutes.myPage,
     ];
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 상단 가로 구분선
         Divider(height: 2, thickness: 2, color: AppColors.textSecondary),
-
         Container(
           color: AppColors.background,
           child: Row(
@@ -37,11 +35,12 @@ class BottomNavBar extends StatelessWidget {
               final isSelected = currentIndex == index;
               return Expanded(
                 child: InkWell(
-                  onTap: () => context.go(routes[index]),
+                  onTap: () {
+                    context.go(routes[index]); 
+                  },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
-                      // 세로 구분선 (마지막 아이템 제외)
                       border: Border(
                         right: index < items.length - 1
                             ? BorderSide(color: AppColors.textSecondary, width: 2)
