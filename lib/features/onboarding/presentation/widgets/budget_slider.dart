@@ -2,36 +2,20 @@ import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 import 'image_thumb_shape.dart';
 
-class LabeledSlider extends StatelessWidget {
+class BudgetSlider extends StatelessWidget {
   final int value;
-  final double min;
-  final double max;
-  final int divisions;
-  final String Function(int) getLabel;
   final ValueChanged<int> onChanged;
 
-  const LabeledSlider({
+  const BudgetSlider({
     super.key,
     required this.value,
-    required this.min,
-    required this.max,
-    required this.divisions,
-    required this.getLabel,
     required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    final label = getLabel(value);
     return Column(
       children: [
-        if (label.isNotEmpty) ...[
-          Text(
-            label,
-            style: const TextStyle(fontSize: 13, color: AppColors.textHint),
-          ),
-          const SizedBox(height: 8),
-        ],
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
             activeTrackColor: AppColors.primary,
@@ -42,9 +26,9 @@ class LabeledSlider extends StatelessWidget {
           ),
           child: Slider(
             value: value.toDouble(),
-            min: min,
-            max: max,
-            divisions: divisions,
+            min: 100000,
+            max: 1000000,
+            divisions: 18,
             onChanged: (v) => onChanged(v.round()),
           ),
         ),
@@ -52,12 +36,20 @@ class LabeledSlider extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(
-              divisions + 1,
-              (i) => Text(
-                '${(min + i).toInt()}',
-                style: const TextStyle(color: AppColors.textHint),
-              ),
+            children: const [
+              Text('10', style: TextStyle(color: AppColors.textHint)),
+              Text('100', style: TextStyle(color: AppColors.textHint)),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: Text(
+            '${(value / 10000).round()}만원 내에서 최적의 식단을 짜드려요!',
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
             ),
           ),
         ),

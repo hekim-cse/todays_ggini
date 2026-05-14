@@ -1,13 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/auth/auth_screen.dart';
+import '../../features/auth/presentation/screens/auth_screen.dart';
 import '../../features/calendar/presentation/screens/calendar_screen.dart';
 import '../../features/meal_detail/presentation/screens/meal_detail_screen.dart';
 import '../../features/meal_plan_loading/presentation/screens/meal_plan_loading_screen.dart';
-import '../../features/meal_style_select/meal_style_select_screen.dart';
+import '../../features/meal_style_select/presentation/screens/meal_style_select_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
-import '../../features/persona_select/persona_select_screen.dart';
+import '../../features/persona_select/presentation/screens/persona_select_screen.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/mypage/presentation/screens/mypage_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';

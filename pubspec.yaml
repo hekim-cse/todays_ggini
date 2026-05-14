@@ -1,4 +1,4 @@
-name: kkinipick
+name: todaysggini
 description: 스마트 영양 & 예산 플래너 끼니픽
 publish_to: 'none'
 version: 1.0.0+1
@@ -22,6 +22,11 @@ dev_dependencies:
 
   flutter_lints: ^5.0.0
 
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/start.png"
+
 flutter:
 
   uses-material-design: true
@@ -29,14 +34,18 @@ flutter:
   # mock JSON을 asset 으로 등록
   assets:
     - assets/mocks/users/
+    - assets/mocks/meal-plans/
+    - assets/mocks/menus/
+    - assets/mocks/ingredients/
+    - assets/mocks/shopping-list/
     - assets/images/
   fonts:
     - family: MemomentKkukkukk
       fonts:
         - asset: assets/fonts/MemomentKkukkukk.ttf
-    - family: NanumSquareNeo-cBd
+    - family: NanumSquareNeo
       fonts:
-        - asset: assets/fonts/NanumSquareNeo-bRg.ttf
+        - asset: assets/fonts/NanumSquareNeo-cBd.ttf
           weight: 400
         - asset: assets/fonts/NanumSquareNeo-cBd.ttf
           weight: 700

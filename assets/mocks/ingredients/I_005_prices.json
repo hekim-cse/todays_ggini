@@ -1,0 +1,29 @@
+{
+    "ingredient_id": "I_005",
+    "ingredient_name": "당근",
+    "standard_unit": "1개",
+    "image_url": null,
+    "e_commerce_prices": {
+        "coupang": {
+            "delivery_type": "로켓프레시",
+            "lowest_price": 800,
+            "product_title": "곰곰 당근 1개",
+            "purchase_link": "https://www.coupang.com/products/567",
+            "is_lowest": false
+        },
+        "market_kurly": {
+            "delivery_type": null,
+            "lowest_price": null,
+            "product_title": null,
+            "purchase_link": null,
+            "is_lowest": false
+        },
+        "naver_shopping": {
+            "delivery_type": null,
+            "lowest_price": 700,
+            "product_title": "네이버 쇼핑 당근 1개",
+            "purchase_link": "https://shopping.naver.com/123",
+            "is_lowest": true
+        }
+    }
+}

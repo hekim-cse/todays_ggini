@@ -6,8 +6,8 @@
     "ingredient": [],
     "allergies": [],
     "diversity": 2,
-    "cookingSkill": 5,
+    "cookingSkill": 3,
     "mealCount": 3,
-    "monthlyBudget": 350000
+    "monthlyBudget": 300000
   }
 }

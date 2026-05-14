@@ -1,37 +1,33 @@
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import '../../../../core/theme/app_colors.dart';
 import 'image_thumb_shape.dart';
 
-class LabeledSlider extends StatelessWidget {
+class DiversitySlider extends StatelessWidget {
   final int value;
-  final double min;
-  final double max;
-  final int divisions;
-  final String Function(int) getLabel;
   final ValueChanged<int> onChanged;
 
-  const LabeledSlider({
+  const DiversitySlider({
     super.key,
     required this.value,
-    required this.min,
-    required this.max,
-    required this.divisions,
-    required this.getLabel,
     required this.onChanged,
   });
 
+  String _getLabel(int v) {
+    if (v == 1) return '한 가지 음식만 먹어도 괜찮아요';
+    if (v == 2) return '적당히 다양하게 먹고 싶어요';
+    return '매일 다른 음식을 먹고 싶어요';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final label = getLabel(value);
     return Column(
       children: [
-        if (label.isNotEmpty) ...[
-          Text(
-            label,
-            style: const TextStyle(fontSize: 13, color: AppColors.textHint),
-          ),
-          const SizedBox(height: 8),
-        ],
+        Text(
+          _getLabel(value),
+          style: const TextStyle(fontSize: 13, color: AppColors.textHint),
+        ),
+        const SizedBox(height: 8),
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
             activeTrackColor: AppColors.primary,
@@ -42,9 +38,9 @@ class LabeledSlider extends StatelessWidget {
           ),
           child: Slider(
             value: value.toDouble(),
-            min: min,
-            max: max,
-            divisions: divisions,
+            min: 1,
+            max: 3,
+            divisions: 2,
             onChanged: (v) => onChanged(v.round()),
           ),
         ),
@@ -52,13 +48,11 @@ class LabeledSlider extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(
-              divisions + 1,
-              (i) => Text(
-                '${(min + i).toInt()}',
-                style: const TextStyle(color: AppColors.textHint),
-              ),
-            ),
+            children: const [
+              Text('1', style: TextStyle(color: AppColors.textHint)),
+              Text('2', style: TextStyle(color: AppColors.textHint)),
+              Text('3', style: TextStyle(color: AppColors.textHint)),
+            ],
           ),
         ),
       ],
