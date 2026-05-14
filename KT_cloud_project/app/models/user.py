@@ -60,6 +60,14 @@ class User(Base):
     # 페르소나 (화면 1 관련)
     persona_id = Column(Integer, nullable=True) # nullable=True : 비어있을 수 있음
 
+    # AI 모델링 파트 연동 데이터 (정교한 가중치 및 제약 조건)
+    ai_meal_budget = Column(Integer, nullable=True)     # AI가 재계산한 끼니당 예산
+    ai_max_difficulty = Column(Integer, nullable=True)  # AI가 판단한 최대 조리 난이도
+    ai_weights = Column(JSON, nullable=True)            # AI 추천 가중치 (budget, nutrition, preference 등)
+    
+    # 사용자가 최종 선택한 식단 스타일
+    selected_style_id = Column(String, nullable=True)
+
     # 관계 설정 (유저가 생성한 식단들과 연결)
     # 유저가 삭제되면 관련 식단도 삭제되도록 cascade 설정
     meal_plans = relationship("MealPlan", back_populates="owner", cascade="all, delete-orphan")
