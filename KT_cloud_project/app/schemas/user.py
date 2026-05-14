@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr, Field
-from typing import List, Optional
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from typing import List, Optional, Dict
 
 # --- 1. 토큰 관련 스키마 ---
 class Token(BaseModel):
@@ -45,6 +45,15 @@ class UserInfo(BaseModel):
     diversity_level: Optional[str] = Field(None, description="식단 다양성 정도")
     excluded_ingredients: Optional[List[str]] = Field(None, description="기호/알러지 제외 식재료")
 
+    # [선택] AI 모델링 파트에서 받아온 결과값도 프론트가 조회할 수 있도록 추가
+    ai_meal_budget: Optional[int] = None
+    ai_max_difficulty: Optional[int] = None
+    ai_weights: Optional[Dict[str, float]] = None
+
+    selected_style_id: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
 class UserOnboardingUpdate(BaseModel):
     """
     로그인 후 진행하는 '개인화 설정(온보딩)' 전용 스키마.
@@ -53,7 +62,7 @@ class UserOnboardingUpdate(BaseModel):
     """
     persona_id: Optional[int] = Field(None, ge=1, le=6, description="선택한 페르소나 ID")
     meals_per_day: Optional[int] = Field(None, ge=1, le=5, description="하루 식사 수")
-    purposes: Optional[List[str]] = Field(None, max_items=3, description="이용 목적 (최대 3개)")
+    purpose: Optional[List[str]] = Field(None, max_items=3, description="이용 목적 (최대 3개)")
     monthly_budget: Optional[int] = Field(None, ge=0, description="한 달 목표 식비")
     cooking_skill: Optional[int] = Field(None, ge=1, le=5, description="요리 실력 (1~5)")
     diversity_level: Optional[str] = Field(None, description="낮음, 보통, 높음")
@@ -61,17 +70,36 @@ class UserOnboardingUpdate(BaseModel):
     preferred_ingredients: Optional[List[str]] = Field(None, description="선택한 선호 재료군")
     excluded_ingredients: Optional[List[str]] = Field(None, description="기호/알러지 제외 식재료")
 
+# API 응답 시 유저 정보를 돌려주는 스키마
 class UserResponse(BaseModel):
-    """
-    API 응답 시 유저 정보를 돌려주는 스키마.
-    """
     id: int
     is_onboarded: bool
 
-    class Config:
-        from_attributes = True # DB 모델을 Pydantic으로 자동 변환
+    model_config = ConfigDict(from_attributes=True)
 
 # 로그인 요청을 위한 스키마 추가
 class LoginRequest(BaseModel):
     provider: str
     social_id: str
+
+# 가중치 정보를 담는 내부 스키마
+class ProfileWeights(BaseModel):
+    budget: float
+    nutrition: float
+    preference: float
+    difficulty: float
+    diversity: float
+
+# modeling -> back으로 넘어오는 최종 프로필 설정 스키마
+class AIUserProfileResponse(BaseModel):
+    goals: List[str]
+    budget_period_days: int
+    sample_period_days: int
+    period_days: int
+    meal_budget: int
+    weights: ProfileWeights
+    max_difficulty: int
+    preferred_categories: List[str]
+    ingredient_preferences: List[str]
+    diversity_penalty_strength: float
+    allergy_ingredients: List[str]
