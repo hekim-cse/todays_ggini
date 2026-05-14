@@ -66,6 +66,8 @@ def build_selected_style_summary(selected_style: dict) -> dict:
         "summary_comment": selected_style.get("summary_comment"),
         "source_goal": selected_style.get("source_goal"),
         "focus_key": selected_style.get("focus_key"),
+        "display_scores": selected_style.get("display_scores", {}),
+        "display_labels": selected_style.get("display_labels", {}),
     }
 
 
@@ -139,6 +141,7 @@ def apply_selected_style_to_profile(
 
     monthly_profile["selected_style_goal"] = selected_style.get("source_goal")
     monthly_profile["selected_style_id"] = selected_style.get("style_id")
+    monthly_profile["selected_style_focus_key"] = selected_style.get("focus_key")
 
     focus_key = selected_style.get("focus_key")
 
@@ -1502,19 +1505,39 @@ def build_monthly_plan_by_random_style(
     monthly_plan["style_validation"] = style_validation
 
     return {
-        "user_id": user_id,
-        "request_type": "monthly_meal_plan_test",
-        "selected_style": selected_style_summary,
-        "meta": {
-            "period_days": period_days,
-            "meal_count_per_day": meal_count_per_day,
-            "required_candidate_count": required_candidate_count,
-            "actual_recommendation_count": len(recommendations),
-            "base_weights": profile.get("weights"),
-            "applied_style_focus_key": selected_style_summary.get("focus_key"),
-            "applied_monthly_weights": monthly_profile.get("weights"),
-            "applied_nutrition_detail_weights": monthly_profile.get("nutrition_detail_weights"),
-            "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-        },
-        "monthly_plan": monthly_plan
-    }
+    "user_id": user_id,
+    "request_type": "monthly_plan",
+    "selected_style": selected_style_summary,
+    "meta": {
+        "period_days": period_days,
+        "meal_count_per_day": meal_count_per_day,
+        "required_meal_count": period_days * meal_count_per_day,
+        "available_recommendation_count": len(recommendations),
+        "generated_at": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "warnings": monthly_plan.get("warnings", [])
+    },
+    "modeling_profile": {
+        "goals": profile.get("goals"),
+        "monthly_budget": profile.get("monthly_budget"),
+        "period_days": profile.get("period_days"),
+        "meal_count_per_day": profile.get("meal_count_per_day"),
+        "cooking_skill": profile.get("cooking_skill"),
+        "preferred_categories": profile.get("preferred_categories"),
+        "diversity_level": profile.get("diversity_level"),
+        "ingredient_preferences": profile.get("ingredient_preferences"),
+        "allergy_ingredients": profile.get("allergy_ingredients"),
+        "budget_period_days": profile.get("budget_period_days"),
+        "sample_period_days": profile.get("sample_period_days"),
+        "meal_budget": profile.get("meal_budget"),
+        "weights": profile.get("weights"),
+        "max_difficulty": profile.get("max_difficulty"),
+        "diversity_penalty_strength": profile.get("diversity_penalty_strength")
+    },
+    "applied_style_adjustment": {
+        "applied_style_focus_key": selected_style_summary.get("focus_key"),
+        "base_weights": profile.get("weights"),
+        "applied_monthly_weights": monthly_profile.get("weights"),
+        "applied_nutrition_detail_weights": monthly_profile.get("nutrition_detail_weights")
+    },
+    "monthly_plan": monthly_plan
+}

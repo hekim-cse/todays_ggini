@@ -563,11 +563,16 @@ def calculate_final_score(
 
     final_score = base_final_score + style_soft_constraint_score
 
-    reasons = build_recommendation_reasons(
+    all_reasons = build_recommendation_reasons(
         menu=menu,
         profile=profile,
         selected_menu_ids=selected_menu_ids,
         scores=scores
+    )
+
+    reasons = filter_reasons_by_focus_key(
+        reasons=all_reasons,
+        profile=profile
     )
 
     nutrient_summary = menu.get("nutrient_summary", {})
@@ -654,3 +659,53 @@ def recommend_menus(menus: list, profile: dict, top_n: int = 5) -> list:
         ]
 
     return recommendations
+
+def get_reason_type_by_focus_key(focus_key: str | None) -> str | None:
+    """
+    선택 스타일의 focus_key를 추천 이유 type과 매핑한다.
+
+    예:
+    - budget -> budget 이유만 노출
+    - nutrition -> nutrition 이유만 노출
+    - difficulty -> difficulty 이유만 노출
+    - preference -> preference 이유만 노출
+    """
+
+    mapping = {
+        "budget": "budget",
+        "nutrition": "nutrition",
+        "difficulty": "difficulty",
+        "preference": "preference",
+        "diversity": "diversity",
+    }
+
+    return mapping.get(focus_key)
+
+
+def filter_reasons_by_focus_key(
+    reasons: list[dict],
+    profile: dict
+) -> list[dict]:
+    """
+    월간 식단 응답에서 사용자에게 보여줄 핵심 추천 이유만 남긴다.
+
+    selected_style의 focus_key가 있으면 해당 이유만 남기고,
+    focus_key가 없거나 매칭되는 이유가 없으면 전체 이유를 반환한다.
+    """
+
+    focus_key = profile.get("selected_style_focus_key")
+
+    reason_type = get_reason_type_by_focus_key(focus_key)
+
+    if not reason_type:
+        return reasons
+
+    filtered_reasons = [
+        reason for reason in reasons
+        if reason.get("type") == reason_type
+    ]
+
+    if not filtered_reasons:
+        return reasons
+
+    return filtered_reasons
