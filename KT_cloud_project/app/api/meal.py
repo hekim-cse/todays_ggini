@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 from datetime import date, datetime
@@ -6,10 +6,14 @@ import uuid
 import calendar
 
 from app.api.deps import get_db, get_current_user
+from app.utils.meal_transformer import transform_ai_plan_to_front
+from app.utils.mock_data import get_mock_3days_response, get_mock_month_data_response, get_mock_3days_data_front_response
 from app.models.user import User
+from app.crud.crud_user import update_user_selected_style
 from app.models.meal import MealPlan
-from app.schemas.meal import (DailyMealDetailResponse, RecommendationResult, MealGenerateResponse, MealConfirmResponse,
-                              CalendarResponse, MealSwapResponse, MealSwapRequest, MenuUpdateRequest, AlternativeMenuResponse)
+from app.schemas.meal import (DailyMealDetailResponse, MealGenerateResponse, MealConfirmResponse, CalendarResponse,
+                              MealSwapResponse, MealSwapRequest, MenuUpdateRequest, AlternativeMenuResponse,
+                              StyleSelectRequest, MealDetailFullResponse)
 from app.crud import crud_meal
 from app.utils.image_search import get_food_image_url
 from app.utils.ai_client import request_ai_meal_plan
@@ -17,6 +21,26 @@ from app.utils.ai_client import request_ai_meal_plan
 router = APIRouter()
 
 # ---------------------------  프론트엔드 호출용 API ---------------------------------
+# ---------- 3일치 샘플 식단 후보 제공 (Front에 보여주기 용) -----------------------
+@router.post("/sample_data_three_days")
+async def initial_meal_plan(
+    sample_period_days: int = 3,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    사용자 온보딩 데이터를 기반으로 3일치 샘플 식단 후보 3가지를 생성합니다.
+    (현재는 AI 연동 전이므로 모델링 파트의 JSON 규격을 그대로 Mock으로 반환합니다.)
+    """
+    user_id = f"user_{current_user.id:03d}"
+
+    # 모델링 파트에서 전달받은 JSON 구조를 그대로 Mock 데이터로 사용 (프론트 연동용)
+    mock_ai_response = get_mock_3days_data_front_response(user_id, sample_period_days)
+    
+    # 프론트엔드가 이 데이터를 바로 쓸 수 있도록 AI 응답 결과 자체를 리턴합니다.
+    return mock_ai_response
+
+# ---------------------- 식단 생성 트리거 ---------------------------------
 @router.post("/generate", response_model=MealGenerateResponse, status_code=status.HTTP_202_ACCEPTED)
 async def generate_meal_plans_trigger(
     current_user: User = Depends(get_current_user)
@@ -39,6 +63,7 @@ async def generate_meal_plans_trigger(
         "stages": ["프로필 분석", "식단 후보 생성", "가격 비교", "최적 조합 선정"]
     }
 
+# --------------------- 생성된 30일 식단 최종 확정 및 요약 정보 반환 API -----------------------
 @router.post("/confirm", response_model=MealConfirmResponse)
 def confirm_meal_plan(
     db: Session = Depends(get_db),
@@ -76,6 +101,7 @@ def confirm_meal_plan(
         "generated_at": datetime.now() # 혹은 DB의 생성일시 컬럼 사용
     }
 
+# -------------------- 월간 캘린더 조회 API ----------------------------
 @router.get("/calendar", response_model=CalendarResponse)
 def get_monthly_calendar(
     month: str, # "2026-04" 형식
@@ -113,12 +139,21 @@ def get_monthly_calendar(
         if plan:
             # DB의 content JSON에서 필요한 필드만 추출
             extracted_meals = []
-            for meal in plan.content:  # content는 리스트 형태의 상세 정보
+            # plan.content는 일일 식단(meals) 리스트
+            for meal in (plan.content or []):
+                # Mock 데이터 구조에 맞춰 selected_menu 내부를 탐색
+                selected_menu = meal.get("selected_menu") or {}
+                
+                # 데이터가 None이거나 키가 없을 때를 대비한 방어 로직
+                raw_menu_id = selected_menu.get("menu_id")
+                raw_name = selected_menu.get("name")
+
                 extracted_meals.append({
-                    "slot": meal.get("meal_order"),
-                    "meal_id": str(meal.get("menu_id")),
-                    "menu_name": meal.get("name")
-            })
+                    "slot": meal.get("meal_order") or 1,
+                    "meal_id": str(raw_menu_id) if raw_menu_id is not None else "",
+                    "menu_name": raw_name or "메뉴 정보 없음"
+                })
+
             # 식단이 있는 날
             day_data = {
                 "date": curr_date,
@@ -147,6 +182,7 @@ def get_monthly_calendar(
         "days": days_list
     }
 
+# ----------------------- 일일 식단 상세 정보 조회 API ---------------------------------
 @router.get("/{date}", response_model=DailyMealDetailResponse)
 async def get_daily_meal_detail(
     date: date, # YYYY-MM-DD 형식의 경로 파라미터
@@ -192,6 +228,71 @@ async def get_daily_meal_detail(
         "meals": detail_meals
     }
 
+# -------------------------- 식단 상세 레시피, 재료, 마켓 정보 조회 API -------------------------
+# @router.get("/menus/{meal_id}", response_model=MealDetailFullResponse)
+# async def get_menu_detail(
+#     meal_id: str,
+#     db: Session = Depends(get_db),
+#     current_user: User = Depends(get_current_user)
+# ):
+#     """
+#     [화면 8, 10-1] 메뉴 상세 정보(레시피 영상, 재료, 마켓별 최저가)를 조회합니다.
+#     """
+#     # 1. DB에서 해당 meal_id가 포함된 식단 계획을 찾습니다. 
+#     # (JSON 내부 탐색을 위해 모든 플랜을 가져오거나, 특정 날짜 정보를 함께 받는 것이 성능상 좋으나 
+#     # 우선 meal_id 기반 탐색으로 구현합니다.)
+#     plans = db.query(MealPlan).filter(MealPlan.user_id == current_user.id).all()
+    
+#     target_menu = None
+#     for plan in plans:
+#         for meal in plan.content:
+#             selected = meal.get("selected_menu", {})
+#             if str(selected.get("menu_id")) == meal_id:
+#                 target_menu = selected
+#                 break
+#         if target_menu: break
+
+#     if not target_menu:
+#         raise HTTPException(status_code=404, detail="해당 메뉴 정보를 찾을 수 없습니다.")
+
+#     # 2. 명세서 규격에 맞게 데이터 가공
+#     # 실제 운영 시에는 마켓 가격 크롤링 엔진이나 DB에서 가져와야 하지만, 
+#     # 현재는 AI가 생성하여 저장해둔 데이터를 기반으로 구성합니다.
+    
+#     ingredients_raw = target_menu.get("ingredients", [])
+#     ingredient_details = []
+    
+#     # 임의의 마켓 데이터 매핑 (실제 데이터 구조에 따라 수정 필요)
+#     for idx, name in enumerate(ingredients_raw):
+#         ing_id = f"I_{str(idx+1).zfill(3)}"
+        
+#         # 명세서와 동일한 마켓별 가격 구조 생성
+#         detail = {
+#             "ingredient_id": ing_id,
+#             "ingredient_name": name,
+#             "standard_unit": "100g", # 기본값
+#             "image_url": None,
+#             "lowest_price_between_market": {"market": "coupang", "price": 1200},
+#             "e_commerce_prices": {
+#                 "coupang": {"lowest_price": 1200},
+#                 "market_kurly": {"lowest_price": 1400},
+#                 "naver_shopping": {"lowest_price": 1300}
+#             }
+#         }
+#         ingredient_details.append(detail)
+
+#     return {
+#         "meal_id": meal_id,
+#         "menu_name": target_menu.get("name", ""),
+#         "calories": target_menu.get("calories", 0),
+#         "price": target_menu.get("estimated_cost", 0),
+#         "image_url": None, # 필요 시 이미지 헬퍼 연결
+#         "video_url": "https://www.youtube.com/watch?v=sample", # 레시피 영상 URL
+#         "required_ingredient_ids": [d["ingredient_id"] for d in ingredient_details],
+#         "ingredients": ingredient_details
+#     }
+
+# -------------------------- 식단 swap API -----------------------------------
 @router.patch("/{date}/swap", response_model=MealSwapResponse)
 def swap_meal_plans(
     date: date,
@@ -256,16 +357,17 @@ def swap_meal_plans(
         ]
     }
 
+# ------------------------ 특정 날짜의 특정 메뉴 변경 API ----------------------------
 @router.put("/{date}/menus/{slot}", response_model=DailyMealDetailResponse)
 async def update_specific_menu_slot(
     date: date,
     slot: int,
-    request: MenuUpdateRequest,
+    request: MenuUpdateRequest, # 프론트에서 { "new_menu_id": "M_101" } 형태로 보낸다고 가정
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    [화면 10-3] 특정 날짜의 특정 슬롯(아침/점심/저녁) 메뉴를 변경합니다.
+    [화면 10-3] 특정 날짜의 특정 슬롯 메뉴를 사용자가 선택한 대안 메뉴로 변경합니다.
     """
     # 1. 기존 식단 조회
     plan = db.query(MealPlan).filter(
@@ -276,65 +378,73 @@ async def update_specific_menu_slot(
     if not plan:
         raise HTTPException(status_code=404, detail="해당 날짜의 식단이 존재하지 않습니다.")
 
-    # 2. 새로운 메뉴 정보 조회 (AI 추천 대안 리스트 등에서 선택된 데이터라고 가정)
-    # 실제 구현 시에는 전체 메뉴 메타데이터 테이블에서 new_meal_id로 정보를 가져와야 합니다.
-    # 여기서는 예시를 위해 새로운 메뉴 데이터를 정의합니다.
-    new_menu_data = {
-        "meal_order": slot, 
-        "menu_id": 111, 
-        "name": "야채 볶음밥",
-        "category": "한식", 
-        "final_score": 95.5, 
-        "estimated_cost": 4500,
-        "calories": 550, 
-        "protein": 22.0,
-        "ingredients": ["두부", "밥", "상추"],
-        "ingredient_groups": ["식물성 단백질", "채소"],
-        "recipe": {
-            "serving_size": 1, 
-            "cooking_time": 15,
-            "steps": ["재료 손질", "비비기"],
-            "required_ingredients": ["두부", "밥"],
-            "optional_ingredients": [], 
-            "substitution_ingredients": {}
-        },
-        "scores": {
-            "budget": 100, "nutrition": 90, "preference": 95, 
-            "difficulty": 100, "diversity": 100
-        }
-    }
+    # 2. content 내에서 대상 슬롯(slot) 찾기
+    target_index = -1
+    for i, m in enumerate(plan.content):
+        if m.get("meal_order") == slot:
+            target_index = i
+            break
 
-    # 3. content 내의 특정 슬롯 교체
-    target_index = slot - 1
-
-    try:
-        # 기존 메뉴 백업 (통계 계산용)
-        old_menu = plan.content[target_index]
-        
-        # 2. 전체 순회 없이 해당 인덱스만 교체
-        plan.content[target_index] = new_menu_data
-        
-        # 3. 전체 합산 대신 차이만큼만 가감하여 통계 갱신 (성능 이점)
-        plan.total_calories += (new_menu_data["calories"] - old_menu.get("calories", 0))
-        plan.estimated_cost += (new_menu_data["estimated_cost"] - old_menu.get("estimated_cost", 0))
-        
-        # SQLAlchemy에게 JSON 내부가 변경되었음을 명시적으로 알림
-        flag_modified(plan, "content")
-        
-        db.commit()
-    except IndexError:
+    if target_index == -1:
         raise HTTPException(status_code=400, detail="유효하지 않은 슬롯 번호입니다.")
 
-    # 5. 응답 구성 (이미지 포함)
+    # 3. 대안 메뉴 리스트에서 사용자가 선택한 메뉴 찾기
+    current_slot_data = plan.content[target_index]
+    alt_menus = current_slot_data.get("alternative_menus", [])
+    
+    new_menu_data = None
+    for alt in alt_menus:
+        if str(alt.get("menu_id")) == str(request.new_menu_id):
+            new_menu_data = alt
+            break
+
+    if not new_menu_data:
+        raise HTTPException(status_code=400, detail="선택한 메뉴가 대안 리스트에 존재하지 않습니다.")
+
+    # 4. 데이터 교체 및 통계 갱신
+    try:
+        # 기존 메뉴 백업 (selected_menu 구조 확인 필요)
+        old_selected = current_slot_data.get("selected_menu", {})
+        
+        # 새로운 메뉴 데이터 구조 구성 (AI 명세 규격에 맞춤)
+        # 선택된 메뉴를 selected_menu로 올리고, 대안 리스트는 유지하거나 갱신
+        updated_slot_content = {
+            "meal_order": slot,
+            "selected_menu": new_menu_data,
+            "alternative_menus": alt_menus # 필요 시 대안 리스트 유지
+        }
+
+        # 통계 갱신 (차이만큼 가감)
+        plan.total_calories += (new_menu_data.get("calories", 0) - old_selected.get("calories", 0))
+        plan.estimated_cost += (new_menu_data.get("estimated_cost", 0) - old_selected.get("estimated_cost", 0))
+        
+        # 교체 실행
+        plan.content[target_index] = updated_slot_content
+        
+        # JSON 변경 명시
+        flag_modified(plan, "content")
+        db.commit()
+        db.refresh(plan)
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"메뉴 업데이트 중 오류 발생: {str(e)}")
+
+    # 5. 최종 응답 구성 (이미지 포함)
     detail_meals = []
     for item in plan.content:
-        img_url = await get_food_image_url(item.get("name"),item.get("category"))
+        menu = item.get("selected_menu", {})
+        menu_name = menu.get("name", "")
+        menu_category = menu.get("category", "")
+        
+        img_url = await get_food_image_url(menu_name, menu_category)
+        
         detail_meals.append({
             "slot": item.get("meal_order"),
-            "meal_id": str(item.get("menu_id")),
-            "menu_name": item.get("name"),
-            "calories": item.get("calories", 0),
-            "price": item.get("estimated_cost", 0),
+            "meal_id": str(menu.get("menu_id")),
+            "menu_name": menu_name,
+            "calories": menu.get("calories", 0),
+            "price": menu.get("estimated_cost", 0),
             "image_url": img_url
         })
 
@@ -345,71 +455,99 @@ async def update_specific_menu_slot(
         "meals": detail_meals
     }
 
-# @router.get("/menus/{meal_id}/alternatives", response_model=AlternativeMenuResponse)
-# async def get_meal_alternatives(
-#     meal_id: str,
-#     db: Session = Depends(get_db),
-#     current_user: User = Depends(get_current_user)
-# ):
-#     """
-#     [화면 10-3] 메뉴 변경용 추천 대안 조회 API
-#     """
-    
-#     # 1. DB에서 현재 메뉴 정보 탐색 (식단 계획 내 JSON 데이터 파싱)
-#     # 실제로는 meal_id가 content 리스트 안에 있으므로 전체 날짜를 뒤져야 할 수 있습니다.
-#     # 여기서는 시연을 위해 간단한 조회 로직으로 구성합니다.
-#     meal_plan = db.query(MealPlan).filter(
-#         MealPlan.user_id == current_user.id
-#         # 식단 ID를 찾는 로직이 필요 (예시)
-#     ).first()
-
-#     if not meal_plan:
-#         raise HTTPException(status_code=404, detail="식단 정보를 찾을 수 없습니다.")
-
-#     # 2. 명세서 기반 Current Meal 구성 (Mock)
-#     current_meal = {
-#         "meal_id": meal_id,
-#         "menu_name": "볶음밥",
-#         "calories": 650,
-#         "price": 3600,
-#         "image_url": await get_food_image_url("볶음밥"),
-#         "date": meal_plan.meal_date,
-#         "slot": 1
-#     }
-
-#     # 3. 명세서 기반 Alternatives 구성 (Mock)
-#     alternatives = [
-#         {"meal_id": "M_101", "menu_name": "두부 김치덮밥", "calories": 620, "price": 6500},
-#         {"meal_id": "M_102", "menu_name": "야채 볶음밥", "calories": 580, "price": 5800},
-#         {"meal_id": "M_103", "menu_name": "닭가슴살 샐러드", "calories": 450, "price": 9200},
-#         {"meal_id": "M_104", "menu_name": "참치 김밥", "calories": 550, "price": 4500},
-#     ]
-
-#     # 이미지 URL 매핑
-#     for alt in alternatives:
-#         alt["image_url"] = await get_food_image_url(alt["menu_name"])
-
-#     return {
-#         "current_meal": current_meal,
-#         "alternatives": alternatives
-#     }
-
-
-
-# ------------------------------- AI 모델 서버 호출용 API(Modeling -> Back) ----------------------------------
-# # AI 모델 서버 주소 (환경 변수 권장)
-# AI_MODEL_SERVER_URL = "http://ai-modeling-server/predict"
-
-@router.post("/generate_sample_data_three_days")
-async def generate_initial_meal_plan(
-    sample_period_days: int = 3, # 명세서 예시의 3일치 샘플
+# ----------------------------- 메뉴 변경용 추천 대안 조회 API ------------------------------
+@router.get("/menus/{meal_id}/alternatives", response_model=AlternativeMenuResponse)
+async def get_meal_alternatives(
+    meal_id: str,
+    target_date: str = Query(None, description="YYYY-MM-DD 형식 (정확한 식단 검색을 위해 권장)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    사용자의 온보딩을 기반으로 모델링 파트에 3일치 샘플 식단 생성을 요청합니다.
+    [화면 10-3] 메뉴 변경용 추천 대안 조회 API
+    DB에 저장된 월간 식단 원본 데이터에서 현재 메뉴 정보와 대안 메뉴(alternatives)를 추출하여 반환합니다.
     """
     
+    query = db.query(MealPlan).filter(MealPlan.user_id == current_user.id)
+    
+    if target_date:
+        query = query.filter(MealPlan.meal_date == target_date)
+    else:
+        query = query.filter(MealPlan.meal_date >= date.today())
+        
+    meal_plans = query.order_by(MealPlan.meal_date.asc()).all()
+
+    target_meal_data = None
+    target_meal_date = None
+
+    # 2. JSON 데이터(content 리스트)를 순회하며 해당 메뉴(meal_id) 찾기
+    for plan in meal_plans:
+        if not plan.content:
+            continue
+            
+        for meal in plan.content:
+            selected_menu = meal.get("selected_menu", {})
+            if selected_menu.get("menu_id") == meal_id:
+                target_meal_data = meal
+                target_meal_date = plan.meal_date # 날짜 객체
+                break
+                
+        if target_meal_data:
+            break
+
+    if not target_meal_data:
+        raise HTTPException(status_code=404, detail="해당 메뉴가 포함된 식단 기록을 찾을 수 없습니다.")
+
+    selected_menu = target_meal_data.get("selected_menu", {})
+    alt_menus = target_meal_data.get("alternative_menus", [])
+
+    current_menu_name = selected_menu.get("name", "")
+    current_menu_category = selected_menu.get("category", "") # 카테고리 추출
+
+    # 3. 명세서 기반 Current Meal 가공 (데이터 매핑)
+    # AI의 필드명(estimated_cost 등)을 프론트 명세(price 등)로 변환
+    current_meal = {
+        "meal_id": selected_menu.get("menu_id", meal_id),
+        "menu_name": selected_menu.get("name", ""),
+        "calories": selected_menu.get("calories", 0),
+        "price": selected_menu.get("estimated_cost", 0),
+        "image_url": await get_food_image_url(current_menu_name, current_menu_category),
+        "date": target_meal_date.strftime("%Y-%m-%d") if target_meal_date else "", # 문자열로 변환
+        "slot": target_meal_data.get("meal_order", 1)
+    }
+
+    # 4. 명세서 기반 Alternatives 가공
+    alternatives = []
+    for alt in alt_menus:
+        alt_menu_name = alt.get("name", "")
+        alt_menu_category = alt.get("category", "")
+        alternatives.append({
+            "meal_id": alt.get("menu_id", ""),
+            "menu_name": alt.get("name", ""),
+            "calories": alt.get("calories", 0),
+            "price": alt.get("estimated_cost", 0),
+            "image_url": await get_food_image_url(alt_menu_name, alt_menu_category)
+        })
+
+    # 5. 최종 반환 (Pydantic 스키마가 자동으로 JSON 변환 및 검증을 수행합니다)
+    return {
+        "current_meal": current_meal,
+        "alternatives": alternatives
+    }
+
+
+# ------------------------------- AI 모델 서버 호출용 API ----------------------------------  
+
+# ---------------- 3일치 식단 샘플 생성 요청 API ---------------------- 
+@router.post("/generate_sample_3days")
+async def generate_initial_meal_plan(
+    sample_period_days: int = 3, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    사용자의 온보딩을 기반으로 모델링 파트에 3일치 샘플 식단 생성을 모델링 파트에 요청합니다.
+    """
     # 1. DB의 User 테이블에서 페르소나 데이터 추출 및 가공
     # 명세서의 규격에 맞게 변환합니다.
     ai_payload = {
@@ -429,257 +567,81 @@ async def generate_initial_meal_plan(
     }
 
     # 2. 모델링 파트에 데이터 전송 (AI 서버 호출)
-    ai_response = await request_ai_meal_plan(ai_payload)
+    # ai_response = await request_ai_meal_plan(ai_payload)
 
-    if not ai_response:
-        # AI 서버 응답 실패 시 Mock 데이터나 에러 반환
-        raise HTTPException(status_code=500, detail="AI 모델 서버로부터 응답을 받을 수 없습니다.")
-
-    # 3. AI가 준 결과를 DB(MealPlan 테이블)에 저장하는 로직
-    # (이후 저장 로직 추가 필요)
+    # if not ai_response:
+    #     # AI 서버 응답 실패 시 Mock 데이터나 에러 반환
+    #     raise HTTPException(status_code=500, detail="AI 모델 서버로부터 응답을 받을 수 없습니다.")
+    mock_ai_response = get_mock_3days_response()
     
     return {
         "message": "식단 생성 요청이 성공적으로 전달되었습니다.",
         "sent_data": ai_payload, # 디버깅용
-        "ai_result": ai_response
+        # "ai_result": ai_response
+        "ai_result": mock_ai_response
     }
 
-# @router.post("/meal-plans/select-style")
-# async def select_style_and_generate_monthly(
-#     selection: StyleSelectionRequest,
-#     db: Session = Depends(get_db),
-#     current_user: User = Depends(get_current_user)
-# ):
-#     """
-#     [Step 3] 사용자가 선택한 스타일 ID를 기반으로 모델링 파트에 월간 식단 생성을 요청합니다.
-#     """
-    
-#     # 1. 모델링 파트에 보낼 페이로드 구성 (image_b0a23c 규격 준수)
-#     final_payload = {
-#         "user_id": f"user_{current_user.id:03d}",
-#         "request_type": "monthly_meal_plan_generation",
-#         "selected_style_id": selection.selected_style_id,
-#         "profile": {
-#             "goals": current_user.purpose,
-#             "monthly_budget": current_user.monthly_budget,
-#             "meal_count_per_day": current_user.meals_per_day,
-#             "cooking_skill": current_user.cooking_skill,
-#             "preferred_categories": current_user.preferred_style,
-#             "diversity_level": current_user.diversity_level,
-#             "ingredient_preferences": current_user.preferred_ingredients,
-#             "allergy_ingredients": current_user.excluded_ingredients
-#         }
-#     }
-
-#     # 2. 모델링 파트(AI 서버)에 최종 생성 요청
-#     # 이 과정은 오래 걸릴 수 있으므로 실제로는 비동기(Celery) 처리가 권장됩니다.
-#     monthly_plan_response = await request_ai_meal_plan(final_payload)
-
-#     if not monthly_plan_response:
-#         raise HTTPException(status_code=500, detail="월간 식단 생성 요청 중 AI 서버 오류가 발생했습니다.")
-
-#     # 3. AI 응답(30일치 식단)을 DB에 저장하는 로직으로 이어짐
-#     # TODO: monthly_plan_response['monthly_plan'] 데이터를 MealPlan 테이블에 Loop를 돌며 저장
-    
-#     return {
-#         "message": f"스타일 {selection.selected_style_id}에 기반한 월간 식단 생성이 시작되었습니다.",
-#         "status": "processing"
-#     }
-
-@router.post("/generate_sample", status_code=status.HTTP_201_CREATED)
-async def generate_meal_plan(
+# -------------------- 월간 식단 요청 API ----------------------------
+@router.post("/request_monthly_plan")
+async def request_monthly_plan(
+    request: StyleSelectRequest, 
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """
-    [Mock 테스트 버전] 외부 AI 서버 없이 로컬 데이터를 사용하여 파이프라인 검증
+    사용자가 선택한 식단 스타일 ID를 바탕으로 모델링 서버에 30일치 월간 식단을 요청합니다.
     """
-    # 1. (생략) 남은 일수 계산 로직 등은 유지
+    update_user_selected_style(db, current_user.id, request.selected_style_id)
+
+    today = date.today()
     
-    # 2. AI 서버 통신 대신 Mock 데이터 정의 (Modeling -> Back 포맷)
-    mock_ai_response = {
-        "user_id": f"user_{current_user.id}",
-        "summary": {
+    # [로직 추가] 해당 월의 마지막 날짜 구하기
+    # calendar.monthrange(연도, 월) -> (시작 요일, 마지막 날짜) 반환
+    _, last_day = calendar.monthrange(today.year, today.month)
+    
+    # 남은 일 수 계산 (오늘 포함: 마지막 날 - 오늘 날짜 + 1)
+    days_remaining = last_day - today.day + 1
+    
+    # 1. Back -> Modeling 요청 JSON 생성
+    modeling_payload = {
+        "user_id": f"user_{current_user.id:03d}",
+        "request_type": "monthly_plan",
+        "selected_style_id": request.selected_style_id, # 프론트에서 넘어온 값
+        "profile": {
+            "days_remaining": days_remaining,
             "goals": current_user.purpose,
-            "year": 2026,
-            "month": 5,
-            "days_remaining": 28, # 모델링 파트 요청 반영
-            "meal_budget": 5000,
+            "monthly_budget": current_user.monthly_budget,
+            "period_days": 30, # 명세서에 30으로 고정되어 있음
             "meal_count_per_day": current_user.meals_per_day,
-            "required_meal_count": 6,
-            "available_recommendation_count": 6,
+            "cooking_skill": current_user.cooking_skill,
+            "preferred_categories": current_user.preferred_style,
             "diversity_level": current_user.diversity_level,
-            "diversity_penalty_strength": 0.1,
-            "warnings": []
-        },
-        "weekly_plan": {
-            "period_days": 3,
-            "meal_count_per_day": current_user.meals_per_day,
-            "days": [
-                {
-                    "day": 1,
-                    "meals": [
-                        {
-                            "meal_order": 1, "menu_id": 101, "name": "두부 비빔밥",
-                            "category": "한식", "final_score": 95.5, "estimated_cost": 4500,
-                            "calories": 550, "protein": 22.0,
-                            "ingredients": ["두부", "밥", "상추"],
-                            "ingredient_groups": ["식물성 단백질", "채소"],
-                            "recipe": {
-                                "serving_size": 1, "cooking_time": 15,
-                                "steps": ["재료 손질", "비비기"],
-                                "required_ingredients": ["두부", "밥"],
-                                "optional_ingredients": [], "substitution_ingredients": {}
-                            },
-                            "scores": {"budget": 100, "nutrition": 90, "preference": 95, "difficulty": 100, "diversity": 100}
-                        },
-                        {
-                            "meal_order": 2, "menu_id": 102, "name": "불고기덮밥",
-                            "category": "한식", "final_score": 96.5, "estimated_cost": 8000,
-                            "calories": 650, "protein": 12.0,
-                            "ingredients": ["불고기", "밥", "버섯"],
-                            "ingredient_groups": ["식물성 단백질", "채소"],
-                            "recipe": {
-                                "serving_size": 1, "cooking_time": 15,
-                                "steps": ["재료 손질", "비비기"],
-                                "required_ingredients": ["불고기", "밥"],
-                                "optional_ingredients": [], "substitution_ingredients": {}
-                            },
-                            "scores": {"budget": 100, "nutrition": 90, "preference": 95, "difficulty": 100, "diversity": 100}
-                        },
-                        {
-                            "meal_order": 3, "menu_id": 103, "name": "크림 파스타",
-                            "category": "양식", "final_score": 93.5, "estimated_cost": 6000,
-                            "calories": 700, "protein": 15.0,
-                            "ingredients": ["우유", "면", "양파"],
-                            "ingredient_groups": ["식물성 단백질", "채소"],
-                            "recipe": {
-                                "serving_size": 1, "cooking_time": 15,
-                                "steps": ["재료 손질", "비비기"],
-                                "required_ingredients": ["우유", "면"],
-                                "optional_ingredients": [], "substitution_ingredients": {}
-                            },
-                            "scores": {"budget": 100, "nutrition": 90, "preference": 95, "difficulty": 100, "diversity": 100}
-                        } 
-                    ]
-                },
-                {
-                    "day": 2,
-                    "meals": [
-                        {
-                            "meal_order": 1, "menu_id": 104, "name": "김치 볶음밥",
-                            "category": "한식", "final_score": 95.5, "estimated_cost": 5000,
-                            "calories": 550, "protein": 22.0,
-                            "ingredients": ["김치", "밥", "설탕"],
-                            "ingredient_groups": ["식물성 단백질", "채소"],
-                            "recipe": {
-                                "serving_size": 1, "cooking_time": 15,
-                                "steps": ["재료 손질", "비비기"],
-                                "required_ingredients": ["김치", "밥"],
-                                "optional_ingredients": [], "substitution_ingredients": {}
-                            },
-                            "scores": {"budget": 100, "nutrition": 90, "preference": 95, "difficulty": 100, "diversity": 100}
-                        },
-                        {
-                            "meal_order": 2, "menu_id": 105, "name": "떡볶이",
-                            "category": "한식", "final_score": 96.5, "estimated_cost": 3500,
-                            "calories": 650, "protein": 12.0,
-                            "ingredients": ["떡", "고추장", "어묵"],
-                            "ingredient_groups": ["식물성 단백질", "채소"],
-                            "recipe": {
-                                "serving_size": 1, "cooking_time": 15,
-                                "steps": ["재료 손질", "비비기"],
-                                "required_ingredients": ["떡", "어묵"],
-                                "optional_ingredients": [], "substitution_ingredients": {}
-                            },
-                            "scores": {"budget": 100, "nutrition": 90, "preference": 95, "difficulty": 100, "diversity": 100}
-                        },
-                        {
-                            "meal_order": 3, "menu_id": 106, "name": "닭가슴살 샐러드",
-                            "category": "양식", "final_score": 93.5, "estimated_cost": 3000,
-                            "calories": 700, "protein": 15.0,
-                            "ingredients": ["닭가슴살", "상추"],
-                            "ingredient_groups": ["식물성 단백질", "채소"],
-                            "recipe": {
-                                "serving_size": 1, "cooking_time": 15,
-                                "steps": ["재료 손질", "비비기"],
-                                "required_ingredients": ["상추", "닭가슴살"],
-                                "optional_ingredients": [], "substitution_ingredients": {}
-                            },
-                            "scores": {"budget": 100, "nutrition": 90, "preference": 95, "difficulty": 100, "diversity": 100}
-                        } 
-                    ]
-                }
-            ]
+            "ingredient_preferences": current_user.preferred_ingredients,
+            "allergy_ingredients": current_user.excluded_ingredients
         }
     }
 
-    # 3. 스키마 검증 (실제 운영 코드와 동일하게 유지)
+    # 2. 모델링 파트에 데이터 전송 (AI 서버 호출) - 현재 주석 처리
+    # ai_response = await request_ai_monthly_plan(modeling_payload)
+    # if not monthly_ai_response:
+    #     raise HTTPException(status_code=500, detail="AI 모델 서버로부터 월간 식단 응답을 받을 수 없습니다.")
+
+    # [임시 Mock 데이터] 질문자님이 올려주신 모델링 JSON 원본 데이터 예시
+    ai_response = get_mock_month_data_response()
+
+    # 5. DB에 월간 식단 원본 데이터 저장
     try:
-        validated_result = RecommendationResult(**mock_ai_response)
+        crud_meal.save_monthly_plan(
+            db=db, 
+            user_id=current_user.id,  
+            ai_monthly_data=ai_response["monthly_plan"]
+        )
     except Exception as e:
-        raise HTTPException(status_code=422, detail=f"Mock 데이터 검증 실패: {str(e)}")
+        raise HTTPException(status_code=500, detail="월간 식단을 DB에 저장하는 중 오류가 발생했습니다.")
 
-    # 4. DB 저장 실행
-    crud_meal.save_recommendation_result(db, user_id=current_user.id, rec_data=validated_result)
+    # 6. 프론트엔드 달력용으로 데이터 가공 (Transformer)
+    current_month_str = datetime.now().strftime("%Y-%m")
+    front_response_data = transform_ai_plan_to_front(ai_response, current_month_str)
 
-    return {"message": "Mock 데이터를 이용한 식단 생성이 완료되었습니다."}
-
-# @router.post("/generate", status_code=status.HTTP_201_CREATED)
-# async def generate_monthly_meal_plan(
-#     db: Session = Depends(get_db),
-#     current_user: User = Depends(get_current_user)
-# ):
-#     """
-#     사용자 프로필을 AI 모델에 전달하고, 생성된 통합 식단 데이터를 DB에 저장합니다.
-#     """
-
-#     today = date.today()
-    
-#     # [로직 추가] 해당 월의 마지막 날짜 구하기
-#     # calendar.monthrange(연도, 월) -> (시작 요일, 마지막 날짜) 반환
-#     _, last_day = calendar.monthrange(today.year, today.month)
-    
-#     # 남은 일 수 계산 (오늘 포함: 마지막 날 - 오늘 날짜 + 1)
-#     days_remaining = last_day - today.day + 1
-
-#     # 1. AI 파트에 전달할 프로필 데이터 구성 (Back -> Modeling JSON 규격)
-#     request_body = {
-#         "user_id": f"user_{current_user.id}",
-#         "profile": {
-#             "goals": current_user.purposes,
-#             "year": date.today().year,
-#             "month": date.today().month,
-#             "days_remaining": days_remaining,
-#             "monthly_budget": current_user.monthly_budget,
-#             "meal_count_per_day": current_user.meals_per_day,
-#             "cooking_skill": current_user.cooking_skill,
-#             "preferred_categories": current_user.preferred_categories,
-#             "diversity_level": current_user.diversity_level,
-#             "ingredient_preferences": current_user.preferred_ingredients,
-#             "allergy_ingredients": current_user.excluded_ingredients
-#         }
-#     }
-
-#     # 2. Modeling 파트에 추천 요청 전송
-#     async with httpx.AsyncClient() as client:
-#         try:
-#             response = await client.post(AI_MODEL_SERVER_URL, json=request_body, timeout=60.0)
-#             response.raise_for_status()
-#             ai_response_data = response.json()
-#         except httpx.HTTPError as e:
-#             raise HTTPException(status_code=500, detail=f"AI 모델 서버 통신 실패: {str(e)}")
-
-#     # 3. AI 응답 데이터를 스키마로 검증 (Modeling -> Back JSON 규격)
-#     try:
-#         validated_result = RecommendationResult(**ai_response_data)
-#     except Exception as e:
-#         raise HTTPException(status_code=422, detail=f"AI 응답 데이터 형식이 올바르지 않습니다: {str(e)}")
-
-#     # 4. DB 저장 (CRUD 호출)
-#     success = crud_meal.save_recommendation_result(db, user_id=current_user.id, rec_data=validated_result)
-    
-#     if not success:
-#         raise HTTPException(status_code=500, detail="식단 저장 중 오류가 발생했습니다.")
-
-#     return {"message": "한 달 식단 생성이 완료되었습니다."}
+    # 7. 프론트에 가벼운 달력 데이터 반환
+    return front_response_data
