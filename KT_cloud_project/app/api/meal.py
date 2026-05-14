@@ -207,16 +207,17 @@ async def get_daily_meal_detail(
     # 2. DB의 content(JSON) 데이터 정제 및 타입 변환
     detail_meals = []
     for item in plan.content:
-        menu_name = item.get("name")
-        category = item.get("category")
+        selected_menu = item.get("selected_menu") or {}
+        menu_name = selected_menu.get("name")
+        category = selected_menu.get("category")
         img_url = await get_food_image_url(menu_name, category)
 
         detail_meals.append({
             "slot": item.get("meal_order"),
-            "meal_id": str(item.get("menu_id")),
+            "meal_id": str(selected_menu.get("menu_id")),
             "menu_name": menu_name,
-            "calories": item.get("calories", 0),
-            "price": item.get("estimated_cost", 0),
+            "calories": selected_menu.get("calories", 0),
+            "price": selected_menu.get("estimated_cost", 0),
             "image_url": img_url # Pixabay API를 호출하여 이미지를 가져옴
         })
 
@@ -301,59 +302,71 @@ def swap_meal_plans(
     current_user: User = Depends(get_current_user)
 ):
     """
-    두 날짜의 식단을 스왑합니다.
+    내용물(JSON)은 그대로 두고, 두 식단의 날짜(meal_date) 라벨만 서로 교환합니다.
     """
+    from datetime import date as dt_date
+    
     date1 = date
     date2 = request.with_date
 
     if date1 == date2:
         raise HTTPException(status_code=400, detail="동일한 날짜는 스왑할 수 없습니다.")
 
-    # 1. 두 날짜 데이터 조회
+    # 1. 두 날짜 데이터 레코드 자체를 가져옴
     plan1 = db.query(MealPlan).filter(MealPlan.user_id == current_user.id, MealPlan.meal_date == date1).first()
     plan2 = db.query(MealPlan).filter(MealPlan.user_id == current_user.id, MealPlan.meal_date == date2).first()
 
     if not plan1 and not plan2:
         raise HTTPException(status_code=404, detail="스왑할 데이터가 없습니다.")
 
-    # 2. 데이터 교환 (트랜잭션)
+    # 2. 날짜(Date) 라벨만 교환 (temp 변수 활용)
     try:
-        # 임시 저장을 위한 데이터 추출
-        content1, cost1, cal1 = (plan1.content, plan1.estimated_cost, plan1.total_calories) if plan1 else ([], 0, 0)
-        content2, cost2, cal2 = (plan2.content, plan2.estimated_cost, plan2.total_calories) if plan2 else ([], 0, 0)
+        # DB Unique 제약 조건 충돌을 막기 위해 plan1을 아주 먼 임시 날짜로 잠깐 대피
+        temp_date = dt_date(9999, 12, 31) 
 
-        # Plan 1 업데이트 (내용 교체)
         if plan1:
-            plan1.content, plan1.estimated_cost, plan1.total_calories = content2, cost2, cal2
-        
-        # Plan 2 업데이트 (내용 교체)
-        if plan2:
-            plan2.content, plan2.estimated_cost, plan2.total_calories = content1, cost1, cal1
+            plan1.meal_date = temp_date
+        db.flush() # DB에 임시 반영 (commit 전 상태)
 
-        db.commit()
+        if plan2:
+            plan2.meal_date = date1
+        db.flush()
+
+        if plan1:
+            plan1.meal_date = date2
+            
+        db.commit() # 최종 확정!
+        
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"스왑 실패: {str(e)}")
 
-    # 3. 명세서에 맞춘 응답 구성 (요약된 meals 정보 포함)
-    def format_day(d, p_content, p_cal, p_cost):
+    # 3. 명세서에 맞춘 응답 구성
+    def format_day(d, p):
+        formatted_meals = []
+        if p and p.content:
+            for m in p.content:
+                selected = m.get("selected_menu") or {}
+                m_id = selected.get("menu_id")
+                
+                formatted_meals.append({
+                    "slot": m.get("meal_order") or 1,
+                    "meal_id": str(m_id) if m_id is not None else "",
+                    "menu_name": selected.get("name") or "메뉴 정보 없음"
+                })
+
         return {
             "date": d,
-            "calories_per_day": p_cal if p_content else None,
-            "price_per_day": p_cost if p_content else None,
-            "meals": [
-                {
-                    "slot": m.get("meal_order"),
-                    "meal_id": str(m.get("menu_id")),
-                    "menu_name": m.get("name")
-                } for m in p_content
-            ]
+            "calories_per_day": p.total_calories if p else None,
+            "price_per_day": p.estimated_cost if p else None,
+            "meals": formatted_meals
         }
 
+    # 주의: plan1은 이제 date2를, plan2는 date1을 가리키고 있습니다.
     return {
         "swapped": [
-            format_day(date1, content2, cal2, cost2),
-            format_day(date2, content1, cal1, cost1)
+            format_day(date1, plan2), # 날짜1에는 원래 날짜2의 데이터(plan2)를 매핑
+            format_day(date2, plan1)  # 날짜2에는 원래 날짜1의 데이터(plan1)를 매핑
         ]
     }
 
