@@ -2,6 +2,10 @@ from pydantic import BaseModel, Field
 from datetime import date, datetime
 from typing import List, Dict, Any, Optional
 
+# ----------- 스타일 확정 전용 스키마 ---------------
+class StyleSelectRequest(BaseModel):
+    selected_style_id: str  # 예: "budget_first", "nutrition_balance" 등
+
 # --- [AI 응답 구조 반영: Meal 레벨] ---
 
 class Recipe(BaseModel):
@@ -137,25 +141,78 @@ class MealSwapRequest(BaseModel):
 class MealSwapResponse(BaseModel):
     swapped: List[CalendarDay]
 
-# ------------ 매뉴 변경 전용 스키마 ----------------
-class MenuUpdateRequest(BaseModel):
-    """
-    변경하고자 하는 새로운 메뉴의 ID를 받는 스키마
-    """
-    new_meal_id: str
+# -------------- 식단 상세 레시피 영상, 재료, 마켓 정보 조회 스키마 --------------------
 
-# --------------- 대안 메뉴 추천 전용 스키마 ----------------
-class MealBase(BaseModel):
+class MarketPrice(BaseModel):
+    market: str
+    price: int
+
+class ECommercePrices(BaseModel):
+    coupang: Optional[Dict[str, int]] = None
+    market_kurly: Optional[Dict[str, int]] = None
+    naver_shopping: Optional[Dict[str, int]] = None
+
+class IngredientDetail(BaseModel):
+    ingredient_id: str
+    ingredient_name: str
+    standard_unit: str
+    image_url: Optional[str] = None
+    lowest_price_between_market: MarketPrice
+    e_commerce_prices: ECommercePrices
+
+class MealDetailFullResponse(BaseModel):
     meal_id: str
     menu_name: str
     calories: int
     price: int
     image_url: Optional[str] = None
+    video_url: Optional[str] = None
+    required_ingredient_ids: List[str]
+    ingredients: List[IngredientDetail]
 
-class CurrentMealDetail(MealBase):
-    date: date
+# ------------ 매뉴 변경 전용 스키마 ----------------
+class MenuUpdateRequest(BaseModel):
+    """
+    변경하고자 하는 새로운 메뉴의 ID를 받는 스키마
+    """
+    new_menu_id: str
+
+# --------------- 대안 메뉴 추천 전용 스키마 ----------------
+class AlternativeMenuItem(BaseModel):
+    meal_id: str
+    menu_name: str
+    calories: Optional[int] = None
+    price: Optional[int] = None
+    image_url: Optional[str] = None
+
+class CurrentMealInfo(BaseModel):
+    meal_id: str
+    menu_name: str
+    calories: Optional[int] = None
+    price: Optional[int] = None
+    image_url: Optional[str] = None
+    date: str  # "YYYY-MM-DD" 형식
     slot: int
 
 class AlternativeMenuResponse(BaseModel):
-    current_meal: CurrentMealDetail
-    alternatives: List[MealBase]
+    current_meal: CurrentMealInfo
+    alternatives: List[AlternativeMenuItem]
+
+# --------------- 프론트에 보낼 월간 식단 달력용 스키마 ------------------
+class FrontMeal(BaseModel):
+    slot: int           # meal_order
+    meal_id: str        # menu_id
+    menu_name: str      # name
+
+class FrontDayPlan(BaseModel):
+    date: str           # "YYYY-MM-DD" 형식
+    calories_per_day: Optional[int] = None
+    price_per_day: Optional[int] = None
+    meals: List[FrontMeal] = []
+
+class FrontMonthlyPlanResponse(BaseModel):
+    month: str          # "YYYY-MM" 형식
+    duration_days: int
+    total_price_per_month: int
+    average_calories_per_month: int
+    days: List[FrontDayPlan]
