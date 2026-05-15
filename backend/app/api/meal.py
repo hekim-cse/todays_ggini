@@ -597,116 +597,314 @@ async def get_meal_alternatives(
 
 # ------------------------------- AI 모델 서버 호출용 API ----------------------------------  
 
+def get_modeling_user_id(current_user: User) -> str:
+    """
+    DB user id를 모델링에서 사용하는 user_id 형식으로 변환합니다.
+
+    예:
+    current_user.id == 4 -> user_004
+    """
+
+    return f"user_{current_user.id:03d}"
+
+
+def build_modeling_profile_from_user(
+    current_user: User,
+    sample_period_days: int | None = None,
+    period_days: int | None = None,
+) -> dict:
+    """
+    DB의 User 정보를 모델링 profile 형식으로 변환합니다.
+    """
+
+    profile = {
+        "goals": current_user.purpose or [],
+        "monthly_budget": current_user.monthly_budget,
+        "meal_count_per_day": current_user.meals_per_day,
+        "cooking_skill": current_user.cooking_skill,
+        "preferred_categories": current_user.preferred_style or [],
+        "diversity_level": current_user.diversity_level,
+        "ingredient_preferences": current_user.preferred_ingredients or [],
+        "allergy_ingredients": current_user.excluded_ingredients or [],
+    }
+
+    if sample_period_days is not None:
+        profile["sample_period_days"] = sample_period_days
+
+    if period_days is not None:
+        profile["period_days"] = period_days
+
+    return profile
+
+
+def build_selected_style_from_style_id(style_id: str) -> dict:
+    """
+    프론트에서 전달받은 selected_style_id를
+    모델링이 사용하는 selected_style 객체로 변환합니다.
+
+    모델링 월간 식단 생성 함수는 selected_style_id가 아니라
+    source_goal, focus_key 등이 포함된 selected_style 객체를 필요로 합니다.
+    """
+
+    style_map = {
+        "budget_first": {
+            "style_id": "budget_first",
+            "style_name": "가성비 최우선",
+            "description": "예산을 가장 우선으로 고려한 식단",
+            "summary_comment": "예산 부담을 줄이고 간편하게 구성한 식단입니다.",
+            "source_goal": "식비 절약",
+            "focus_key": "budget",
+            "display_scores": {
+                "health": 7,
+                "cost_efficiency": 10,
+                "taste": 6,
+                "cooking_ease": 7,
+            },
+            "display_labels": {
+                "health": "건강",
+                "cost_efficiency": "가성비",
+                "taste": "맛",
+                "cooking_ease": "조리",
+            },
+        },
+        "nutrition_balance": {
+            "style_id": "nutrition_balance",
+            "style_name": "영양 균형식",
+            "description": "칼로리와 단백질 균형을 함께 고려한 식단",
+            "summary_comment": "영양 균형을 고려해 건강하게 구성한 식단입니다.",
+            "source_goal": "영양 균형",
+            "focus_key": "nutrition",
+            "display_scores": {
+                "health": 9,
+                "cost_efficiency": 7,
+                "taste": 7,
+                "cooking_ease": 7,
+            },
+            "display_labels": {
+                "health": "건강",
+                "cost_efficiency": "가성비",
+                "taste": "맛",
+                "cooking_ease": "조리",
+            },
+        },
+        "diet_light": {
+            "style_id": "diet_light",
+            "style_name": "가벼운 관리식",
+            "description": "칼로리 부담을 줄이고 가볍게 구성한 식단",
+            "summary_comment": "부담이 적은 메뉴를 중심으로 구성한 식단입니다.",
+            "source_goal": "다이어트",
+            "focus_key": "nutrition",
+            "display_scores": {
+                "health": 9,
+                "cost_efficiency": 7,
+                "taste": 7,
+                "cooking_ease": 7,
+            },
+            "display_labels": {
+                "health": "건강",
+                "cost_efficiency": "가성비",
+                "taste": "맛",
+                "cooking_ease": "조리",
+            },
+        },
+        "high_protein": {
+            "style_id": "high_protein",
+            "style_name": "고단백 관리식",
+            "description": "단백질 섭취를 우선으로 고려한 식단",
+            "summary_comment": "단백질 섭취를 늘리고 싶은 사용자에게 적합한 식단입니다.",
+            "source_goal": "고단백",
+            "focus_key": "nutrition",
+            "display_scores": {
+                "health": 9,
+                "cost_efficiency": 10,
+                "taste": 7,
+                "cooking_ease": 7,
+            },
+            "display_labels": {
+                "health": "건강",
+                "cost_efficiency": "가성비",
+                "taste": "맛",
+                "cooking_ease": "조리",
+            },
+        },
+        "easy_cooking": {
+            "style_id": "easy_cooking",
+            "style_name": "간편 조리식",
+            "description": "조리 난이도와 시간을 낮게 유지한 식단",
+            "summary_comment": "조리 부담을 줄이고 빠르게 준비할 수 있는 식단입니다.",
+            "source_goal": "간편식",
+            "focus_key": "difficulty",
+            "display_scores": {
+                "health": 7,
+                "cost_efficiency": 10,
+                "taste": 6,
+                "cooking_ease": 8,
+            },
+            "display_labels": {
+                "health": "건강",
+                "cost_efficiency": "가성비",
+                "taste": "맛",
+                "cooking_ease": "조리",
+            },
+        },
+        "taste_first": {
+            "style_id": "taste_first",
+            "style_name": "취향 맞춤식",
+            "description": "선호 카테고리와 재료 취향을 더 많이 반영한 식단",
+            "summary_comment": "사용자의 취향과 선호 재료를 중심으로 구성한 식단입니다.",
+            "source_goal": "맛 중심",
+            "focus_key": "preference",
+            "display_scores": {
+                "health": 7,
+                "cost_efficiency": 7,
+                "taste": 9,
+                "cooking_ease": 7,
+            },
+            "display_labels": {
+                "health": "건강",
+                "cost_efficiency": "가성비",
+                "taste": "맛",
+                "cooking_ease": "조리",
+            },
+        },
+    }
+
+    selected_style = style_map.get(style_id)
+
+    if selected_style is None:
+        raise ValueError(f"지원하지 않는 selected_style_id입니다: {style_id}")
+
+    return selected_style
+
+
 # ---------------- 3일치 식단 샘플 생성 요청 API ---------------------- 
 @router.post("/generate_sample_3days")
 async def generate_initial_meal_plan(
-    sample_period_days: int = 3, 
+    sample_period_days: int = 3,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
-    사용자의 온보딩을 기반으로 모델링 파트에 3일치 샘플 식단 생성을 모델링 파트에 요청합니다.
+    사용자의 온보딩 정보를 기반으로 모델링 파트에 3일치 샘플 식단 생성을 요청합니다.
+
+    user_id는 프론트에서 받지 않고,
+    백엔드의 current_user.id를 기준으로 생성합니다.
     """
-    # 1. DB의 User 테이블에서 페르소나 데이터 추출 및 가공
-    # 명세서의 규격에 맞게 변환합니다.
+
     ai_payload = {
-        "user_id": f"user_{current_user.id:03d}", # user_001 형식
+        "user_id": get_modeling_user_id(current_user),
         "request_type": "meal_style_candidates",
-        "profile":{
-            "goals": current_user.purpose, # List[string]
-            "sample_period_days": sample_period_days,
-            "monthly_budget": current_user.monthly_budget,
-            "meal_count_per_day": current_user.meals_per_day,
-            "cooking_skill": current_user.cooking_skill,
-            "preferred_categories": current_user.preferred_style, # 한식, 분식 등
-            "diversity_level": current_user.diversity_level,
-            "ingredient_preferences": current_user.preferred_ingredients,
-            "allergy_ingredients": current_user.excluded_ingredients # 제외 재료
-        }
+        "profile": build_modeling_profile_from_user(
+            current_user=current_user,
+            sample_period_days=sample_period_days,
+        ),
     }
 
-    # 2. 모델링 파트에 데이터 전송 (AI 서버 호출)
-    # ai_response = await request_ai_meal_plan(ai_payload)
+    try:
+        ai_response = await asyncio.to_thread(
+            create_meal_style_candidates,
+            ai_payload,
+        )
 
-    # if not ai_response:
-    #     # AI 서버 응답 실패 시 Mock 데이터나 에러 반환
-    #     raise HTTPException(status_code=500, detail="AI 모델 서버로부터 응답을 받을 수 없습니다.")
-    # mock_ai_response = get_mock_3days_response()
-    ai_response = await asyncio.to_thread(create_meal_style_candidates, ai_payload)
-    
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        )
+
+    except Exception as error:
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(error),
+        )
+
     return {
-        "message": "식단 생성 요청이 성공적으로 전달되었습니다.",
-        "sent_data": ai_payload, # 디버깅용
-        "ai_result": ai_response
+        "message": "3일치 식단 스타일 후보 생성이 완료되었습니다.",
+        "sent_data": ai_payload,
+        "ai_result": ai_response,
     }
+
 
 # -------------------- 월간 식단 요청 API ----------------------------
 @router.post("/request_monthly_plan")
 async def request_monthly_plan(
-    request: StyleSelectRequest, 
+    request: StyleSelectRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
-    사용자가 선택한 식단 스타일 ID를 바탕으로 모델링 서버에 30일치 월간 식단을 요청합니다.
+    사용자가 선택한 식단 스타일 ID를 바탕으로 모델링 파트에 월간 식단 생성을 요청합니다.
+
+    selected_style_id는 백엔드에서 selected_style 객체로 변환한 뒤
+    모델링에 전달합니다.
     """
-    update_user_selected_style(db, current_user.id, request.selected_style_id)
 
-    today = date.today()
-    
-    # [로직 추가] 해당 월의 마지막 날짜 구하기
-    # calendar.monthrange(연도, 월) -> (시작 요일, 마지막 날짜) 반환
-    _, last_day = calendar.monthrange(today.year, today.month)
-    
-    # 남은 일 수 계산 (오늘 포함: 마지막 날 - 오늘 날짜 + 1)
-    days_remaining = last_day - today.day + 1
-    
-    # 1. Back -> Modeling 요청 JSON 생성
-    modeling_payload = {
-        "user_id": f"user_{current_user.id:03d}",
-        "request_type": "monthly_plan",
-        "selected_style_id": request.selected_style_id, # 프론트에서 넘어온 값
-        "profile": {
-            "days_remaining": days_remaining,
-            "goals": current_user.purpose,
-            "monthly_budget": current_user.monthly_budget,
-            "period_days": 30, # 명세서에 30으로 고정되어 있음
-            "meal_count_per_day": current_user.meals_per_day,
-            "cooking_skill": current_user.cooking_skill,
-            "preferred_categories": current_user.preferred_style,
-            "diversity_level": current_user.diversity_level,
-            "ingredient_preferences": current_user.preferred_ingredients,
-            "allergy_ingredients": current_user.excluded_ingredients
-        }
-    }
-
-    # 2. 모델링 파트에 데이터 전송 (AI 서버 호출) - 현재 주석 처리
-    # ai_response = await request_ai_monthly_plan(modeling_payload)
-    # if not monthly_ai_response:
-    #     raise HTTPException(status_code=500, detail="AI 모델 서버로부터 월간 식단 응답을 받을 수 없습니다.")
-
-    # [임시 Mock 데이터] 질문자님이 올려주신 모델링 JSON 원본 데이터 예시
-    ai_response = get_mock_month_data_response()
-
-    # 5. DB에 월간 식단 원본 데이터 저장
-    days_data = ai_response.get("monthly_plan", {}).get("days")
-    if not days_data:
-        # monthly_plan에 없으면 style_validation에서 찾음
-        days_data = ai_response.get("style_validation", {}).get("days", [])
-
-    # 저장 함수 호출 (에러가 나면 날 것 그대로 콘솔에 뿜어냅니다)
-    crud_meal.save_monthly_plan(
-        db=db, 
-        user_id=current_user.id,  
-        ai_days_list=days_data
+    update_user_selected_style(
+        db,
+        current_user.id,
+        request.selected_style_id,
     )
 
-    # 6. 프론트엔드 달력용으로 데이터 가공 (Transformer)
-    current_month_str = datetime.now().strftime("%Y-%m")
-    front_response_data = transform_ai_plan_to_front(ai_response, start_date=today)
+    today = date.today()
 
-    # 7. 프론트에 가벼운 달력 데이터 반환
+    _, last_day = calendar.monthrange(today.year, today.month)
+    days_remaining = last_day - today.day + 1
+
+    selected_style = build_selected_style_from_style_id(
+        style_id=request.selected_style_id,
+    )
+
+    modeling_payload = {
+        "user_id": get_modeling_user_id(current_user),
+        "request_type": "monthly_plan",
+        "selected_style": selected_style,
+        "profile": build_modeling_profile_from_user(
+            current_user=current_user,
+            period_days=days_remaining,
+        ),
+    }
+
+    try:
+        ai_response = await asyncio.to_thread(
+            create_monthly_plan,
+            modeling_payload,
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        )
+
+    except Exception as error:
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(error),
+        )
+
+    days_data = ai_response.get("monthly_plan", {}).get("days", [])
+
+    if not days_data:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="모델링 응답에 monthly_plan.days 데이터가 없습니다.",
+        )
+
+    crud_meal.save_monthly_plan(
+        db=db,
+        user_id=current_user.id,
+        ai_days_list=days_data,
+    )
+
+    front_response_data = transform_ai_plan_to_front(
+        ai_response,
+        start_date=today,
+    )
+
     return front_response_data
+
 
 # --------------------------- 모델링 연동 API ---------------------------
 
@@ -715,21 +913,17 @@ async def create_modeling_style_candidates(
     request_data: dict,
 ):
     """
-    Back → Modeling 3일치 식단 스타일 후보 생성 API.
+    Back → Modeling 3일치 식단 스타일 후보 생성 테스트 API.
 
-    요청 데이터:
-    - user_id
-    - request_type
-    - profile
-
-    응답 데이터:
-    - meal_style_candidates
-    - sample_plan
-    - display_scores
+    이 API는 Swagger 또는 curl에서 모델링 응답 구조를 직접 확인하기 위한 개발용 API입니다.
+    request body에 들어온 user_id, request_type, profile을 그대로 사용합니다.
     """
 
     try:
-        return create_meal_style_candidates(request_data)
+        return await asyncio.to_thread(
+            create_meal_style_candidates,
+            request_data,
+        )
 
     except ValueError as error:
         raise HTTPException(
@@ -750,23 +944,17 @@ async def create_modeling_monthly_plan(
     request_data: dict,
 ):
     """
-    Back → Modeling 월간 식단 생성 API.
+    Back → Modeling 월간 식단 생성 테스트 API.
 
-    요청 데이터:
-    - user_id
-    - request_type
-    - profile
-    - selected_style
-
-    응답 데이터:
-    - selected_style
-    - modeling_profile
-    - applied_style_adjustment
-    - monthly_plan
+    이 API는 Swagger 또는 curl에서 모델링 월간 식단 응답 구조를 직접 확인하기 위한 개발용 API입니다.
+    request body에 들어온 user_id, request_type, profile, selected_style을 그대로 사용합니다.
     """
 
     try:
-        return create_monthly_plan(request_data)
+        return await asyncio.to_thread(
+            create_monthly_plan,
+            request_data,
+        )
 
     except ValueError as error:
         raise HTTPException(
@@ -775,6 +963,7 @@ async def create_modeling_monthly_plan(
         )
 
     except Exception as error:
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(error),
