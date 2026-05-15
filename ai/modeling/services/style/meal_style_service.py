@@ -2,7 +2,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 
 from services.recommendation.recommendation_service import recommend_menus
-from services.plan.monthly_plan_test_service import are_menus_similar
+from services.plan.menu_similarity_service import are_menus_similar
 
 
 GOAL_STYLE_META = {
