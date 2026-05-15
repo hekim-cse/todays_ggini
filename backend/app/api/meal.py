@@ -19,6 +19,24 @@ from app.crud import crud_meal
 from app.utils.image_search import get_food_image_url
 from app.utils.ai_client import request_ai_meal_plan
 
+import sys
+import traceback
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+MODELING_ROOT = PROJECT_ROOT / "ai" / "modeling"
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.append(str(PROJECT_ROOT))
+
+if str(MODELING_ROOT) not in sys.path:
+    sys.path.append(str(MODELING_ROOT))
+
+from ai.modeling.services.modeling_service import (
+    create_meal_style_candidates,
+    create_monthly_plan,
+)
+
 router = APIRouter()
 
 # ---------------------------  프론트엔드 호출용 API ---------------------------------
@@ -689,3 +707,75 @@ async def request_monthly_plan(
 
     # 7. 프론트에 가벼운 달력 데이터 반환
     return front_response_data
+
+# --------------------------- 모델링 연동 API ---------------------------
+
+@router.post("/modeling/style-candidates")
+async def create_modeling_style_candidates(
+    request_data: dict,
+):
+    """
+    Back → Modeling 3일치 식단 스타일 후보 생성 API.
+
+    요청 데이터:
+    - user_id
+    - request_type
+    - profile
+
+    응답 데이터:
+    - meal_style_candidates
+    - sample_plan
+    - display_scores
+    """
+
+    try:
+        return create_meal_style_candidates(request_data)
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        )
+
+    except Exception as error:
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(error),
+        )
+
+
+@router.post("/modeling/monthly-plan")
+async def create_modeling_monthly_plan(
+    request_data: dict,
+):
+    """
+    Back → Modeling 월간 식단 생성 API.
+
+    요청 데이터:
+    - user_id
+    - request_type
+    - profile
+    - selected_style
+
+    응답 데이터:
+    - selected_style
+    - modeling_profile
+    - applied_style_adjustment
+    - monthly_plan
+    """
+
+    try:
+        return create_monthly_plan(request_data)
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        )
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(error),
+        )

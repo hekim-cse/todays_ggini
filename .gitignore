@@ -10,4 +10,5 @@ debug_result.json
 **/.venv/
 **/result.json
 **/debug_result.json
-KT_cloud/
+KT_cloud/local.db
+*.db
