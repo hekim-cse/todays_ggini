@@ -8,6 +8,7 @@ import calendar
 from app.api.deps import get_db, get_current_user
 from app.utils.meal_transformer import transform_ai_plan_to_front
 from app.utils.mock_data import get_mock_3days_response, get_mock_month_data_response, get_mock_3days_data_front_response
+from app.core.constants import MEAL_STYLES_META
 from app.models.user import User
 from app.crud.crud_user import update_user_selected_style
 from app.models.meal import MealPlan
@@ -24,6 +25,7 @@ router = APIRouter()
 # ---------- 3일치 샘플 식단 후보 제공 (Front에 보여주기 용) -----------------------
 @router.post("/sample_data_three_days")
 async def initial_meal_plan(
+    style_id: StyleSelectRequest,
     sample_period_days: int = 3,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
@@ -34,11 +36,16 @@ async def initial_meal_plan(
     """
     user_id = f"user_{current_user.id:03d}"
 
+    style_info = MEAL_STYLES_META.get(style_id)
+
     # 모델링 파트에서 전달받은 JSON 구조를 그대로 Mock 데이터로 사용 (프론트 연동용)
     mock_ai_response = get_mock_3days_data_front_response(user_id, sample_period_days)
     
     # 프론트엔드가 이 데이터를 바로 쓸 수 있도록 AI 응답 결과 자체를 리턴합니다.
-    return mock_ai_response
+    return {
+        "style_meta": style_info,  # 화면 상단의 타이틀, 설명 문구용
+        "plan_data": mock_ai_response  # 화면 하단의 달력/리스트용
+    }
 
 # ---------------------- 식단 생성 트리거 ---------------------------------
 @router.post("/generate", response_model=MealGenerateResponse, status_code=status.HTTP_202_ACCEPTED)
@@ -230,68 +237,89 @@ async def get_daily_meal_detail(
     }
 
 # -------------------------- 식단 상세 레시피, 재료, 마켓 정보 조회 API -------------------------
-# @router.get("/menus/{meal_id}", response_model=MealDetailFullResponse)
-# async def get_menu_detail(
-#     meal_id: str,
-#     db: Session = Depends(get_db),
-#     current_user: User = Depends(get_current_user)
-# ):
-#     """
-#     [화면 8, 10-1] 메뉴 상세 정보(레시피 영상, 재료, 마켓별 최저가)를 조회합니다.
-#     """
-#     # 1. DB에서 해당 meal_id가 포함된 식단 계획을 찾습니다. 
-#     # (JSON 내부 탐색을 위해 모든 플랜을 가져오거나, 특정 날짜 정보를 함께 받는 것이 성능상 좋으나 
-#     # 우선 meal_id 기반 탐색으로 구현합니다.)
-#     plans = db.query(MealPlan).filter(MealPlan.user_id == current_user.id).all()
-    
-#     target_menu = None
-#     for plan in plans:
-#         for meal in plan.content:
-#             selected = meal.get("selected_menu", {})
-#             if str(selected.get("menu_id")) == meal_id:
-#                 target_menu = selected
-#                 break
-#         if target_menu: break
+@router.get("/menu/{meal_date}/{menu_id}")
+async def get_menu_detail(
+    meal_date: date, 
+    menu_id: str, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    특정 일자의 메뉴 상세 정보(재료, 가격, 마켓 정보 등)를 조회하여 프론트엔드 규격에 맞게 반환합니다.
+    """
+    # 1. DB에서 해당 날짜의 식단 데이터 조회
+    meal_plan = db.query(MealPlan).filter(
+        MealPlan.user_id == current_user.id, 
+        MealPlan.meal_date == meal_date
+    ).first()
 
-#     if not target_menu:
-#         raise HTTPException(status_code=404, detail="해당 메뉴 정보를 찾을 수 없습니다.")
+    if not meal_plan or not meal_plan.content:
+        raise HTTPException(status_code=404, detail="해당 날짜의 식단 정보가 없습니다.")
 
-#     # 2. 명세서 규격에 맞게 데이터 가공
-#     # 실제 운영 시에는 마켓 가격 크롤링 엔진이나 DB에서 가져와야 하지만, 
-#     # 현재는 AI가 생성하여 저장해둔 데이터를 기반으로 구성합니다.
+    # 2. JSON 데이터(content) 안에서 요청받은 menu_id와 일치하는 메뉴 찾기
+    target_menu = None
+    for meal in meal_plan.content:
+        selected = meal.get("selected_menu", {})
+        if selected.get("menu_id") == menu_id:
+            target_menu = selected
+            break
+
+    if not target_menu:
+        raise HTTPException(status_code=404, detail="해당 메뉴를 찾을 수 없습니다.")
+
+    # 3. 프론트엔드 명세에 맞게 데이터 가공 준비
+    ingredients_data = []
+    required_ingredient_ids = []
     
-#     ingredients_raw = target_menu.get("ingredients", [])
-#     ingredient_details = []
-    
-#     # 임의의 마켓 데이터 매핑 (실제 데이터 구조에 따라 수정 필요)
-#     for idx, name in enumerate(ingredients_raw):
-#         ing_id = f"I_{str(idx+1).zfill(3)}"
+    # 우리가 관리할 3대 이커머스 마켓 키
+    supported_markets = ["coupang", "market_kurly", "naver_shopping"]
+
+    # 4. 재료 데이터 변환 (AI 데이터의 ingredient_costs 리스트 활용)
+    for ing_cost in target_menu.get("ingredient_costs", []):
+        ing_id = ing_cost.get("ingredient_id")
+        required_ingredient_ids.append(ing_id)
         
-#         # 명세서와 동일한 마켓별 가격 구조 생성
-#         detail = {
-#             "ingredient_id": ing_id,
-#             "ingredient_name": name,
-#             "standard_unit": "100g", # 기본값
-#             "image_url": None,
-#             "lowest_price_between_market": {"market": "coupang", "price": 1200},
-#             "e_commerce_prices": {
-#                 "coupang": {"lowest_price": 1200},
-#                 "market_kurly": {"lowest_price": 1400},
-#                 "naver_shopping": {"lowest_price": 1300}
-#             }
-#         }
-#         ingredient_details.append(detail)
+        # 모델링 데이터에서 제공한 최저가 및 마켓 정보
+        mock_price = ing_cost.get("lowest_price", 0)
+        mock_market = ing_cost.get("lowest_market", "coupang") # 기본값 fallback
+        
+        # e_commerce_prices 조립 (요청하신 100,000원 처리 로직)
+        e_commerce_prices = {}
+        for market in supported_markets:
+            if market == mock_market:
+                e_commerce_prices[market] = {"lowest_price": mock_price}
+            else:
+                # 데이터가 없는 마켓은 임시로 100,000원 처리
+                e_commerce_prices[market] = {"lowest_price": 100000}
+        
+        img_url = await get_food_image_url(ing_cost.get("ingredient_name"), "재료")
+                
+        # 개별 재료 정보 조립
+        ingredients_data.append({
+            "ingredient_id": ing_id,
+            "ingredient_name": ing_cost.get("ingredient_name"),
+            "standard_unit": ing_cost.get("display_amount"), # 예: "122g", "1공기"
+            "image_url": img_url,
+            "lowest_price_between_market": {
+                "market": mock_market,
+                "price": mock_price
+            },
+            "e_commerce_prices": e_commerce_prices
+        })
 
-#     return {
-#         "meal_id": meal_id,
-#         "menu_name": target_menu.get("name", ""),
-#         "calories": target_menu.get("calories", 0),
-#         "price": target_menu.get("estimated_cost", 0),
-#         "image_url": None, # 필요 시 이미지 헬퍼 연결
-#         "video_url": "https://www.youtube.com/watch?v=sample", # 레시피 영상 URL
-#         "required_ingredient_ids": [d["ingredient_id"] for d in ingredient_details],
-#         "ingredients": ingredient_details
-#     }
+    # 5. 최종 응답 JSON 조립
+    response_data = {
+        "meal_id": target_menu.get("menu_id"),
+        "menu_name": target_menu.get("name"),
+        "calories": target_menu.get("calories"),
+        "price": target_menu.get("estimated_cost"), # 메뉴 전체 예상 비용
+        "image_url": img_url,
+        "video_url": None,
+        "required_ingredient_ids": required_ingredient_ids,
+        "ingredients": ingredients_data
+    }
+
+    return response_data
 
 # -------------------------- 식단 swap API -----------------------------------
 @router.patch("/{date}/swap", response_model=MealSwapResponse)
@@ -305,7 +333,7 @@ def swap_meal_plans(
     내용물(JSON)은 그대로 두고, 두 식단의 날짜(meal_date) 라벨만 서로 교환합니다.
     """
     from datetime import date as dt_date
-    
+
     date1 = date
     date2 = request.with_date
 
@@ -643,18 +671,21 @@ async def request_monthly_plan(
     ai_response = get_mock_month_data_response()
 
     # 5. DB에 월간 식단 원본 데이터 저장
-    try:
-        crud_meal.save_monthly_plan(
-            db=db, 
-            user_id=current_user.id,  
-            ai_monthly_data=ai_response["monthly_plan"]
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="월간 식단을 DB에 저장하는 중 오류가 발생했습니다.")
+    days_data = ai_response.get("monthly_plan", {}).get("days")
+    if not days_data:
+        # monthly_plan에 없으면 style_validation에서 찾음
+        days_data = ai_response.get("style_validation", {}).get("days", [])
+
+    # 저장 함수 호출 (에러가 나면 날 것 그대로 콘솔에 뿜어냅니다)
+    crud_meal.save_monthly_plan(
+        db=db, 
+        user_id=current_user.id,  
+        ai_days_list=days_data
+    )
 
     # 6. 프론트엔드 달력용으로 데이터 가공 (Transformer)
     current_month_str = datetime.now().strftime("%Y-%m")
-    front_response_data = transform_ai_plan_to_front(ai_response, current_month_str)
+    front_response_data = transform_ai_plan_to_front(ai_response, start_date=today)
 
     # 7. 프론트에 가벼운 달력 데이터 반환
     return front_response_data
