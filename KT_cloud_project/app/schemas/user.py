@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from typing import List, Optional, Dict
+from typing import List, Optional
 
 # --- 1. 토큰 관련 스키마 ---
 class Token(BaseModel):
@@ -45,11 +45,6 @@ class UserInfo(BaseModel):
     diversity_level: Optional[str] = Field(None, description="식단 다양성 정도")
     excluded_ingredients: Optional[List[str]] = Field(None, description="기호/알러지 제외 식재료")
 
-    # [선택] AI 모델링 파트에서 받아온 결과값도 프론트가 조회할 수 있도록 추가
-    ai_meal_budget: Optional[int] = None
-    ai_max_difficulty: Optional[int] = None
-    ai_weights: Optional[Dict[str, float]] = None
-
     selected_style_id: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
@@ -81,25 +76,3 @@ class UserResponse(BaseModel):
 class LoginRequest(BaseModel):
     provider: str
     social_id: str
-
-# 가중치 정보를 담는 내부 스키마
-class ProfileWeights(BaseModel):
-    budget: float
-    nutrition: float
-    preference: float
-    difficulty: float
-    diversity: float
-
-# modeling -> back으로 넘어오는 최종 프로필 설정 스키마
-class AIUserProfileResponse(BaseModel):
-    goals: List[str]
-    budget_period_days: int
-    sample_period_days: int
-    period_days: int
-    meal_budget: int
-    weights: ProfileWeights
-    max_difficulty: int
-    preferred_categories: List[str]
-    ingredient_preferences: List[str]
-    diversity_penalty_strength: float
-    allergy_ingredients: List[str]
