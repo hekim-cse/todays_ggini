@@ -46,7 +46,7 @@ class User(Base):
     cooking_skill = Column(Integer, default=3)        # 요리 실력 (1~5단계)
 
     # [취향 설정]
-    preferred_style = Column(JSON, default=list) # 한식, 중식 등
+    preferred_categories = Column(JSON, default=list) # 한식, 중식 등
     diversity_level = Column(String, default="낮음") # 다양성 (1:낮음, 2:보통, 3:높음)
 
     # 재료 관련 설정

@@ -622,7 +622,7 @@ def build_modeling_profile_from_user(
         "monthly_budget": current_user.monthly_budget,
         "meal_count_per_day": current_user.meals_per_day,
         "cooking_skill": current_user.cooking_skill,
-        "preferred_categories": current_user.preferred_style or [],
+        "preferred_categories": current_user.preferred_categories or [],
         "diversity_level": current_user.diversity_level,
         "ingredient_preferences": current_user.preferred_ingredients or [],
         "allergy_ingredients": current_user.excluded_ingredients or [],
