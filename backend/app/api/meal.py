@@ -14,11 +14,11 @@ from app.crud.crud_user import update_user_selected_style
 from app.models.meal import MealPlan
 from app.schemas.meal import (DailyMealDetailResponse, MealGenerateResponse, MealConfirmResponse, CalendarResponse,
                               MealSwapResponse, MealSwapRequest, MenuUpdateRequest, AlternativeMenuResponse,
-                              StyleSelectRequest, MealDetailFullResponse)
+                              StyleSelectRequest)
 from app.crud import crud_meal
 from app.utils.image_search import get_food_image_url
-from app.utils.ai_client import request_ai_meal_plan
 
+import asyncio
 import sys
 import traceback
 from pathlib import Path
@@ -612,7 +612,7 @@ async def generate_initial_meal_plan(
     ai_payload = {
         "user_id": f"user_{current_user.id:03d}", # user_001 형식
         "request_type": "meal_style_candidates",
-        "profile": {
+        "profile":{
             "goals": current_user.purpose, # List[string]
             "sample_period_days": sample_period_days,
             "monthly_budget": current_user.monthly_budget,
@@ -631,13 +631,13 @@ async def generate_initial_meal_plan(
     # if not ai_response:
     #     # AI 서버 응답 실패 시 Mock 데이터나 에러 반환
     #     raise HTTPException(status_code=500, detail="AI 모델 서버로부터 응답을 받을 수 없습니다.")
-    mock_ai_response = get_mock_3days_response()
+    # mock_ai_response = get_mock_3days_response()
+    ai_response = await asyncio.to_thread(create_meal_style_candidates, ai_payload)
     
     return {
         "message": "식단 생성 요청이 성공적으로 전달되었습니다.",
         "sent_data": ai_payload, # 디버깅용
-        # "ai_result": ai_response
-        "ai_result": mock_ai_response
+        "ai_result": ai_response
     }
 
 # -------------------- 월간 식단 요청 API ----------------------------
