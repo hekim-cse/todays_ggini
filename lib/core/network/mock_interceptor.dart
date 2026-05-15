@@ -12,13 +12,24 @@ import 'package:flutter/services.dart' show rootBundle;
 class MockInterceptor extends Interceptor {
   static const Map<String, String> _mockMap = {
     'PUT /users/me/profile': 'assets/mocks/users/profile_after-onboarding.json',
+
     // 백엔드 팀원이 mock 을 commit 하면 여기에 매핑 추가:
     // 'POST /auth/social-login': 'assets/mocks/auth/social-login_new-user.json',
     // 'GET /meal-plan/preview':  'assets/mocks/meal-plan/preview_single-value.json',
     // ...
+
+    // TODO: (jungsoo) 임시 테스트용으로 추후에 제거
+    'PATCH /user/onboarding': 'assets/mocks/users/jungsoo_test.json',
+
     'POST /meal/generate': 'assets/mocks/meal-plans/generate.json', // 식단 생성 트리거
     'GET /shopping/shopping-list':
         'assets/mocks/shopping-list/shopping-list.json', // 장보기 목록
+    'PATCH /shopping/shopping-list/items/check':
+        'assets/mocks/shopping-list/check_response.json', // 장보기 항목 체크 (배치)
+    'DELETE /shopping/shopping-list/items/batch-delete':
+        'assets/mocks/shopping-list/delete_response.json', // 장보기 항목 일괄 삭제
+    'POST /shopping/add-shopping-items':
+        'assets/mocks/shopping-list/add_response.json', // 식단 재료를 장보기에 추가
   };
 
   // 패턴 매칭 (신규). path parameter가 있는 엔드포인트용
@@ -29,17 +40,17 @@ class MockInterceptor extends Interceptor {
       pattern: RegExp(r'^GET /meal/\d{4}-\d{2}-\d{2}$'),
       asset: 'assets/mocks/meal-plans/daily.json',
     ),
-    // GET /meal/menus/{meal_id} → meal_id별로 분기
+    // 날짜는 정규식으로 받고 mealId만 분기
     (
-      pattern: RegExp(r'^GET /meal/menus/M_001$'),
+      pattern: RegExp(r'^GET /meal/menu/\d{4}-\d{2}-\d{2}/M_001$'),
       asset: 'assets/mocks/menus/M_001.json',
     ),
     (
-      pattern: RegExp(r'^GET /meal/menus/M_002$'),
+      pattern: RegExp(r'^GET /meal/menu/\d{4}-\d{2}-\d{2}/M_002$'),
       asset: 'assets/mocks/menus/M_002.json',
     ),
     (
-      pattern: RegExp(r'^GET /meal/menus/M_003$'),
+      pattern: RegExp(r'^GET /meal/menu/\d{4}-\d{2}-\d{2}/M_003$'),
       asset: 'assets/mocks/menus/M_003.json',
     ),
     // 캘린더: 월별로 분기
@@ -85,9 +96,10 @@ class MockInterceptor extends Interceptor {
       pattern: RegExp(r'^GET /shopping/ingredients/I_007/prices$'),
       asset: 'assets/mocks/ingredients/I_007_prices.json',
     ),
-    // GET /meal/menus/{meal_id}/alternatives → 어떤 meal_id 든 같은 mock 응답
     (
-      pattern: RegExp(r'^GET /meal/menus/M_\d+/alternatives$'),
+      pattern: RegExp(
+        r'^GET /meal/menus/M_\d+/alternatives\?target_date=\d{4}-\d{2}-\d{2}$',
+      ),
       asset: 'assets/mocks/menus/M_001_alternatives.json',
     ),
     // PUT /meal/{date}/menus/{slot} → 어떤 date·slot 이든 같은 mock 응답

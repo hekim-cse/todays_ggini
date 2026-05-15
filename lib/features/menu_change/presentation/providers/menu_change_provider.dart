@@ -58,7 +58,10 @@ class MenuChangeNotifier extends StateNotifier<MenuChangeState> {
 
   Future<void> _load() async {
     try {
-      final data = await _repository.fetchAlternatives(_mealId);
+      final data = await _repository.fetchAlternatives(
+        currentMealId: _mealId,
+        targetDate: _date,
+      );
       if (!mounted) return;
       state = state.copyWith(data: data, isLoading: false);
     } catch (e) {
@@ -87,7 +90,7 @@ class MenuChangeNotifier extends StateNotifier<MenuChangeState> {
       await _repository.changeMenu(
         date: _date,
         slot: _slot,
-        newMealId: chosenAlternative.mealId,
+        newMenuId: chosenAlternative.mealId,
       );
       if (!mounted) return null;
 

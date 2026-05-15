@@ -10,6 +10,10 @@ import '../widgets/meal_detail_header.dart';
 import '../widgets/meal_detail_summary.dart';
 import '../widgets/slot_card.dart';
 
+import '../../../home/presentation/providers/home_provider.dart';
+import '../../../shopping_list/presentation/providers/shopping_list_provider.dart';
+import '../../../shopping_selection/presentation/providers/shopping_selection_provider.dart';
+
 class MealDetailScreen extends ConsumerWidget {
   final DateTime date;
 
@@ -26,16 +30,15 @@ class MealDetailScreen extends ConsumerWidget {
           children: [
             MealDetailHeader(
               date: date,
-              onPrevDay: () => _goToDate(
-                context,
-                date.subtract(const Duration(days: 1)),
-              ),
-              onNextDay: () => _goToDate(
-                context,
-                date.add(const Duration(days: 1)),
-              ),
+              onPrevDay:
+                  () => _goToDate(
+                    context,
+                    date.subtract(const Duration(days: 1)),
+                  ),
+              onNextDay:
+                  () => _goToDate(context, date.add(const Duration(days: 1))),
             ),
-            Expanded(child: _buildBody(context, state)),
+            Expanded(child: _buildBody(context, ref, state)),
           ],
         ),
       ),
@@ -47,7 +50,11 @@ class MealDetailScreen extends ConsumerWidget {
     context.go(AppRoutes.mealDetailPath(newDate));
   }
 
-  Widget _buildBody(BuildContext context, MealDetailState state) {
+  Widget _buildBody(
+    BuildContext context,
+    WidgetRef ref,
+    MealDetailState state,
+  ) {
     if (state.error != null) {
       return Center(
         child: Padding(
@@ -71,10 +78,7 @@ class MealDetailScreen extends ConsumerWidget {
           padding: EdgeInsets.all(24),
           child: Text(
             '이 날은 식단이 없습니다.',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textPrimary,
-            ),
+            style: TextStyle(fontSize: 14, color: AppColors.textPrimary),
           ),
         ),
       );
@@ -105,11 +109,13 @@ class MealDetailScreen extends ConsumerWidget {
                   );
                 },
                 onChangeMenu: () {
-                  context.push(AppRoutes.menuChangePath(
-                    mealId: m.mealId,
-                    date: date,
-                    slot: m.slot,
-                  ));
+                  context.push(
+                    AppRoutes.menuChangePath(
+                      mealId: m.mealId,
+                      date: date,
+                      slot: m.slot,
+                    ),
+                  );
                 },
               ),
             ),
@@ -118,7 +124,52 @@ class MealDetailScreen extends ConsumerWidget {
             width: double.infinity,
             height: 48,
             child: ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
+                final plan = state.plan;
+                if (plan == null || plan.meals.isEmpty) return;
+
+                // 로딩 다이얼로그
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder:
+                      (_) => const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
+                      ),
+                );
+
+                final result = await ref
+                    .read(shoppingSelectionProvider.notifier)
+                    .submitToShoppingList(
+                      date: date,
+                      meals: plan.meals,
+                      homeRepo: ref.read(homeRepositoryProvider),
+                      shoppingRepo: ref.read(shoppingListRepositoryProvider),
+                    );
+
+                if (!context.mounted) return;
+                Navigator.of(context).pop(); // 로딩 닫기
+
+                if (!result.success) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('장보기 추가 실패: ${result.error}')),
+                  );
+                  return;
+                }
+
+                if (result.skippedIngredientNames.isNotEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        '${result.addedCount}개 재료 추가됨. '
+                        '마켓 지원 없는 ${result.skippedIngredientNames.length}개 제외.',
+                      ),
+                    ),
+                  );
+                }
+
                 context.go(AppRoutes.shoppingList);
               },
               style: ElevatedButton.styleFrom(

@@ -17,10 +17,12 @@ class HomeRepository {
   }
 
   // 특정 메뉴의 상세 정보 (재료 + 마켓별 가격)
-  // 백엔드: GET /api/v1/meal/menus/{meal_id} — 단, 현재 백엔드 미구현
-  // 백엔드 팀에 추가 요청 필요. 그 전까지는 mock 응답으로 동작
-  Future<MenuDetail> fetchMenuDetail(String mealId) async {
-    final response = await _dio.get('/meal/menus/$mealId');
+  Future<MenuDetail> fetchMenuDetail({
+    required DateTime mealDate,
+    required String mealId,
+  }) async {
+    final dateStr = formatDate(mealDate);
+    final response = await _dio.get('/meal/menu/$dateStr/$mealId');
     return MenuDetail.fromJson(response.data as Map<String, dynamic>);
   }
 }

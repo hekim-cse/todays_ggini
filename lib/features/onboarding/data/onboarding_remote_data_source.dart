@@ -8,8 +8,13 @@ class OnboardingRemoteDataSource {
   final Dio _dio;
 
   Future<Map<String, dynamic>> putProfile(Map<String, dynamic> body) async {
-    final response = await _dio.put<Map<String, dynamic>>(
-      '/users/me/profile',
+    // final response = await _dio.put<Map<String, dynamic>>(
+    //   '/users/me/profile',
+    //   data: body,
+    // );
+    // TODO: (jungsoo) 임시 테스트용으로 추후에 제거하고 위로 복원
+    final response = await _dio.patch<Map<String, dynamic>>(
+      '/user/onboarding',
       data: body,
     );
     final data = response.data;

@@ -56,7 +56,10 @@ class IngredientListNotifier extends StateNotifier<IngredientListState> {
 
   Future<void> _load() async {
     try {
-      final menu = await _repository.fetchMenuDetail(_mealId);
+      final menu = await _repository.fetchMenuDetail(
+        mealDate: _date,
+        mealId: _mealId,
+      );
       if (!mounted) return;
       // 이 날짜+슬롯을 처음 보는 경우만 "모든 재료 체크" 초기화
       _selectionNotifier.initIfAbsent(

@@ -122,6 +122,12 @@ class Ingredient {
     return lowestPrice.price;
   }
 
+  // 어떤 마켓도 재고가 없는 재료인지 (모든 가격 null)
+  bool get hasAnyMarketStock =>
+      prices.coupang != null ||
+      prices.marketKurly != null ||
+      prices.naverShopping != null;
+
   // 사용자 선택 마켓 ID. 선택 안 했거나 재고 없으면 최저가 마켓
   String effectiveMarket(String? selectedMarket) {
     if (selectedMarket != null && priceFor(selectedMarket) != null) {

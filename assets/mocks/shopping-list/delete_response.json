@@ -1,0 +1,28 @@
+{
+    "deleted_count": 4,
+    "deleted_item_ids": [
+        "item_001",
+        "item_002",
+        "item_004",
+        "item_006"
+    ],
+    "summary": {
+        "total_items": 2,
+        "checked_items_count": 0,
+        "total_price_per_shopping": 0,
+        "market_counts": [
+            {
+                "market": "coupang",
+                "count": 0
+            },
+            {
+                "market": "market_kurly",
+                "count": 0
+            },
+            {
+                "market": "naver_shopping",
+                "count": 0
+            }
+        ]
+    }
+}
