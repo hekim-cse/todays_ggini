@@ -4,7 +4,7 @@ from sqlalchemy.dialects.sqlite import insert
 from datetime import date, timedelta
 from app.models.meal import MealPlan
 
-def save_monthly_plan(db: Session, user_id: int, ai_monthly_data: dict) -> bool:
+def save_monthly_plan(db: Session, user_id: int, ai_days_list: list) -> bool:
     """
     AI가 생성한 30일치 월간 식단을 MealPlan 테이블에 날짜별로 저장합니다.
     (기존 데이터가 있을 경우 SQLite Upsert 구문으로 덮어씁니다.)
@@ -13,7 +13,7 @@ def save_monthly_plan(db: Session, user_id: int, ai_monthly_data: dict) -> bool:
         start_date = date.today()
         
         # ai_monthly_data["days"] 리스트 순회
-        for day_data in ai_monthly_data.get("days", []):
+        for day_data in ai_days_list:
             # AI가 준 day(1, 2, 3...)를 실제 날짜로 변환 (예: 1일차 = 오늘)
             target_date = start_date + timedelta(days=day_data.get("day", 1) - 1)
             
