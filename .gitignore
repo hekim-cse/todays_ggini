@@ -1,0 +1,14 @@
+.DS_Store
+.vscode/
+__pycache__/
+*.pyc
+.venv/
+result.json
+debug_result.json
+**/__pycache__/
+**/*.pyc
+**/.venv/
+**/result.json
+**/debug_result.json
+KT_cloud/local.db
+*.db
