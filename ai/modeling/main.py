@@ -305,10 +305,7 @@ def main() -> None:
     # 10단계: Modeling → Back 월간 식단 추천 결과
     # ============================================================
 
-    print_json(
-        "\n테스트용 랜덤 스타일 선택 → 월간 식단 생성 JSON",
-        monthly_plan_response
-    )
+    print_json("\nModeling → Back 월간 식단 추천 결과 JSON", monthly_plan_response)
 
     debug_result["modeling_to_back_monthly_response"] = monthly_plan_response
 
