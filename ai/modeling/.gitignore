@@ -1,7 +1,30 @@
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+
+# Virtual environments
 .venv/
+venv/
+env/
+
+# Python packaging/cache
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Environment variables
+.env
+
+.vscode/result.json
+result.json
+.DS_Store
 result.json
 debug_result.json
-.DS_Store
-.vscode/
