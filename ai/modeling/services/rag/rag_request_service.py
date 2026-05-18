@@ -14,11 +14,11 @@ def build_rag_request(
         "request_type": "meal_candidates",
         "candidate_count": candidate_count,
         "user_conditions": {
-            "goals": profile["goals"],
-            "meal_budget": profile["meal_budget"],
-            "preferred_categories": profile["preferred_categories"],
-            "ingredient_preferences": profile["ingredient_preferences"],
-            "allergy_ingredients": profile["allergy_ingredients"],
+            "goals": profile.get("goals", []),
+            "meal_budget": profile.get("meal_budget", 0),
+            "preferred_categories": profile.get("preferred_categories", []),
+            "ingredient_preferences": profile.get("ingredient_preferences", []),
+            "allergy_ingredients": profile.get("allergy_ingredients", []),
         },
         "response_format": "candidate_menus_v1"
     }
