@@ -26,13 +26,10 @@ class IngredientHeaderCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(6),
             ),
             child: prices.imageUrl == null
-                ? const Center(
+                ? Center(
                     child: Text(
                       '이미지',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textPrimary,
-                      ),
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
                   )
                 : ClipRRect(
@@ -47,19 +44,12 @@ class IngredientHeaderCard extends StatelessWidget {
               children: [
                 Text(
                   prices.ingredientName,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${prices.standardUnit} 이상',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
             ),

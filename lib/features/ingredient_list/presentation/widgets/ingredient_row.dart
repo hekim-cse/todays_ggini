@@ -56,19 +56,14 @@ class IngredientRow extends StatelessWidget {
               children: [
                 Text(
                   ingredient.ingredientName,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '${ingredient.standardUnit} 이상',
-                  style: const TextStyle(
-                    fontSize: 12,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -80,17 +75,12 @@ class IngredientRow extends StatelessWidget {
             children: [
               Text(
                 '₩${formatPrice(lowest.price)}',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 2),
               Text(
                 '${_marketLabel(lowest.market)} 최저가',
-                style: const TextStyle(
-                  fontSize: 11,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.textPrimary,
                 ),
               ),
@@ -98,7 +88,7 @@ class IngredientRow extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(Icons.chevron_right, size: 20),
+            icon: const Icon(Icons.chevron_right, size: 32),
             color: AppColors.textPrimary,
             onPressed: onTapDetail,
             padding: EdgeInsets.zero,

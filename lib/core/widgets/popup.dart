@@ -1,8 +1,12 @@
+
+
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class AppPopup extends StatelessWidget {
-  final String content;
+  final String? content;
+  final Widget? contentWidget;  // ← 추가
+  final String? title;  // ← 추가
   final String leftButtonText;
   final String rightButtonText;
   final VoidCallback onLeftTap;
@@ -12,7 +16,9 @@ class AppPopup extends StatelessWidget {
 
   const AppPopup({
     super.key,
-    required this.content,
+    this.content,
+    this.contentWidget,
+    this.title,
     required this.leftButtonText,
     required this.rightButtonText,
     required this.onLeftTap,
@@ -25,59 +31,56 @@ class AppPopup extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppColors.background,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
       contentPadding: const EdgeInsets.fromLTRB(24, 32, 24, 20),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
       ),
-      content: Text(
-        content,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: AppColors.textPrimary,
-        ),
+      title: title != null
+          ? Text(
+              title!,
+              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            )
+          : null,
+      content: SizedBox(
+        width: MediaQuery.of(context).size.width * 0.75,
+        child: contentWidget ??
+            Text(
+              content ?? '',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
       ),
       actionsPadding: EdgeInsets.zero,
       actions: [
         Column(
           children: [
-            // 가로 구분선
-            Divider(
-              height: 1,
-              color: AppColors.textSecondary,
-            ),
-
-            // 버튼들
+            Divider(height: 1, color: AppColors.border),
             Row(
               children: [
-                // 왼쪽 버튼
                 Expanded(
                   child: TextButton(
                     onPressed: onLeftTap,
                     child: Text(
                       leftButtonText,
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: leftButtonColor ?? AppColors.primary,
                       ),
                     ),
                   ),
                 ),
-
-                // 세로 구분선
-                Container(
-                  width: 1,
-                  height: 48,
-                  color: AppColors.textSecondary,
-                ),
-
-                // 오른쪽 버튼
+                Container(width: 1, height: 48, color: AppColors.border),
                 Expanded(
                   child: TextButton(
                     onPressed: onRightTap,
                     child: Text(
                       rightButtonText,
-                      style: TextStyle(
-                        color: rightButtonColor ?? AppColors.textSecondary,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: rightButtonColor ?? AppColors.border,
                       ),
                     ),
                   ),
@@ -91,7 +94,7 @@ class AppPopup extends StatelessWidget {
   }
 }
 
-// 팝업 띄우는 함수
+// 기존 함수 (그대로 동작)
 void showAppPopup({
   required BuildContext context,
   required String content,
@@ -106,6 +109,33 @@ void showAppPopup({
     context: context,
     builder: (dialogContext) => AppPopup(
       content: content,
+      leftButtonText: leftButtonText,
+      rightButtonText: rightButtonText,
+      onLeftTap: onLeftTap,
+      onRightTap: onRightTap,
+      leftButtonColor: leftButtonColor,
+      rightButtonColor: rightButtonColor,
+    ),
+  );
+}
+
+// 위젯 content용 함수 (새로 추가)
+void showAppPopupWidget({
+  required BuildContext context,
+  String? title,
+  required Widget contentWidget,
+  required String leftButtonText,
+  required String rightButtonText,
+  required VoidCallback onLeftTap,
+  required VoidCallback onRightTap,
+  Color? leftButtonColor,
+  Color? rightButtonColor,
+}) {
+  showDialog(
+    context: context,
+    builder: (dialogContext) => AppPopup(
+      title: title,
+      contentWidget: contentWidget,
       leftButtonText: leftButtonText,
       rightButtonText: rightButtonText,
       onLeftTap: onLeftTap,

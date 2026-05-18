@@ -27,7 +27,7 @@ class BottomNavBar extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Divider(height: 2, thickness: 2, color: AppColors.textSecondary),
+        Divider(height: 2, thickness: 2, color: AppColors.border),
         Container(
           color: AppColors.background,
           child: Row(
@@ -43,7 +43,7 @@ class BottomNavBar extends StatelessWidget {
                     decoration: BoxDecoration(
                       border: Border(
                         right: index < items.length - 1
-                            ? BorderSide(color: AppColors.textSecondary, width: 2)
+                            ? BorderSide(color: AppColors.border, width: 2)
                             : BorderSide.none,
                       ),
                     ),
@@ -56,17 +56,17 @@ class BottomNavBar extends StatelessWidget {
                               : items[index]['icon'] as IconData,
                           color: isSelected
                               ? AppColors.primary
-                              : AppColors.textSecondary,
+                              : AppColors.border,
                           size: 24,
                         ),
                         const SizedBox(height: 4),
                         Text(
                           items[index]['label'] as String,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 16,
                             color: isSelected
                                 ? AppColors.primary
-                                : AppColors.textSecondary,
+                                : AppColors.border,
                           ),
                         ),
                       ],

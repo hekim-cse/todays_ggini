@@ -27,27 +27,17 @@ class CurrentMealCard extends StatelessWidget {
               children: [
                 Text(
                   meal.menuName,
-                  style: const TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 6),
                 Text(
                   '${formatPrice(meal.calories)} kcal · ₩${formatPrice(meal.price)}',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${meal.date.month}월 ${meal.date.day}일 · 식단 ${meal.slot}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
+                  '${meal.date.month}월 ${meal.date.day}일 - 식단 ${meal.slot}',
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
             ),

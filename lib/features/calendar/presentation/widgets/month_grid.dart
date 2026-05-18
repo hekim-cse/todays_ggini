@@ -32,8 +32,15 @@ class MonthGrid extends StatelessWidget {
     final cells = <DayCell>[
       for (var i = 0; i < leadingEmpty; i++) const DayCell(day: null),
       for (var d = 1; d <= daysInMonth; d++)
+        // DayCell(
+        //   day: dayMap[d],
+        //   onTap: dayMap[d]?.hasMealPlan == true
+        //       ? () => onDayTap(DateTime(year, month, d))
+        //       : null,
+        // ),
         DayCell(
           day: dayMap[d],
+          isToday: year == 2026 && month == 5 && d == 15,  // ← 5/15 고정
           onTap: dayMap[d]?.hasMealPlan == true
               ? () => onDayTap(DateTime(year, month, d))
               : null,
@@ -45,18 +52,18 @@ class MonthGrid extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Column(
         children: [
-          _weekdayHeader(),
+          _weekdayHeader(context),
           Container(
             decoration: const BoxDecoration(
               border: Border(
-                left: BorderSide(color: AppColors.border, width: 1),  // ← 변경
+                left: BorderSide(color: AppColors.border, width: 1), 
               ),
             ),
             child: GridView.count(
               crossAxisCount: 7,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 0.65,
+              childAspectRatio: 0.55,
               children: cells,
             ),
           ),
@@ -65,7 +72,7 @@ class MonthGrid extends StatelessWidget {
     );
   }
 
-  Widget _weekdayHeader() {
+  Widget _weekdayHeader(BuildContext context)  {
     const labels = ['월', '화', '수', '목', '금', '토', '일'];
     return Row(
       children: labels
@@ -75,16 +82,14 @@ class MonthGrid extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: const BoxDecoration(
                   border: Border(
-                    bottom: BorderSide(color: AppColors.border, width: 1),  // ← 변경
+                    bottom: BorderSide(color: AppColors.border, width: 1), 
                   ),
                 ),
                 child: Center(
                   child: Text(
                     l,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,  // ← 변경
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.textPrimary,
                     ),
                   ),
                 ),

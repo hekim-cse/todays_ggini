@@ -17,12 +17,9 @@ class MenuVideoPlayer extends StatelessWidget {
         ),
         child: Center(
           child: videoUrl == null
-              ? const Text(
+              ? Text(
                   '영상 준비중',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium
                 )
               : const Icon(
                   Icons.play_circle_fill,

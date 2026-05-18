@@ -19,7 +19,7 @@ class BudgetSlider extends StatelessWidget {
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
             activeTrackColor: AppColors.primary,
-            inactiveTrackColor: AppColors.surfaceDim,
+            inactiveTrackColor: AppColors.buttonGray,
             trackHeight: 6,
             thumbShape: ImageThumbShape(),
             overlayShape: SliderComponentShape.noOverlay,
@@ -36,20 +36,31 @@ class BudgetSlider extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text('10', style: TextStyle(color: AppColors.textHint)),
-              Text('100', style: TextStyle(color: AppColors.textHint)),
+            children: [
+              Text(
+                '10',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              Text(
+                '100',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
             ],
           ),
         ),
-        const SizedBox(height: 8),
         Center(
-          child: Text(
-            '${(value / 10000).round()}만원 내에서 최적의 식단을 짜드려요!',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+          child: RichText(
+            text: TextSpan(
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.textPrimary,
+              ),
+              children: [
+                TextSpan(
+                  text: '${(value / 10000).round()}',
+                  style: const TextStyle(color: AppColors.primary),
+                ),
+                const TextSpan(text: '만원 내에서 최적의 식단을 짜드려요!'),
+              ],
             ),
           ),
         ),

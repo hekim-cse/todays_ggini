@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';  // ← 추가
+import '../../../../core/theme/app_colors.dart';
 import '../../domain/monthly_meal_plan.dart';
 import '../../../../core/utils/format.dart';
 
 class DayCell extends StatelessWidget {
   final DayEntry? day;
   final VoidCallback? onTap;
+  final bool isToday;
 
-  const DayCell({super.key, this.day, this.onTap});
+  const DayCell({
+    super.key,
+    this.day,
+    this.onTap,
+    this.isToday = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,8 +21,8 @@ class DayCell extends StatelessWidget {
       return const DecoratedBox(
         decoration: BoxDecoration(
           border: Border(
-            right: BorderSide(color: AppColors.border, width: 1),  // ← 변경
-            bottom: BorderSide(color: AppColors.border, width: 1),  // ← 변경
+            right: BorderSide(color: AppColors.border, width: 1),
+            bottom: BorderSide(color: AppColors.border, width: 1),
           ),
         ),
       );
@@ -28,82 +34,97 @@ class DayCell extends StatelessWidget {
       onTap: hasPlan ? onTap : null,
       child: Container(
         padding: const EdgeInsets.all(3),
-        decoration: const BoxDecoration(
-          border: Border(
-            right: BorderSide(color: AppColors.border, width: 1),  // ← 변경
-            bottom: BorderSide(color: AppColors.border, width: 1),  // ← 변경
+        decoration: BoxDecoration(
+          color: isToday ? AppColors.mypage : Colors.transparent, 
+          border: const Border(
+            right: BorderSide(color: AppColors.border, width: 1),
+            bottom: BorderSide(color: AppColors.border, width: 1),
           ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.max,
           children: [
             Text(
               '${day!.date.day}',
               style: TextStyle(
                 fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: hasPlan
-                    ? AppColors.textPrimary  // ← 변경
-                    : AppColors.border,      // ← 변경
+                color: isToday
+                    ? AppColors.primary 
+                    : hasPlan
+                        ? AppColors.textPrimary
+                        : AppColors.border,
               ),
             ),
-            if (hasPlan) Expanded(child: _buildPlanInfo()),
+
+            if (hasPlan)
+              Expanded(
+                child: _buildPlanInfo(context),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPlanInfo() {
+  Widget _buildPlanInfo(BuildContext context) {
     final meals = day!.meals;
-    final visibleMeals = meals.take(2).toList();
-    final hasMore = meals.length > 2;
+    final visibleMeals = meals.length >= 4
+        ? meals.take(2).toList()
+        : meals.take(3).toList();
+    final showMore = meals.length >= 4;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.max,
       children: [
         ...visibleMeals.map(
-          (m) => Text(
-            '식단${m.slot}:${m.menuName}',
-            style: const TextStyle(
-              fontSize: 8,
-              color: AppColors.textPrimary,  // ← 변경
+          (m) => Padding(
+            padding: const EdgeInsets.only(bottom: 1),
+            child: Text(
+              m.menuName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.textPrimary,
+                    fontSize: 13,
+                  ),
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (hasMore)
-          const Text(
-            '...',
-            style: TextStyle(
-              fontSize: 8,
-              color: AppColors.textPrimary,  // ← 변경
-            ),
+
+        // 4개 이상일 때
+        if (showMore)
+          Text(
+            '... 더보기',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
           ),
+
         const Spacer(),
+
         if (day!.caloriesPerDay != null)
           Text(
             '${formatPrice(day!.caloriesPerDay!)}kcal',
-            style: const TextStyle(
-              fontSize: 7,
-              color: AppColors.textPrimary,  // ← 변경
-            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontSize: 9,
+                ),
           ),
+
         if (day!.pricePerDay != null)
           Text(
             '₩${formatPrice(day!.pricePerDay!)}',
-            style: const TextStyle(
-              fontSize: 7,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,  // ← 변경
-            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textPrimary,
+                  fontSize: 9,
+                ),
           ),
       ],
     );

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/bottom_nav_bar.dart';
 import '../providers/calendar_provider.dart';
 import '../widgets/month_grid.dart';
@@ -18,9 +19,11 @@ class CalendarScreen extends ConsumerWidget {
     final notifier = ref.read(calendarProvider.notifier);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFBF0),
-      body: _buildBody(context, state, notifier),
-      bottomNavigationBar: const BottomNavBar(currentIndex: 1), // ← 캘린더는 1
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: _buildBody(context, state, notifier),
+      ),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 1),
     );
   }
 
@@ -36,7 +39,9 @@ class CalendarScreen extends ConsumerWidget {
           child: Text(
             '캘린더를 불러오지 못했습니다.\n${state.error}',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.red),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            color: AppColors.error,
+          ),
           ),
         ),
       );
@@ -48,26 +53,24 @@ class CalendarScreen extends ConsumerWidget {
 
     final plan = state.currentPlan!;
 
-    return SingleChildScrollView(  // ← bottomNavigationBar 제거
+    return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 16),
-            const Text(
-              '식단 캘린더',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF515151),
-              ),
+
+            MonthHeader(
+              year: state.currentYear,
+              month: state.currentMonth,
+              onPrevMonth: notifier.goToPrevMonth,
+              onNextMonth: notifier.goToNextMonth,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
               decoration: BoxDecoration(
-                border: Border.all(color: const Color(0xFFD9D9D9), width: 3.0),
+                border: Border.all(color: AppColors.border, width: 3.0),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: SummaryCard(
@@ -77,12 +80,6 @@ class CalendarScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 8),
-            MonthHeader(
-              year: state.currentYear,
-              month: state.currentMonth,
-              onPrevMonth: notifier.goToPrevMonth,
-              onNextMonth: notifier.goToNextMonth,
-            ),
             MonthGrid(
               year: state.currentYear,
               month: state.currentMonth,

@@ -45,21 +45,19 @@ class _MealDetailHeaderState extends State<MealDetailHeader> {
           IconButton(
             icon: const Icon(Icons.chevron_left),
             color: AppColors.textPrimary,
+            iconSize: 32,
             onPressed: widget.onPrevDay,
           ),
           const Spacer(),
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
+            style: Theme.of(context).textTheme.headlineLarge,
           ),
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.chevron_right),
             color: AppColors.textPrimary,
+            iconSize: 32,
             onPressed: widget.onNextDay,
           ),
         ],

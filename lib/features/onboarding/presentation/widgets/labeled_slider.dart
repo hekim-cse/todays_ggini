@@ -28,14 +28,16 @@ class LabeledSlider extends StatelessWidget {
         if (label.isNotEmpty) ...[
           Text(
             label,
-            style: const TextStyle(fontSize: 13, color: AppColors.textHint),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppColors.textSecondary,
+            ),
           ),
           const SizedBox(height: 8),
         ],
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
             activeTrackColor: AppColors.primary,
-            inactiveTrackColor: AppColors.surfaceDim,
+            inactiveTrackColor: AppColors.buttonGray,
             trackHeight: 6,
             thumbShape: ImageThumbShape(),
             overlayShape: SliderComponentShape.noOverlay,
@@ -56,7 +58,9 @@ class LabeledSlider extends StatelessWidget {
               divisions + 1,
               (i) => Text(
                 '${(min + i).toInt()}',
-                style: const TextStyle(color: AppColors.textHint),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
           ),

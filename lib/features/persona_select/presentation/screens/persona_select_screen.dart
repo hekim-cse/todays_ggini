@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/app_logo.dart';
+import '../../../../core/widgets/mascot_speech.dart';
 import '../../../onboarding/presentation/providers/onboarding_providers.dart';
 import '../../../onboarding/domain/persona.dart';
 import '../widgets/persona_card.dart';
@@ -27,24 +27,19 @@ class _PersonaSelectScreenState extends ConsumerState<PersonaSelectScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             children: [
-              const AppLogo(),
-              const SizedBox(height: 24),
-              const Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  '   나는 ...',
-                  style: TextStyle(
-                    fontSize: 24,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
+              // 기니피그 + 말풍선
+              MascotSpeech(
+                message: '나는...',
               ),
+
               const SizedBox(height: 16),
+
               Expanded(
                 child: GridView.count(
                   crossAxisCount: 2,
                   crossAxisSpacing: 12,
                   mainAxisSpacing: 12,
+                  childAspectRatio: 0.75,
                   children: Persona.values.map((persona) {
                     return PersonaCard(
                       persona: persona,
@@ -61,21 +56,17 @@ class _PersonaSelectScreenState extends ConsumerState<PersonaSelectScreen> {
                   onPressed: _selectedPersona == null
                       ? null
                       : () {
-                          // 선택한 페르소나 저장
                           ref.read(selectedPersonaProvider.notifier).state =
                               _selectedPersona!;
                           context.go(AppRoutes.onboarding);
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    disabledBackgroundColor: AppColors.surfaceDim,
+                    disabledBackgroundColor: AppColors.buttonGray,
                   ),
-                  child: const Text(
+                  child: Text(
                     '이 프로필로 시작하기',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                    ),
+                    style: Theme.of(context).textTheme.labelLarge,
                   ),
                 ),
               ),

@@ -26,19 +26,12 @@ class ShoppingListSummary extends StatelessWidget {
               children: [
                 Text(
                   '총 ${data.checkedItemsCount}개 항목',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium
                 ),
                 const SizedBox(height: 6),
                 Text(
                   '₩${formatPrice(data.totalPricePerShopping)}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyLarge
                 ),
               ],
             ),
@@ -48,16 +41,14 @@ class ShoppingListSummary extends StatelessWidget {
             children: [
               Text(
                 '마켓 ${data.activeMarketCount}곳',
-                style: const TextStyle(
-                  fontSize: 13,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 4),
               Text(
                 _marketCountLine(data.marketCounts),
-                style: const TextStyle(
-                  fontSize: 13,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.textPrimary,
                 ),
               ),

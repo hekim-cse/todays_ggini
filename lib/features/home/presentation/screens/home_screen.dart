@@ -38,7 +38,9 @@ class HomeScreen extends ConsumerWidget {
           child: Text(
             '식단을 불러오지 못했습니다.\n${state.error}',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.red),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: AppColors.error,
+            ),
           ),
         ),
       );
@@ -52,44 +54,52 @@ class HomeScreen extends ConsumerWidget {
 
     return Column(
       children: [
-        MealSlotTabs(
-          slotCount: plan.meals.length,
-          selectedSlot: state.selectedSlot,
-          onSlotSelected: (slot) {
-            ref.read(homeProvider.notifier).selectSlot(slot);
-          },
-        ),
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: _buildMenuSection(state),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Center(
+                //   child: Text(
+                //     '오늘의 메뉴',
+                //     style: Theme.of(context).textTheme.headlineLarge,
+                //   ),
+                // ),
+                const SizedBox(height: 12),
+                MealSlotTabs(
+                  slotCount: plan.meals.length,
+                  selectedSlot: state.selectedSlot,
+                  onSlotSelected: (slot) {
+                    ref.read(homeProvider.notifier).selectSlot(slot);
+                  },
+                ),
+                const SizedBox(height: 16),
+                _buildMenuContent(context, state),
+              ],
+            ),
           ),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           child: SizedBox(
             width: double.infinity,
-            height: 48,
             child: ElevatedButton(
               onPressed: state.selectedMenu == null
                   ? null
                   : () {
-                      context.go(AppRoutes.mealDetailPath(DateTime.now()));
+                      context.push(AppRoutes.mealDetailPath(DateTime.now()));
                     },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                disabledBackgroundColor: AppColors.surfaceDim,
+                disabledBackgroundColor: AppColors.buttonGray,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),
               ),
-              child: const Text(
+              child: Text(
                 '재료 선택 및 메뉴 변경',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
+                style: Theme.of(context).textTheme.labelLarge,
               ),
             ),
           ),
@@ -98,7 +108,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildMenuSection(HomeState state) {
+  Widget _buildMenuContent(BuildContext context, HomeState state) {
     if (state.isLoadingMenu || state.selectedMenu == null) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 80),
@@ -111,20 +121,10 @@ class HomeScreen extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          '오늘의 메뉴',
-          style: TextStyle(
-            fontSize: 26,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          menu.menuName,
-          style: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
+        Center(
+          child: Text(
+            '<${menu.menuName}>',
+            style: Theme.of(context).textTheme.headlineLarge,
           ),
         ),
         const SizedBox(height: 16),

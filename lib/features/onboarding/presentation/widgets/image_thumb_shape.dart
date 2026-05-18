@@ -24,6 +24,6 @@ class ImageThumbShape extends SliderComponentShape {
     required Size sizeWithOverflow,
   }) {
     final paint = Paint()..color = AppColors.primary;
-    context.canvas.drawCircle(center, 16, paint);
+    context.canvas.drawCircle(center, 10, paint);
   }
 }

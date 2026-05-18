@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/app_logo.dart';
+import '../../../../core/widgets/mascot_speech.dart';
 import '../providers/onboarding_providers.dart';
 import '../widgets/goal_selector.dart';
 import '../widgets/food_selector.dart';
@@ -47,7 +47,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const AppLogo(),
+            // 말풍선
+            const MascotSpeech(message: '나의 취향은?'),
             const SizedBox(height: 16),
             Expanded(
               child: PageView(
@@ -72,14 +73,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 목적
           GoalSelector(
             selectedGoals: _selectedGoals,
             onChanged: (v) {
               setState(() {
-                _selectedGoals
-                  ..clear()
-                  ..addAll(v);
+                _selectedGoals..clear()..addAll(v);
               });
               notifier.setGoals(v);
             },
@@ -87,14 +85,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
           const SizedBox(height: 32),
 
-          // 취향
           FoodSelector(
             selectedFoods: _selectedFoods,
             onChanged: (v) {
               setState(() {
-                _selectedFoods
-                  ..clear()
-                  ..addAll(v);
+                _selectedFoods..clear()..addAll(v);
               });
               notifier.setFoods(v);
             },
@@ -102,14 +97,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
           const SizedBox(height: 32),
 
-          // 선호 식재료
           IngredientSelector(
             selectedIngredients: _selectedIngredient,
             onChanged: (v) {
               setState(() {
-                _selectedIngredient
-                  ..clear()
-                  ..addAll(v);
+                _selectedIngredient..clear()..addAll(v);
               });
               notifier.setIngredient(v);
             },
@@ -117,14 +109,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
           const SizedBox(height: 32),
 
-          // 알레르기
           AllergyInput(
             allergies: _allergies,
             onChanged: (v) {
               setState(() {
-                _allergies
-                  ..clear()
-                  ..addAll(v);
+                _allergies..clear()..addAll(v);
               });
               notifier.setAllergies(v);
             },
@@ -132,7 +121,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
           const SizedBox(height: 32),
 
-          // 다음 버튼
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -146,29 +134,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                disabledBackgroundColor: AppColors.surfaceDim,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                disabledBackgroundColor: AppColors.buttonGray,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(32),
                 ),
               ),
-              child: const Text(
-                '다음',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+              child: Text(
+                    '다음',
+                    style: Theme.of(context).textTheme.labelLarge,
               ),
             ),
           ),
 
           const SizedBox(height: 12),
 
-          const Center(
+          Center(
             child: Text(
               '상세 설정은 나중에 마이페이지에서 변경 가능해요',
-              style: TextStyle(fontSize: 13, color: AppColors.textHint),
+              style: Theme.of(context).textTheme.bodySmall
             ),
           ),
         ],
@@ -189,7 +172,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 뒤로가기
           GestureDetector(
             onTap: () {
               _pageController.previousPage(
@@ -199,11 +181,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             },
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              children: const [
-                Icon(Icons.arrow_back_ios, size: 16, color: AppColors.textSecondary),
+              children: [
+                const Icon(Icons.arrow_back_ios, size: 16, color: AppColors.textSecondary),
                 Text(
                   '이전',
-                  style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                  style: Theme.of(context).textTheme.bodySmall
                 ),
               ],
             ),
@@ -211,14 +193,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
           const SizedBox(height: 16),
 
-          // 다양성
-          const Text(
+          Text(
             '[다양성]',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge
           ),
           const SizedBox(height: 8),
           DiversitySlider(
@@ -228,14 +205,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
           const SizedBox(height: 32),
 
-          // 요리 실력
-          const Text(
+          Text(
             '[요리 실력]',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge
           ),
           const SizedBox(height: 8),
           LabeledSlider(
@@ -258,14 +230,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
           const SizedBox(height: 32),
 
-          // 식사 수
-          const Text(
+          Text(
             '[식사 수]',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge
           ),
           const SizedBox(height: 8),
           LabeledSlider(
@@ -279,14 +246,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
           const SizedBox(height: 32),
 
-          // 한달 식비 예산
-          const Text(
+          Text(
             '[한달 식비 예산]',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
+            style: Theme.of(context).textTheme.bodyLarge
           ),
           const SizedBox(height: 8),
           BudgetSlider(
@@ -296,7 +258,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
           const SizedBox(height: 32),
 
-          // 에러 메시지
           if (submitState != null && submitState.hasError)
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
@@ -306,7 +267,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ),
             ),
 
-          // 시작하기 버튼
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -315,38 +275,33 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   : () => _onSubmit(context, ref, notifier),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                disabledBackgroundColor: AppColors.surfaceDim,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                disabledBackgroundColor: AppColors.buttonGray,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(32),
                 ),
               ),
               child: isSubmitting
-                  ? const SizedBox(
-                      height: 22,
-                      width: 22,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                  : const Text(
-                      '나만의 맞춤 식단 시작하기',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                ? const SizedBox(
+                    height: 22,
+                    width: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
+                  )
+                : Text(
+                    '나만의 맞춤 식단 시작하기',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
             ),
           ),
 
           const SizedBox(height: 12),
 
-          const Center(
+          Center(
             child: Text(
               '상세 설정은 나중에 마이페이지에서 변경 가능해요',
-              style: TextStyle(fontSize: 13, color: AppColors.textHint),
+              style: Theme.of(context).textTheme.bodySmall
             ),
           ),
         ],

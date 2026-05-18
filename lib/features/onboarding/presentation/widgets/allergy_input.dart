@@ -30,13 +30,9 @@ class _AllergyInputState extends State<AllergyInput> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '[알레르기 및 제외 재료]',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
+          style: Theme.of(context).textTheme.bodyLarge
         ),
         const SizedBox(height: 12),
         Row(
@@ -48,13 +44,16 @@ class _AllergyInputState extends State<AllergyInput> {
                 children: [
                   TextField(
                     controller: _controller,
+                    style: Theme.of(context).textTheme.bodyMedium,
                     decoration: InputDecoration(
                       hintText: '제외할 재료를 입력해 주세요.',
-                      hintStyle: const TextStyle(color: AppColors.textHint),
+                      hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: _error != null ? AppColors.error : AppColors.textSecondary,
+                          color: _error != null ? AppColors.error : AppColors.border,
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
@@ -69,7 +68,9 @@ class _AllergyInputState extends State<AllergyInput> {
                       padding: const EdgeInsets.only(top: 6, left: 4),
                       child: Text(
                         _error!,
-                        style: const TextStyle(fontSize: 12, color: AppColors.error),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppColors.error,
+                        ),
                       ),
                     ),
                 ],
@@ -103,7 +104,12 @@ class _AllergyInputState extends State<AllergyInput> {
                   ),
                   minimumSize: Size.zero,
                 ),
-                child: const Text('추가', style: TextStyle(color: Colors.white)),
+                child: Text(
+                  '추가',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.white
+                  )
+                ),
               ),
             ),
           ],
@@ -116,7 +122,7 @@ class _AllergyInputState extends State<AllergyInput> {
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: AppColors.surfaceDim,
+                color: AppColors.buttonGray,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -124,7 +130,7 @@ class _AllergyInputState extends State<AllergyInput> {
                 children: [
                   Text(
                     allergy,
-                    style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
+                    style: Theme.of(context).textTheme.bodyMedium
                   ),
                   const SizedBox(width: 4),
                   GestureDetector(
@@ -133,7 +139,7 @@ class _AllergyInputState extends State<AllergyInput> {
                         ..remove(allergy);
                       widget.onChanged(newList);
                     },
-                    child: const Icon(Icons.close, size: 16, color: AppColors.textSecondary),
+                    child: const Icon(Icons.close, size: 16, color: AppColors.border),
                   ),
                 ],
               ),

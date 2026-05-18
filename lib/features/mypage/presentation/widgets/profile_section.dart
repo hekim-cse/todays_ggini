@@ -32,9 +32,14 @@ class ProfileSection extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      color: AppColors.mypage, // 변경 필요
-      padding: const EdgeInsets.symmetric(vertical: 32),
-      child: Column(
+      color: AppColors.mypage,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 24,
+        vertical: 32,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // 프로필 사진
           CircleAvatar(
@@ -44,14 +49,14 @@ class ProfileSection extends StatelessWidget {
                 ? ClipOval(
                     child: Image.asset(
                       imagePath!,
-                      width: 80,
-                      height: 80,
+                      width: 150,
+                      height: 150,
                       fit: BoxFit.cover,
                     ),
                   )
                 : ClipOval(
                     child: Image.asset(
-                      'assets/images/pic.png', // 기본 로고 이미지
+                      'assets/images/pic.png',
                       width: 80,
                       height: 80,
                       fit: BoxFit.cover,
@@ -59,27 +64,27 @@ class ProfileSection extends StatelessWidget {
                   ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(width: 16),
 
-          // 닉네임
-          Text(
-            displayName,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-            ),
-          ),
+          // 이름 + 페르소나
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 닉네임
+              Text(
+                displayName,
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
 
-          const SizedBox(height: 4),
+              const SizedBox(height: 4),
 
-          // 페르소나
-          Text(
-            persona,
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.textHint
-            ),
+              // 페르소나
+              Text(
+                persona,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ],
           ),
         ],
       ),

@@ -14,31 +14,56 @@ class PersonaCard extends StatelessWidget {
     required this.onTap,
   });
 
+  String _getImagePath() {
+    switch (persona) {
+      case Persona.singleValue: return 'assets/images/persona1.png';
+      case Persona.familyNutrition: return 'assets/images/persona2.png';
+      case Persona.bodyProfile: return 'assets/images/persona3.png';
+      case Persona.salaryBeer: return 'assets/images/persona4.png';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFE0E0E0),
           border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.transparent,
-            width: 3,
+            color: isSelected ? AppColors.primary : AppColors.buttonGray,
+            width: isSelected ? 3 : 3,
           ),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Text(
-              persona.label,  // ← label 사용
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.textPrimary,
+        child: Column(
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                child: Image.asset(
+                  _getImagePath(),
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
-          ),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.mypage : AppColors.buttonGray,
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(10)),
+              ),
+              child: Center(
+                child: Text(
+                  persona.label,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

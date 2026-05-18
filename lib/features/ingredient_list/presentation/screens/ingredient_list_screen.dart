@@ -42,34 +42,28 @@ class IngredientListScreen extends ConsumerWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: Stack(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: IconButton(
-              icon: const Icon(Icons.chevron_left, color: AppColors.textPrimary),
-              onPressed: () {
-                if (context.canPop()) {
-                  context.pop();
-                } else {
-                  context.go(AppRoutes.calendar);
-                }
-              },
-            ),
+          IconButton(
+            icon: const Icon(Icons.chevron_left, size: 32),
+            color: AppColors.textPrimary,
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go(AppRoutes.calendar);
+              }
+            },
           ),
-          const Align(
-            alignment: Alignment.center,
-            child: Text(
-              '재료 목록',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-            ),
+          const Spacer(),
+          Text(
+            '재료 목록',
+            style: Theme.of(context).textTheme.headlineLarge,
           ),
+          const Spacer(),
+          const SizedBox(width: 48), 
         ],
       ),
     );
@@ -87,7 +81,9 @@ class IngredientListScreen extends ConsumerWidget {
           child: Text(
             '재료 목록을 불러오지 못했습니다.\n${state.error}',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.red),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color:AppColors.error
+            )
           ),
         ),
       );
@@ -114,7 +110,7 @@ class IngredientListScreen extends ConsumerWidget {
                   sourceSlot: sourceSlot,
                 ),
                 const SizedBox(height: 16),
-                _buildSecondaryToggle(state, notifier),
+                _buildSecondaryToggle(context, state, notifier),
                 ...menu.ingredients.map(
                   (ing) => IngredientRow(
                     ingredient: ing,
@@ -132,12 +128,13 @@ class IngredientListScreen extends ConsumerWidget {
             ),
           ),
         ),
-        _buildBottomSummary(state),
+        _buildBottomSummary(context, state),
       ],
     );
   }
 
   Widget _buildSecondaryToggle(
+    BuildContext context,
     IngredientListState state,
     IngredientListNotifier notifier,
   ) {
@@ -146,11 +143,11 @@ class IngredientListScreen extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          const Text(
+          Text(
             '부재료 제외',
-            style: TextStyle(fontSize: 13, color: AppColors.textPrimary),
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 5),
           Switch(
             value: state.excludeSecondary,
             onChanged: (_) => notifier.toggleExcludeSecondary(),
@@ -161,34 +158,28 @@ class IngredientListScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildBottomSummary(IngredientListState state) {
+  Widget _buildBottomSummary(BuildContext context, IngredientListState state) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Container(
+        width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           border: Border.all(color: AppColors.border, width: 3),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               '장볼 재료 ${state.checkedCount}개 · 부재료 0개 포함',
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textPrimary,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 8),
             Text(
               '합계 ₩${formatPrice(state.totalPrice)}',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
           ],
         ),

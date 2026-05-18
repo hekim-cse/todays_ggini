@@ -45,8 +45,6 @@ class SocialLoginSheet extends ConsumerWidget {
                   label: '카카오',
                   color: const Color(0xFFFFE812),
                   onTap: () async {
-                    // TODO: 카카오 SDK로 accessToken 받아오기
-                    // await notifier.loginWithKakao(accessToken);
                     Navigator.pop(context);
                     context.go(AppRoutes.personaSelect);
                   },
@@ -56,8 +54,6 @@ class SocialLoginSheet extends ConsumerWidget {
                   color: const Color(0xFF03C75A),
                   labelColor: Colors.white,
                   onTap: () async {
-                    // TODO: 네이버 SDK로 accessToken 받아오기
-                    // await notifier.loginWithNaver(accessToken);
                     Navigator.pop(context);
                     context.go(AppRoutes.personaSelect);
                   },
@@ -67,8 +63,6 @@ class SocialLoginSheet extends ConsumerWidget {
                   color: Colors.white,
                   border: true,
                   onTap: () async {
-                    // TODO: 구글 SDK로 accessToken 받아오기
-                    // await notifier.loginWithGoogle(accessToken);
                     Navigator.pop(context);
                     context.go(AppRoutes.personaSelect);
                   },
@@ -78,8 +72,6 @@ class SocialLoginSheet extends ConsumerWidget {
                   color: Colors.white,
                   border: true,
                   onTap: () async {
-                    // TODO: 애플 SDK로 identityToken 받아오기
-                    // await notifier.loginWithApple(identityToken);
                     Navigator.pop(context);
                     context.go(AppRoutes.personaSelect);
                   },
@@ -90,17 +82,17 @@ class SocialLoginSheet extends ConsumerWidget {
             const SizedBox(height: 16),
 
             // 구분선
-            const Row(
+            Row(
               children: [
-                Expanded(child: Divider()),
+                const Expanded(child: Divider()),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Text(
                     '또는',
-                    style: TextStyle(color: AppColors.textSecondary),
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ),
-                Expanded(child: Divider()),
+                const Expanded(child: Divider()),
               ],
             ),
 
@@ -126,7 +118,10 @@ class SocialLoginSheet extends ConsumerWidget {
                     },
                   );
                 },
-                child: const Text('로그인 없이 시작하기'),
+                child: Text(
+                  '로그인 없이 시작하기',
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
               ),
             ),
           ],

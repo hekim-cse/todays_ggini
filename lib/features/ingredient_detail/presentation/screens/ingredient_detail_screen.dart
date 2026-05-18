@@ -34,38 +34,33 @@ class IngredientDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: Stack(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: IconButton(
-              icon: const Icon(Icons.chevron_left, color: AppColors.textPrimary),
-              onPressed: () {
-                if (context.canPop()) {
-                  context.pop();
-                } else {
-                  context.go(AppRoutes.calendar);
-                }
-              },
-            ),
+          IconButton(
+            icon: const Icon(Icons.chevron_left, size: 32),
+            color: AppColors.textPrimary,
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go(AppRoutes.calendar);
+              }
+            },
           ),
-          const Align(
-            alignment: Alignment.center,
-            child: Text(
-              '재료 상세',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-            ),
+          const Spacer(),
+          Text(
+            '재료 상세',
+            style: Theme.of(context).textTheme.headlineLarge,
           ),
+          const Spacer(),
+          const SizedBox(width: 48),
         ],
       ),
     );
   }
+
 
   Widget _buildBody(
     BuildContext context,
@@ -79,7 +74,9 @@ class IngredientDetailScreen extends ConsumerWidget {
           child: Text(
             '가격 정보를 불러오지 못했습니다.\n${state.error}',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.red),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: AppColors.error
+            )
           ),
         ),
       );
@@ -101,32 +98,27 @@ class IngredientDetailScreen extends ConsumerWidget {
           const SizedBox(height: 8),
           IngredientHeaderCard(prices: prices),
           const SizedBox(height: 24),
-          const Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Text(
-                  '마켓',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    '마켓',
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  '가격',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    '가격',
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
-              ),
-              SizedBox(width: 80),
-            ],
+                const SizedBox(width: 80),
+              ],
+            ),
           ),
           const SizedBox(height: 4),
           const Divider(color: AppColors.border, height: 1),

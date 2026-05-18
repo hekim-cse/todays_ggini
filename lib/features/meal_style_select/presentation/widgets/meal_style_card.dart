@@ -26,10 +26,10 @@ class MealStyleCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.mypage : AppColors.surface,
+          color: isSelected ? AppColors.mypage : AppColors.stylegray,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.surfaceDim,
+            color: isSelected ? AppColors.primary : AppColors.buttonGray,
             width: 2.5,
           ),
         ),
@@ -45,10 +45,8 @@ class MealStyleCard extends StatelessWidget {
               ),
               child: Text(
                 style.tag,
-                style: const TextStyle(
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
                 ),
               ),
             ),
@@ -60,14 +58,6 @@ class MealStyleCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        '3일치 샘플 식단',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
                       const SizedBox(height: 4),
                       ...style.meals.map((meal) => Padding(
                             padding: const EdgeInsets.symmetric(vertical: 2),
@@ -77,8 +67,7 @@ class MealStyleCard extends StatelessWidget {
                                 const SizedBox(width: 4),
                                 Text(
                                   meal,
-                                  style: const TextStyle(
-                                    fontSize: 12,
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                     color: AppColors.textPrimary,
                                   ),
                                 ),
@@ -88,10 +77,8 @@ class MealStyleCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         style.desc,
-                        style: const TextStyle(
-                          fontSize: 11,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -105,29 +92,26 @@ class MealStyleCard extends StatelessWidget {
                         child: Row(
                           children: [
                             SizedBox(
-                              width: 40,
+                              width: 70,
                               child: Text(
                                 e.key,
-                                style: const TextStyle(
-                                  fontSize: 12,
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                   color: AppColors.textPrimary,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 4),
                             Container(
                               width: e.value * 8.0,
-                              height: 8,
+                              height: 10,
                               decoration: BoxDecoration(
                                 color: _getBarColor(e.value),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 10),
                             Text(
                               '${e.value}',
-                              style: const TextStyle(
-                                fontSize: 10,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                 color: AppColors.textPrimary,
                               ),
                             ),

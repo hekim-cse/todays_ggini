@@ -34,19 +34,12 @@ class AlternativeMealRow extends StatelessWidget {
               children: [
                 Text(
                   meal.menuName,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${formatPrice(meal.calories)} kcal · ₩${formatPrice(meal.price)}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
             ),
@@ -55,20 +48,18 @@ class AlternativeMealRow extends StatelessWidget {
             onPressed: isDisabled ? null : onChange,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
-              disabledBackgroundColor: AppColors.surfaceDim,
+              disabledBackgroundColor: AppColors.buttonGray,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              minimumSize: const Size(0, 32),
+              minimumSize: const Size(0, 40),
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
               elevation: 0,
             ),
-            child: const Text(
+            child: Text(
               '변경',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Colors.white,
               ),
             ),

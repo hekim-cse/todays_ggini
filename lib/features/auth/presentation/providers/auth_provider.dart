@@ -1,7 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 
 import '../../../../core/network/api_client.dart';
+import '../../../../core/env/env.dart';
 import '../../data/auth_remote_data_source.dart';
 import '../../data/auth_repository.dart';
 import '../../domain/user.dart';
@@ -13,6 +17,14 @@ final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepository(ref.watch(authRemoteDataSourceProvider));
+});
+
+// Google Sign In Provider
+final googleSignInProvider = Provider<GoogleSignIn>((ref) {
+  return GoogleSignIn(
+    clientId: Env.googleClientId,
+    scopes: ['email', 'profile'],
+  );
 });
 
 // State 클래스
@@ -47,13 +59,21 @@ class AuthState {
 // Notifier 클래스
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repository;
+  final GoogleSignIn _googleSignIn;
 
-  AuthNotifier(this._repository) : super(const AuthState());
+  AuthNotifier(this._repository, this._googleSignIn) : super(const AuthState());
 
-  Future<void> loginWithKakao(String accessToken) async {
+  // 카카오 SDK → 토큰 받기 → 백엔드 전달
+  Future<void> loginWithKakao() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final user = await _repository.loginWithKakao(accessToken);
+      kakao.OAuthToken token;
+      if (await kakao.isKakaoTalkInstalled()) {
+        token = await kakao.UserApi.instance.loginWithKakaoTalk();
+      } else {
+        token = await kakao.UserApi.instance.loginWithKakaoAccount();
+      }
+      final user = await _repository.loginWithKakao(token.accessToken);
       if (!mounted) return;
       state = state.copyWith(user: user, isLoading: false);
     } catch (e) {
@@ -62,10 +82,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> loginWithNaver(String accessToken) async {
+  // 네이버 웹뷰 → 코드 받기 → 백엔드 전달
+  Future<void> loginWithNaver() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final user = await _repository.loginWithNaver(accessToken);
+      final result = await FlutterWebAuth2.authenticate(
+        url: 'https://nid.naver.com/oauth2.0/authorize'
+            '?client_id=${Env.naverClientId}'
+            '&response_type=code'
+            '&redirect_uri=todaysggini://auth',
+        callbackUrlScheme: 'todaysggini',
+      );
+      final code = Uri.parse(result).queryParameters['code'] ?? '';
+      final user = await _repository.loginWithNaver(code);
       if (!mounted) return;
       state = state.copyWith(user: user, isLoading: false);
     } catch (e) {
@@ -74,22 +103,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> loginWithGoogle(String accessToken) async {
+  // 구글 SDK → 토큰 받기 → 백엔드 전달
+  Future<void> loginWithGoogle() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      final account = await _googleSignIn.signIn();
+      if (account == null) {
+        state = state.copyWith(isLoading: false);
+        return;
+      }
+      final auth = await account.authentication;
+      final accessToken = auth.accessToken ?? '';
       final user = await _repository.loginWithGoogle(accessToken);
-      if (!mounted) return;
-      state = state.copyWith(user: user, isLoading: false);
-    } catch (e) {
-      if (!mounted) return;
-      state = state.copyWith(error: e, isLoading: false);
-    }
-  }
-
-  Future<void> loginWithApple(String identityToken) async {
-    state = state.copyWith(isLoading: true, clearError: true);
-    try {
-      final user = await _repository.loginWithApple(identityToken);
       if (!mounted) return;
       state = state.copyWith(user: user, isLoading: false);
     } catch (e) {
@@ -113,6 +138,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> logout() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
+      await _googleSignIn.signOut();
       await _repository.logout();
       if (!mounted) return;
       state = const AuthState();
@@ -125,5 +151,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
 // Provider
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>(
-  (ref) => AuthNotifier(ref.watch(authRepositoryProvider)),
+  (ref) => AuthNotifier(
+    ref.watch(authRepositoryProvider),
+    ref.watch(googleSignInProvider),
+  ),
 );

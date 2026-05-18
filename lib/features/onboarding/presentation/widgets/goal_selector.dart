@@ -19,67 +19,159 @@ class _GoalSelectorState extends State<GoalSelector> {
   final List<String> _goals = ['식비 절약', '영양 균형', '다이어트', '고단백', '간편식', '맛 중심'];
   String? _error;
 
+  void _onTap(String goal) {
+    final newList = List<String>.from(widget.selectedGoals);
+    if (newList.contains(goal)) {
+      newList.remove(goal);
+      setState(() => _error = null);
+    } else if (newList.length < 3) {
+      newList.add(goal);
+      setState(() => _error = null);
+    } else {
+      setState(() => _error = '최대 3개까지 선택이 가능합니다.');
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) setState(() => _error = null);
+      });
+      return;
+    }
+    widget.onChanged(newList);
+  }
+
+  // Widget _buildRow(BuildContext context, List<String> items) {
+  //   return LayoutBuilder(
+  //     builder: (context, constraints) {
+  //       final textStyle = Theme.of(context).textTheme.bodyMedium;
+  //       final horizontalPadding = 16.0 * 2;
+  //       final spacing = 8.0;
+
+  //       double totalTextWidth = 0;
+  //       for (final goal in items) {
+  //         final tp = TextPainter(
+  //           text: TextSpan(text: goal, style: textStyle),
+  //           textDirection: TextDirection.ltr,
+  //         )..layout();
+  //         totalTextWidth += tp.width + horizontalPadding;
+  //       }
+  //       totalTextWidth += spacing * (items.length - 1);
+
+  //       final extraPerItem = (constraints.maxWidth - totalTextWidth) > 0
+  //           ? (constraints.maxWidth - totalTextWidth) / items.length
+  //           : 0.0;
+
+  //       return Row(
+  //         children: items.asMap().entries.map((entry) {
+  //           final index = entry.key;
+  //           final goal = entry.value;
+  //           final isSelected = widget.selectedGoals.contains(goal);
+
+  //           return GestureDetector(
+  //             onTap: () => _onTap(goal),
+  //             child: Container(
+  //               margin: EdgeInsets.only(right: index < items.length - 1 ? spacing : 0),
+  //               padding: EdgeInsets.symmetric(
+  //                 horizontal: 16 + extraPerItem / 2,
+  //                 vertical: 10,
+  //               ),
+  //               decoration: BoxDecoration(
+  //                 color: isSelected ? AppColors.primary : AppColors.buttonGray,
+  //                 borderRadius: BorderRadius.circular(12),
+  //               ),
+  //               child: Text(
+  //                 goal,
+  //                 style: textStyle?.copyWith(
+  //                   color: isSelected ? Colors.white : AppColors.textPrimary,
+  //                 ),
+  //               ),
+  //             ),
+  //           );
+  //         }).toList(),
+  //       );
+  //     },
+  //   );
+  // }
+
+  Widget _buildRow(BuildContext context, List<String> items) {
+    return Row(
+      children: items.asMap().entries.map((entry) {
+        final index = entry.key;
+        final goal = entry.value;
+        final isSelected = widget.selectedGoals.contains(goal);
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => _onTap(goal),
+            child: Container(
+              margin: EdgeInsets.only(right: index < items.length - 1 ? 8 : 0),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primary : AppColors.buttonGray,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      goal,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: isSelected ? Colors.white : AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           '[목적]',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
+          style: Theme.of(context).textTheme.bodyLarge,
         ),
         const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _goals.map((goal) {
-            final isSelected = widget.selectedGoals.contains(goal);
-            return GestureDetector(
-              onTap: () {
-                final newList = List<String>.from(widget.selectedGoals);
-                if (isSelected) {
-                  newList.remove(goal);
-                  setState(() => _error = null);
-                } else if (newList.length < 3) {
-                  newList.add(goal);
-                  setState(() => _error = null);
-                } else {
-                  setState(() => _error = '최대 3개까지 선택이 가능합니다.');
-                  Future.delayed(const Duration(seconds: 2), () {
-                    if (mounted) setState(() => _error = null);
-                  });
-                  return;
-                }
-                widget.onChanged(newList);
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.primary : AppColors.surfaceDim,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  goal,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: isSelected ? Colors.white : AppColors.textPrimary,
-                  ),
-                ),
-              ),
-            );
-          }).toList(),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final textStyle = Theme.of(context).textTheme.bodyMedium;
+            double totalWidth = 0;
+            for (final goal in _goals) {
+              final tp = TextPainter(
+                text: TextSpan(text: goal, style: textStyle),
+                textDirection: TextDirection.ltr,
+              )..layout();
+              totalWidth += tp.width + 32;
+            }
+            totalWidth += 8 * (_goals.length - 1);
+
+            if (totalWidth <= constraints.maxWidth) {
+              return _buildRow(context, _goals);
+            } else {
+              final half = (_goals.length / 2).ceil();
+              return Column(
+                children: [
+                  _buildRow(context, _goals.sublist(0, half)),
+                  const SizedBox(height: 8),
+                  _buildRow(context, _goals.sublist(half)),
+                ],
+              );
+            }
+          },
         ),
         if (_error != null)
           Padding(
             padding: const EdgeInsets.only(top: 6, left: 4),
             child: Text(
               _error!,
-              style: const TextStyle(fontSize: 12, color: AppColors.error),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.error,
+              ),
             ),
           ),
       ],

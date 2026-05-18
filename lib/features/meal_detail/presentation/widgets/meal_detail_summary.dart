@@ -23,11 +23,11 @@ class MealDetailSummary extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: _item(label: '총 비용', value: '₩${formatPrice(totalPrice)}'),
+            child: _item(context, label: '총 비용', value: '₩${formatPrice(totalPrice)}'),
           ),
-          Container(width: 1, height: 36, color: AppColors.border),
+          Container(width: 3, height: 60, color: AppColors.border),
           Expanded(
-            child: _item(
+            child: _item(context,
               label: '총 칼로리',
               value: '${formatPrice(totalCalories)} kcal',
             ),
@@ -37,24 +37,17 @@ class MealDetailSummary extends StatelessWidget {
     );
   }
 
-  Widget _item({required String label, required String value}) {
+  Widget _item(BuildContext context, {required String label, required String value}) {
     return Column(
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 16,
-            color: AppColors.textPrimary,
-          ),
+          style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
+          style: Theme.of(context).textTheme.bodyLarge,
         ),
       ],
     );

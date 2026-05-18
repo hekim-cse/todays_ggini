@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class SocialButton extends StatelessWidget {
   final String label;
@@ -6,6 +7,7 @@ class SocialButton extends StatelessWidget {
   final Color labelColor;
   final VoidCallback onTap;
   final bool border;
+  final TextStyle? labelStyle;
 
   const SocialButton({
     super.key,
@@ -14,6 +16,7 @@ class SocialButton extends StatelessWidget {
     required this.onTap,
     this.labelColor = Colors.black,
     this.border = false,
+    this.labelStyle,
   });
 
   @override
@@ -26,7 +29,7 @@ class SocialButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.circle,
-          border: border ? Border.all(color: Colors.grey.shade300) : null,
+          border: border ? Border.all(color: AppColors.buttonGray) : null,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
@@ -37,8 +40,7 @@ class SocialButton extends StatelessWidget {
         child: Center(
           child: Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
+            style: labelStyle ?? Theme.of(context).textTheme.bodySmall?.copyWith(
               color: labelColor,
             ),
           ),

@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/app_logo.dart';
+import '../../../../core/widgets/mascot_speech.dart';
 import '../../domain/meal_style.dart';
 import '../widgets/meal_style_card.dart';
 
@@ -23,18 +23,9 @@ class _MealStyleSelectScreenState extends State<MealStyleSelectScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const AppLogo(),
-            const Padding(
-              padding: EdgeInsets.fromLTRB(24, 8, 24, 16),
-              child: Text(
-                '이런 식단 스타일은 어떠세요?',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ),
+            // 말풍선
+            const MascotSpeech(message: '이런 스타일은\n어떠세요?'),
+            const SizedBox(height: 16),
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
@@ -50,6 +41,13 @@ class _MealStyleSelectScreenState extends State<MealStyleSelectScreen> {
               ),
             ),
             Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                '위 식단은 예시 샘플 식단입니다.',
+                style: Theme.of(context).textTheme.bodySmall
+              ),
+            ),
+            Padding(
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
               child: SizedBox(
                 width: double.infinity,
@@ -59,19 +57,14 @@ class _MealStyleSelectScreenState extends State<MealStyleSelectScreen> {
                       : () => context.go(AppRoutes.mealPlanLoading),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    disabledBackgroundColor: AppColors.surfaceDim,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    disabledBackgroundColor: AppColors.buttonGray,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(32),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     '이 스타일로 결정하기',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: Theme.of(context).textTheme.labelLarge,
                   ),
                 ),
               ),

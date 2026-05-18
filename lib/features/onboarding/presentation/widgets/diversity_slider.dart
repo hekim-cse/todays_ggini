@@ -23,36 +23,45 @@ class DiversitySlider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(
-          _getLabel(value),
-          style: const TextStyle(fontSize: 13, color: AppColors.textHint),
+        Row(
+          children: [
+            Text(
+              '1',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            Expanded(
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: AppColors.primary,
+                  inactiveTrackColor: AppColors.buttonGray,
+                  trackHeight: 6,
+                  thumbShape: ImageThumbShape(),
+                  overlayShape: SliderComponentShape.noOverlay,
+                ),
+                child: Slider(
+                  value: value.toDouble(),
+                  min: 1,
+                  max: 3,
+                  divisions: 2,
+                  onChanged: (v) => onChanged(v.round()),
+                ),
+              ),
+            ),
+            Text(
+              '3',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            activeTrackColor: AppColors.primary,
-            inactiveTrackColor: AppColors.surfaceDim,
-            trackHeight: 6,
-            thumbShape: ImageThumbShape(),
-            overlayShape: SliderComponentShape.noOverlay,
-          ),
-          child: Slider(
-            value: value.toDouble(),
-            min: 1,
-            max: 3,
-            divisions: 2,
-            onChanged: (v) => onChanged(v.round()),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text('1', style: TextStyle(color: AppColors.textHint)),
-              Text('2', style: TextStyle(color: AppColors.textHint)),
-              Text('3', style: TextStyle(color: AppColors.textHint)),
-            ],
+        Text(
+          '$value: ${_getLabel(value)}',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: AppColors.textPrimary,
           ),
         ),
       ],

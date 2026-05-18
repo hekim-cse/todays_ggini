@@ -20,22 +20,23 @@ class ShoppingBottomActions extends StatelessWidget {
       children: [
         SizedBox(
           width: double.infinity,
-          height: 48,
-          child: OutlinedButton(
+          child: ElevatedButton(
             onPressed: hasCheckedItems ? onDeleteChecked : null,
-            style: OutlinedButton.styleFrom(
+            style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.background,
-              side: const BorderSide(color: AppColors.border),
+              disabledBackgroundColor: AppColors.buttonGray,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
+                side: const BorderSide(color: AppColors.border),
               ),
+              elevation: 0,
             ),
-            child: const Text(
+            child: Text(
               '선택 항목 제거',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: hasCheckedItems
+                  ? AppColors.textPrimary
+                  : AppColors.textSecondary,
               ),
             ),
           ),
@@ -43,24 +44,23 @@ class ShoppingBottomActions extends StatelessWidget {
         const SizedBox(height: 10),
         SizedBox(
           width: double.infinity,
-          height: 48,
           child: ElevatedButton(
             onPressed: hasCheckedItems ? onCheckoutByMarket : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
-              disabledBackgroundColor: AppColors.surfaceDim,
+              disabledBackgroundColor: AppColors.buttonGray,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
               ),
               elevation: 0,
             ),
-            child: const Text(
-              '마켓별 한번에 구매하기',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
+            child: Text(
+              '마켓별 한 번에 구매하기',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: hasCheckedItems
+                  ? Colors.white
+                  : AppColors.textSecondary,
+              )
             ),
           ),
         ),
