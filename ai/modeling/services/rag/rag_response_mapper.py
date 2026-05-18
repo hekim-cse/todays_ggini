@@ -645,27 +645,46 @@ def map_candidate_menu_to_modeling_menu(
     }
 
 
-def map_rag_response_to_candidate_menus(rag_response: dict) -> dict:
+def map_rag_response_to_candidate_menus(rag_response: dict) -> list[dict]:
     """
-    RAG 응답 전체를 Modeling 추천 로직에서 사용할 수 있는 구조로 변환한다.
+    RAG 응답을 Modeling 내부 candidate_menus 구조로 변환한다.
+
+    RAG 응답 구조:
+    {
+        "response_format": "candidate_menus_v1",
+        "candidate_menus": [...],
+        "ingredients_pool": {...}
+    }
+
+    candidate_menus는 메뉴 후보 목록이고,
+    ingredients_pool은 재료별 가격 계산에 사용한다.
     """
 
-    response_format = rag_response.get("response_format")
-    candidate_menus = rag_response.get("candidate_menus", [])
-    ingredients_pool = rag_response.get("ingredients_pool", {})
+    if isinstance(rag_response, list):
+        raw_menus = rag_response
+        ingredients_pool = {}
 
-    modeling_menus = []
+    elif isinstance(rag_response, dict):
+        raw_menus = (
+            rag_response.get("candidate_menus")
+            or rag_response.get("menus")
+            or rag_response.get("data")
+            or []
+        )
+        ingredients_pool = rag_response.get("ingredients_pool", {})
 
-    for candidate_menu in candidate_menus:
-        modeling_menu = map_candidate_menu_to_modeling_menu(
-            candidate_menu=candidate_menu,
-            ingredients_pool=ingredients_pool
+    else:
+        raw_menus = []
+        ingredients_pool = {}
+
+    candidate_menus = []
+
+    for menu in raw_menus:
+        mapped_menu = map_candidate_menu_to_modeling_menu(
+            candidate_menu=menu,
+            ingredients_pool=ingredients_pool,
         )
 
-        modeling_menus.append(modeling_menu)
+        candidate_menus.append(mapped_menu)
 
-    return {
-        "response_format": response_format,
-        "candidate_menus": modeling_menus,
-        "ingredients_pool": ingredients_pool
-    }
+    return candidate_menus
