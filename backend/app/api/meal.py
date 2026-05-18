@@ -41,6 +41,7 @@ router = APIRouter()
 
 # ---------------------------  프론트엔드 호출용 API ---------------------------------
 JOB_STORE = {}
+# -------------------- 월간 식단 요청(비동기 실행) ----------------------------
 async def background_monthly_plan_task(job_id: str, user_id: int, selected_style_id: str):
     """
     API 응답이 나간 뒤 백그라운드에서 조용히 실행될 함수
@@ -876,87 +877,6 @@ async def generate_initial_meal_plan(
         "sent_data": ai_payload,
         "ai_result": ai_response,
     }
-
-
-# -------------------- 월간 식단 요청 API ----------------------------
-# @router.post("/request_monthly_plan")
-# async def request_monthly_plan(
-#     request: StyleSelectRequest,
-#     db: Session = Depends(get_db),
-#     current_user: User = Depends(get_current_user),
-# ):
-#     """
-#     사용자가 선택한 식단 스타일 ID를 바탕으로 모델링 파트에 월간 식단 생성을 요청합니다.
-
-#     selected_style_id는 백엔드에서 selected_style 객체로 변환한 뒤
-#     모델링에 전달합니다.
-#     """
-
-#     update_user_selected_style(
-#         db,
-#         current_user.id,
-#         request.selected_style_id,
-#     )
-
-#     today = date.today()
-
-#     _, last_day = calendar.monthrange(today.year, today.month)
-#     days_remaining = last_day - today.day + 1
-
-#     selected_style = build_selected_style_from_style_id(
-#         style_id=request.selected_style_id,
-#     )
-
-#     modeling_payload = {
-#         "user_id": get_modeling_user_id(current_user),
-#         "request_type": "monthly_plan",
-#         "selected_style": selected_style,
-#         "profile": build_modeling_profile_from_user(
-#             current_user=current_user,
-#             period_days=days_remaining,
-#         ),
-#     }
-
-#     try:
-#         ai_response = await asyncio.to_thread(
-#             create_monthly_plan,
-#             modeling_payload,
-#         )
-
-#     except ValueError as error:
-#         raise HTTPException(
-#             status_code=status.HTTP_400_BAD_REQUEST,
-#             detail=str(error),
-#         )
-
-#     except Exception as error:
-#         traceback.print_exc()
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             detail=str(error),
-#         )
-
-#     days_data = ai_response.get("monthly_plan", {}).get("days", [])
-
-#     if not days_data:
-#         raise HTTPException(
-#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-#             detail="모델링 응답에 monthly_plan.days 데이터가 없습니다.",
-#         )
-
-#     crud_meal.save_monthly_plan(
-#         db=db,
-#         user_id=current_user.id,
-#         ai_days_list=days_data,
-#     )
-
-#     front_response_data = transform_ai_plan_to_front(
-#         ai_response,
-#         start_date=today,
-#     )
-
-#     return front_response_data
-
 
 # --------------------------- 모델링 연동 API ---------------------------
 
