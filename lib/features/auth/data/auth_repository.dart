@@ -7,25 +7,19 @@ class AuthRepository {
 
   Future<User> loginWithKakao(String accessToken) async {
     final raw = await _remote.loginWithKakao(accessToken);
-    return User.fromJson(raw);
+    return User.fromJson(raw, 'kakao');
   }
 
-  Future<User> loginWithNaver(String accessToken) async {
-    final raw = await _remote.loginWithNaver(accessToken);
-    return User.fromJson(raw);
+  Future<User> loginWithNaver(String code) async {
+    final raw = await _remote.loginWithNaver(code);
+    return User.fromJson(raw, 'naver');
   }
 
   Future<User> loginWithGoogle(String accessToken) async {
     final raw = await _remote.loginWithGoogle(accessToken);
-    return User.fromJson(raw);
+    return User.fromJson(raw, 'google');
   }
 
-  Future<User> loginWithApple(String identityToken) async {
-    final raw = await _remote.loginWithApple(identityToken);
-    return User.fromJson(raw);
-  }
-
-  // 게스트 로그인은 API 호출 없이 바로 반환
   Future<User> loginAsGuest() async {
     return User.guest();
   }

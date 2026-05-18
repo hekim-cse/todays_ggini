@@ -1,11 +1,15 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../env/env.dart';
+import 'auth_interceptor.dart';
 import 'mock_interceptor.dart';
 
-/// 앱 전체에서 공유하는 Dio 인스턴스.
-/// `USE_MOCKS=true` 일 때 [MockInterceptor] 가 자동으로 mock JSON 을 반환.
+final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
+  return const FlutterSecureStorage();
+});
+
 final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
@@ -20,9 +24,10 @@ final dioProvider = Provider<Dio>((ref) {
     dio.interceptors.add(MockInterceptor());
   }
 
-  // TODO: 추후 추가
-  // - AuthInterceptor (Authorization 헤더 자동 부착)
-  // - LogInterceptor (debug 빌드에서만)
+  // JWT 토큰 자동 부착
+  dio.interceptors.add(
+    AuthInterceptor(ref.watch(secureStorageProvider)),
+  );
 
   return dio;
 });

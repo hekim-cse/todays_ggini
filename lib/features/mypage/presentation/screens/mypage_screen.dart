@@ -36,27 +36,61 @@ class _MyPageScreenState extends State<MyPageScreen> {
     return '${list.take(2).join(', ')}, ...';
   }
 
-  Widget _buildChips(BuildContext context, List<String> options, List<String> selected) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: options.map((option) {
+  Widget _buildChipRow(BuildContext context, List<String> items, List<String> selected) {
+    return Row(
+      children: items.asMap().entries.map((entry) {
+        final index = entry.key;
+        final option = entry.value;
         final isSelected = selected.contains(option);
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.primary : AppColors.buttonGray,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            option,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: isSelected ? Colors.white : AppColors.textPrimary,
+        return Expanded(
+          child: Container(
+            margin: EdgeInsets.only(right: index < items.length - 1 ? 8 : 0),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.primary : AppColors.buttonGray,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Text(
+                    option,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: isSelected ? Colors.white : AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
         );
       }).toList(),
     );
+  }
+
+  Widget _buildChips(BuildContext context, List<String> options, List<String> selected) {
+    if (options.length <= 4) {
+      return _buildChipRow(context, options, selected);
+    } else if (options.length <= 6) {
+      final half = (options.length / 2).ceil();
+      return Column(
+        children: [
+          _buildChipRow(context, options.sublist(0, half), selected),
+          const SizedBox(height: 8),
+          _buildChipRow(context, options.sublist(half), selected),
+        ],
+      );
+    } else {
+      return Column(
+        children: [
+          _buildChipRow(context, options.sublist(0, 5), selected),
+          const SizedBox(height: 8),
+          _buildChipRow(context, options.sublist(5), selected),
+        ],
+      );
+    }
   }
 
   Widget _buildSliderContent(BuildContext context, int value, int min, int max, String label) {
@@ -85,8 +119,8 @@ class _MyPageScreenState extends State<MyPageScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('$min', style: Theme.of(context).textTheme.bodySmall,),
-            Text('$max', style: Theme.of(context).textTheme.bodySmall,),
+            Text('$min', style: Theme.of(context).textTheme.bodySmall),
+            Text('$max', style: Theme.of(context).textTheme.bodySmall),
           ],
         ),
       ],
@@ -156,8 +190,8 @@ class _MyPageScreenState extends State<MyPageScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('10만원', style: Theme.of(context).textTheme.bodySmall,),
-              Text('100만원', style: Theme.of(context).textTheme.bodySmall,),
+              Text('10만원', style: Theme.of(context).textTheme.bodySmall),
+              Text('100만원', style: Theme.of(context).textTheme.bodySmall),
             ],
           ),
         ],
@@ -178,20 +212,10 @@ class _MyPageScreenState extends State<MyPageScreen> {
     showAppPopupWidget(
       context: context,
       title: '[제외 재료]',
-      contentWidget: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: _allergies.map((allergy) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.buttonGray,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            allergy,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        )).toList(),
+      contentWidget: _buildChipRow(
+        context,
+        _allergies,
+        _allergies,
       ),
       leftButtonText: '재설정하기',
       rightButtonText: '확인',
@@ -239,159 +263,60 @@ class _MyPageScreenState extends State<MyPageScreen> {
             children: [
               ProfileSection(persona: _persona),
               const SizedBox(height: 24),
-
               const SectionTitle(title: '내 설정'),
-
+              SettingItem(emoji: '😊', title: '페르소나', value: _persona, onTap: () {}),
               SettingItem(
-                emoji: '😊',
-                title: '페르소나',
-                value: _persona,
-                onTap: () {},
+                emoji: '✅', title: '목적', value: _formatList(_goals),
+                onTap: () => _showChipDialog('목적', _goalOptions, _goals),
               ),
-
               SettingItem(
-                emoji: '✅',
-                title: '목적',
-                value: _formatList(_goals),
-                onTap: () => _showChipDialog(
-                  '목적',
-                  _goalOptions,
-                  _goals,
-                ),
+                emoji: '🥨', title: '취향', value: _formatList(_foods),
+                onTap: () => _showChipDialog('취향', _foodOptions, _foods),
               ),
-
               SettingItem(
-                emoji: '🥨',
-                title: '취향',
-                value: _formatList(_foods),
-                onTap: () => _showChipDialog(
-                  '취향',
-                  _foodOptions,
-                  _foods,
-                ),
+                emoji: '🥦', title: '선호 식재료', value: _formatList(_ingredients),
+                onTap: () => _showChipDialog('선호 식재료', _ingredientOptions, _ingredients),
               ),
-
               SettingItem(
-                emoji: '🥦',
-                title: '선호 식재료',
-                value: _formatList(_ingredients),
-                onTap: () => _showChipDialog(
-                  '선호 식재료',
-                  _ingredientOptions,
-                  _ingredients,
-                ),
-              ),
-
-              SettingItem(
-                emoji: '🫙',
-                title: '제외 재료',
-                value: _formatList(_allergies),
+                emoji: '🫙', title: '제외 재료', value: _formatList(_allergies),
                 onTap: () => _showAllergyDialog(),
               ),
-
               SettingItem(
-                emoji: '🍱',
-                title: '다양성',
-                value: '$_diversity단계',
-                onTap: () => _showSliderDialog(
-                  '다양성',
-                  _diversity,
-                  1,
-                  3,
-                  (v) {
-                    if (v == 1) {
-                      return '한 가지 음식만 먹어도 괜찮아요';
-                    }
-                    if (v == 2) {
-                      return '적당히 다양하게 먹고 싶어요';
-                    }
-                    return '매일 다른 음식을 먹고 싶어요';
-                  },
-                ),
+                emoji: '🍱', title: '다양성', value: '$_diversity단계',
+                onTap: () => _showSliderDialog('다양성', _diversity, 1, 3, (v) {
+                  if (v == 1) return '한 가지 음식만 먹어도 괜찮아요';
+                  if (v == 2) return '적당히 다양하게 먹고 싶어요';
+                  return '매일 다른 음식을 먹고 싶어요';
+                }),
               ),
-
               SettingItem(
-                emoji: '🍳',
-                title: '요리 실력',
-                value: '$_cookingSkill단계',
-                onTap: () => _showSliderDialog(
-                  '요리 실력',
-                  _cookingSkill,
-                  1,
-                  5,
-                  (v) {
-                    switch (v) {
-                      case 1:
-                        return '라면도 태워요';
-                      case 2:
-                        return '간단한 요리는 해요';
-                      case 3:
-                        return '레시피를 보고 대부분 따라 할 수 있어요';
-                      case 4:
-                        return '웬만한 요리는 다 해요';
-                      case 5:
-                        return '요리가 특기예요';
-                      default:
-                        return '';
-                    }
-                  },
-                ),
+                emoji: '🍳', title: '요리 실력', value: '$_cookingSkill단계',
+                onTap: () => _showSliderDialog('요리 실력', _cookingSkill, 1, 5, (v) {
+                  switch (v) {
+                    case 1: return '라면도 태워요';
+                    case 2: return '간단한 요리는 해요';
+                    case 3: return '레시피를 보고 대부분 따라 할 수 있어요';
+                    case 4: return '웬만한 요리는 다 해요';
+                    case 5: return '요리가 특기예요';
+                    default: return '';
+                  }
+                }),
               ),
-
               SettingItem(
-                emoji: '🍚',
-                title: '식사 수',
-                value: '$_mealCount끼',
-                onTap: () => _showSliderDialog(
-                  '식사 수',
-                  _mealCount,
-                  1,
-                  5,
-                  (v) => '$v끼 먹어요',
-                ),
+                emoji: '🍚', title: '식사 수', value: '$_mealCount끼',
+                onTap: () => _showSliderDialog('식사 수', _mealCount, 1, 5, (v) => '$v끼 먹어요'),
               ),
-
               SettingItem(
-                emoji: '💰',
-                title: '한달 식비 예산',
-                value: '${(_monthlyBudget / 10000).round()}만원',
+                emoji: '💰', title: '한달 식비 예산', value: '${(_monthlyBudget / 10000).round()}만원',
                 onTap: () => _showBudgetDialog(),
               ),
-
               const SizedBox(height: 24),
-
               const SectionTitle(title: '앱 설정'),
-
-              SettingItem(
-                emoji: '🔔',
-                title: '알림 설정',
-                value: '',
-                onTap: () {},
-                showToggle: true,
-                showArrow: false,
-              ),
-
+              SettingItem(emoji: '🔔', title: '알림 설정', value: '', onTap: () {}, showToggle: true, showArrow: false),
               const SizedBox(height: 24),
-
               const SectionTitle(title: '계정 설정'),
-
-              SettingItem(
-                emoji: '🚪',
-                title: '로그아웃',
-                value: '',
-                onTap: () => _showLogoutDialog(context),
-                showArrow: false,
-              ),
-
-              SettingItem(
-                emoji: '⚠️',
-                title: '회원탈퇴',
-                value: '',
-                titleColor: AppColors.error,
-                onTap: () => _showDeleteAccountDialog(context),
-                showArrow: false,
-              ),
-
+              SettingItem(emoji: '🚪', title: '로그아웃', value: '', onTap: () => _showLogoutDialog(context), showArrow: false),
+              SettingItem(emoji: '⚠️', title: '회원탈퇴', value: '', titleColor: AppColors.error, onTap: () => _showDeleteAccountDialog(context), showArrow: false),
               const SizedBox(height: 40),
             ],
           ),

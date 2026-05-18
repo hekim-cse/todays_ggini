@@ -127,7 +127,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
                       Text(
                         _currentPage < _pages.length - 1
-                            ? '>> 다음'
+                            ? '다음 >>'
                             : '시작하기',
                         style: Theme.of(context)
                             .textTheme
@@ -173,6 +173,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   fit: BoxFit.cover,
                                   width: double.infinity,
                                   height: double.infinity,
+                                  alignment: Alignment.topCenter, 
                                 ),
                               ),
                             ),

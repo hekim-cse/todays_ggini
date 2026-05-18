@@ -54,7 +54,7 @@ class _SettingItemState extends State<SettingItem> {
               )
             else if (widget.value.isNotEmpty)
               SizedBox(
-                width: MediaQuery.of(context).size.width * 0.4,
+                width: MediaQuery.of(context).size.width * 0.5,
                 child: Text(
                   widget.value,
                   overflow: TextOverflow.ellipsis,

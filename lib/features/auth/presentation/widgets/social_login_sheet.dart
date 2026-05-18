@@ -46,7 +46,7 @@ class SocialLoginSheet extends ConsumerWidget {
                   color: const Color(0xFFFFE812),
                   onTap: () async {
                     Navigator.pop(context);
-                    context.go(AppRoutes.personaSelect);
+                    await notifier.loginWithKakao();
                   },
                 ),
                 SocialButton(
@@ -55,7 +55,7 @@ class SocialLoginSheet extends ConsumerWidget {
                   labelColor: Colors.white,
                   onTap: () async {
                     Navigator.pop(context);
-                    context.go(AppRoutes.personaSelect);
+                    await notifier.loginWithNaver();
                   },
                 ),
                 SocialButton(
@@ -64,7 +64,7 @@ class SocialLoginSheet extends ConsumerWidget {
                   border: true,
                   onTap: () async {
                     Navigator.pop(context);
-                    context.go(AppRoutes.personaSelect);
+                    await notifier.loginWithGoogle();
                   },
                 ),
                 SocialButton(

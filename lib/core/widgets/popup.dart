@@ -31,6 +31,7 @@ class AppPopup extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: AppColors.background,
+      scrollable: true,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24),
       contentPadding: const EdgeInsets.fromLTRB(24, 32, 24, 20),
       shape: RoundedRectangleBorder(

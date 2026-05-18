@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/env/env.dart';
@@ -60,8 +61,20 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _repository;
   final GoogleSignIn _googleSignIn;
+  final FlutterSecureStorage _storage;
 
-  AuthNotifier(this._repository, this._googleSignIn) : super(const AuthState());
+  AuthNotifier(this._repository, this._googleSignIn, this._storage)
+      : super(const AuthState());
+
+  // 토큰 저장 헬퍼
+  Future<void> _saveTokens(User user) async {
+    if (user.accessToken != null) {
+      await _storage.write(key: 'accessToken', value: user.accessToken);
+    }
+    if (user.refreshToken != null) {
+      await _storage.write(key: 'refreshToken', value: user.refreshToken);
+    }
+  }
 
   // 카카오 SDK → 토큰 받기 → 백엔드 전달
   Future<void> loginWithKakao() async {
@@ -74,6 +87,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         token = await kakao.UserApi.instance.loginWithKakaoAccount();
       }
       final user = await _repository.loginWithKakao(token.accessToken);
+      await _saveTokens(user);
       if (!mounted) return;
       state = state.copyWith(user: user, isLoading: false);
     } catch (e) {
@@ -95,6 +109,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       );
       final code = Uri.parse(result).queryParameters['code'] ?? '';
       final user = await _repository.loginWithNaver(code);
+      await _saveTokens(user);
       if (!mounted) return;
       state = state.copyWith(user: user, isLoading: false);
     } catch (e) {
@@ -115,6 +130,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final auth = await account.authentication;
       final accessToken = auth.accessToken ?? '';
       final user = await _repository.loginWithGoogle(accessToken);
+      await _saveTokens(user);
       if (!mounted) return;
       state = state.copyWith(user: user, isLoading: false);
     } catch (e) {
@@ -140,6 +156,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       await _googleSignIn.signOut();
       await _repository.logout();
+      // 토큰 삭제
+      await _storage.delete(key: 'accessToken');
+      await _storage.delete(key: 'refreshToken');
       if (!mounted) return;
       state = const AuthState();
     } catch (e) {
@@ -154,5 +173,6 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>(
   (ref) => AuthNotifier(
     ref.watch(authRepositoryProvider),
     ref.watch(googleSignInProvider),
+    ref.watch(secureStorageProvider),
   ),
 );

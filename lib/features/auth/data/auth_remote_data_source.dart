@@ -6,37 +6,42 @@ class AuthRemoteDataSource {
 
   Future<Map<String, dynamic>> loginWithKakao(String accessToken) async {
     final response = await _dio.post(
-      '/auth/kakao',
-      data: {'access_token': accessToken},
+      '/api/v1/auth/kakao',
+      data: {'accessToken': accessToken},
     );
     return response.data as Map<String, dynamic>;
   }
 
-  Future<Map<String, dynamic>> loginWithNaver(String accessToken) async {
+  Future<Map<String, dynamic>> loginWithNaver(String code) async {
     final response = await _dio.post(
-      '/auth/naver',
-      data: {'access_token': accessToken},
+      '/api/v1/auth/naver',
+      data: {'code': code},
     );
     return response.data as Map<String, dynamic>;
   }
 
   Future<Map<String, dynamic>> loginWithGoogle(String accessToken) async {
     final response = await _dio.post(
-      '/auth/google',
-      data: {'access_token': accessToken},
-    );
-    return response.data as Map<String, dynamic>;
-  }
-
-  Future<Map<String, dynamic>> loginWithApple(String identityToken) async {
-    final response = await _dio.post(
-      '/auth/apple',
-      data: {'identity_token': identityToken},
+      '/api/v1/auth/google',
+      data: {'accessToken': accessToken},
     );
     return response.data as Map<String, dynamic>;
   }
 
   Future<void> logout() async {
-    await _dio.post('/auth/logout');
+    await _dio.post('/api/v1/auth/logout');
+  }
+
+  Future<Map<String, dynamic>> loginAsGuest() async {
+    return {
+      'accessToken': null,
+      'refreshToken': null,
+      'user': {
+        'id': 'guest',
+        'nickname': '게스트',
+        'email': null,
+        'is_onboarded': false,
+      }
+    };
   }
 }

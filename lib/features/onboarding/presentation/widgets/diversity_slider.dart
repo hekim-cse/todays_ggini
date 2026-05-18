@@ -13,6 +13,13 @@ class DiversitySlider extends StatelessWidget {
     required this.onChanged,
   });
 
+  // diversity int → String 변환
+  String diversityToString(int value) {
+    if (value == 1) return '낮음';
+    if (value == 2) return '보통';
+    return '높음';
+  }
+
   String _getLabel(int v) {
     if (v == 1) return '한 가지 음식만 먹어도 괜찮아요';
     if (v == 2) return '적당히 다양하게 먹고 싶어요';

@@ -1,34 +1,43 @@
 class User {
   final String id;
-  final String? name;
+  final String? nickname;
   final String? email;
-  final String provider; // 'kakao', 'naver', 'google', 'apple', 'guest'
+  final String provider; // 'kakao', 'naver', 'google', 'guest'
   final String? accessToken;
+  final String? refreshToken;
+  final bool isOnboarded;
 
   const User({
     required this.id,
     required this.provider,
-    this.name,
+    this.nickname,
     this.email,
     this.accessToken,
+    this.refreshToken,
+    this.isOnboarded = false,
   });
 
-  factory User.fromJson(Map<String, dynamic> json) {
+  factory User.fromJson(Map<String, dynamic> json, String provider) {
+    final user = json['user'] as Map<String, dynamic>;
     return User(
-      id: json['id'] as String,
-      provider: json['provider'] as String,
-      name: json['name'] as String?,
-      email: json['email'] as String?,
-      accessToken: json['access_token'] as String?,
+      id: user['id'].toString(), // int → String 변환
+      provider: provider,
+      nickname: user['nickname'] as String?,
+      email: user['email'] as String?,
+      accessToken: json['accessToken'] as String?,
+      refreshToken: json['refreshToken'] as String?,
+      isOnboarded: user['is_onboarded'] as bool? ?? false,
     );
   }
 
   Map<String, dynamic> toJson() => {
     'id': id,
     'provider': provider,
-    'name': name,
+    'nickname': nickname,
     'email': email,
-    'access_token': accessToken,
+    'accessToken': accessToken,
+    'refreshToken': refreshToken,
+    'is_onboarded': isOnboarded,
   };
 
   // 게스트 유저
@@ -36,6 +45,7 @@ class User {
     return const User(
       id: 'guest',
       provider: 'guest',
+      isOnboarded: false,
     );
   }
 }

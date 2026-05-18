@@ -9,13 +9,13 @@ class Env {
   /// true 이면 mock JSON 응답을 사용 (백엔드 미구현 시).
   static const bool useMocks = bool.fromEnvironment(
     'USE_MOCKS',
-    defaultValue: true,
+    defaultValue: false,
   );
 
   /// 백엔드 base URL.
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://localhost:3000/v1',
+    defaultValue: 'http://192.168.219.100:8000/docs',
   );
 
   /// 카카오 네이티브 앱 키.

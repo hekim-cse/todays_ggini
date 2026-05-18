@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/auth/presentation/screens/auth_screen.dart';
 import '../../features/calendar/presentation/screens/calendar_screen.dart';
 import '../../features/meal_detail/presentation/screens/meal_detail_screen.dart';
@@ -19,8 +20,42 @@ import '../../features/menu_change/presentation/screens/menu_change_screen.dart'
 import 'app_routes.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
+  final authState = ref.watch(authProvider);
+
   return GoRouter(
     initialLocation: AppRoutes.splash,
+    redirect: (context, state) {
+      final isLoggedIn = authState.isLoggedIn;
+      final isOnboarded = authState.user?.isOnboarded ?? false;
+      final currentPath = state.uri.path;
+
+      // 로그인(소셜 or 게스트) 안 됐으면 → auth로
+      if (!isLoggedIn &&
+          currentPath != AppRoutes.splash &&
+          currentPath != AppRoutes.auth) {
+        return AppRoutes.auth;
+      }
+
+      // 온보딩 안 했으면 → 페르소나 선택으로
+      if (isLoggedIn && !isOnboarded) {
+        final onboardingRoutes = [
+          AppRoutes.personaSelect,
+          AppRoutes.onboarding,
+          AppRoutes.mealStyleSelect,
+          AppRoutes.mealPlanLoading,
+        ];
+        if (!onboardingRoutes.contains(currentPath)) {
+          return AppRoutes.personaSelect;
+        }
+      }
+
+      // 온보딩 완료 후 auth 화면 접근 막기
+      if (isLoggedIn && isOnboarded && currentPath == AppRoutes.auth) {
+        return AppRoutes.calendar;
+      }
+
+      return null;
+    },
     routes: [
       GoRoute(path: AppRoutes.splash, builder: (_, __) => const SplashScreen()),
       GoRoute(
@@ -66,8 +101,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           final mealId = state.pathParameters['mealId'] ?? '';
           final dateStr = state.uri.queryParameters['date'];
           final slotStr = state.uri.queryParameters['slot'];
-          final sourceDate = dateStr != null ? DateTime.tryParse(dateStr) : null;
-          final sourceSlot = slotStr != null ? int.tryParse(slotStr) : null;
+          final sourceDate =
+              dateStr != null ? DateTime.tryParse(dateStr) : null;
+          final sourceSlot =
+              slotStr != null ? int.tryParse(slotStr) : null;
           return IngredientListScreen(
             mealId: mealId,
             sourceDate: sourceDate,
@@ -92,8 +129,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           final mealId = state.pathParameters['mealId'] ?? '';
           final dateStr = state.uri.queryParameters['date'];
           final slotStr = state.uri.queryParameters['slot'];
-          final date = dateStr != null ? DateTime.tryParse(dateStr) ?? DateTime.now() : DateTime.now();
-          final slot = slotStr != null ? int.tryParse(slotStr) ?? 1 : 1;
+          final date = dateStr != null
+              ? DateTime.tryParse(dateStr) ?? DateTime.now()
+              : DateTime.now();
+          final slot =
+              slotStr != null ? int.tryParse(slotStr) ?? 1 : 1;
           return MenuChangeScreen(mealId: mealId, date: date, slot: slot);
         },
       ),
