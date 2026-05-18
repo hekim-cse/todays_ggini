@@ -557,14 +557,20 @@ async def update_specific_menu_slot(
         raise HTTPException(status_code=500, detail=f"메뉴 업데이트 중 오류 발생: {str(e)}")
 
     # 5. 최종 응답 구성 (이미지 포함)
-    detail_meals = []
+    img_tasks = []
     for item in plan.content:
         menu = item.get("selected_menu", {})
         menu_name = menu.get("name", "")
         menu_category = menu.get("category", "")
-        
-        img_url = await get_food_image_url(menu_name, menu_category)
-        
+        # Task를 리스트에 담기만 하고 아직 실행(await)하지 않음
+        img_tasks.append(get_food_image_url(menu_name, menu_category))
+
+    # 모아둔 Task를 한꺼번에 병렬로 실행! (시간 단축 핵심)
+    all_img_urls = await asyncio.gather(*img_tasks)
+
+    detail_meals = []
+    for item, img_url in zip(plan.content, all_img_urls):
+        menu = item.get("selected_menu", {})
         detail_meals.append({
             "slot": item.get("meal_order"),
             "meal_id": str(menu.get("menu_id")),
@@ -630,6 +636,20 @@ async def get_meal_alternatives(
     current_menu_name = selected_menu.get("name", "")
     current_menu_category = selected_menu.get("category", "") # 카테고리 추출
 
+    # 인덱스 0번은 항상 Current Meal의 이미지가 되도록 세팅
+    img_tasks = [get_food_image_url(current_menu_name, current_menu_category)]
+    
+    # Alternatives 이미지 작업 추가
+    for alt in alt_menus:
+        img_tasks.append(get_food_image_url(alt.get("name", ""), alt.get("category", "")))
+
+    # 모아둔 작업 병렬 실행
+    all_img_urls = await asyncio.gather(*img_tasks)
+    
+    # 결과 분리
+    current_img_url = all_img_urls[0]
+    alt_img_urls = all_img_urls[1:]
+
     # 3. 명세서 기반 Current Meal 가공 (데이터 매핑)
     # AI의 필드명(estimated_cost 등)을 프론트 명세(price 등)로 변환
     current_meal = {
@@ -637,14 +657,14 @@ async def get_meal_alternatives(
         "menu_name": selected_menu.get("name", ""),
         "calories": selected_menu.get("calories", 0),
         "price": selected_menu.get("estimated_cost", 0),
-        "image_url": await get_food_image_url(current_menu_name, current_menu_category),
+        "image_url": current_img_url, # 병렬 결과 매핑
         "date": target_meal_date.strftime("%Y-%m-%d") if target_meal_date else "", # 문자열로 변환
         "slot": target_meal_data.get("meal_order", 1)
     }
 
     # 4. 명세서 기반 Alternatives 가공
     alternatives = []
-    for alt in alt_menus:
+    for alt, url in zip(alt_menus, alt_img_urls):
         alt_menu_name = alt.get("name", "")
         alt_menu_category = alt.get("category", "")
         alternatives.append({
@@ -652,7 +672,7 @@ async def get_meal_alternatives(
             "menu_name": alt.get("name", ""),
             "calories": alt.get("calories", 0),
             "price": alt.get("estimated_cost", 0),
-            "image_url": await get_food_image_url(alt_menu_name, alt_menu_category)
+            "image_url": url # 병렬 결과 매핑
         })
 
     # 5. 최종 반환 (Pydantic 스키마가 자동으로 JSON 변환 및 검증을 수행합니다)
