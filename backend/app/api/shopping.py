@@ -3,9 +3,11 @@ from typing import List
 from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db
 
+from app.models.meal import MealPlan
 from app.models.shopping import ShoppingList, ShoppingItem
 from app.schemas.shopping import (IngredientPriceResponse, ShoppingListResponse, IngredientSelectRequest, DeleteItemsRequest,
                                   CheckUpdateItem, CheckUpdateResponse, BatchDeleteResponse)
+from app.utils.image_search import get_food_image_url
 from app.models.user import User
 
 router = APIRouter()
@@ -13,55 +15,72 @@ router = APIRouter()
 @router.get("/ingredients/{ingredient_id}/prices", response_model=IngredientPriceResponse)
 async def get_ingredient_market_prices(
     ingredient_id: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),  # ← lookup 위해 user 인증 추가
 ):
     """
     [화면 10-2] 특정 재료의 마켓별 상세 가격 정보 조회
-    - 각 마켓의 가격을 비교하여 가장 저렴한 곳의 is_lowest를 True로 설정합니다.
     """
+    # 1. 유저의 meal_plans 에서 해당 ingredient_id 찾기
+    meal_plans = db.query(MealPlan).filter(
+        MealPlan.user_id == current_user.id
+    ).all()
     
-    # 1. 기초 데이터 (AI 연동 전 Mock 데이터)
-    prices_data = {
-        "coupang": {
-            "delivery_type": "로켓프레시",
-            "lowest_price": 1200,
-            "product_title": "곰곰 국내산 제철 나물 100g",
-            "purchase_link": "https://www.coupang.com/...",
-            "is_lowest": False
-        },
-        "market_kurly": {
-            "delivery_type": "샛별배송",
-            "lowest_price": 1400,
-            "product_title": "[KF365] 제철 나물 100g",
-            "purchase_link": "https://www.kurly.com/...",
-            "is_lowest": False
-        },
-        "naver_shopping": {
-            "delivery_type": "일반배송",
-            "lowest_price": 1300,
-            "product_title": "농협 제철 나물 100g",
-            "purchase_link": "https://smartstore.naver.com/...",
-            "is_lowest": False
-        }
+    found = None
+    for plan in meal_plans:
+        for meal in (plan.content or []):
+            selected = meal.get("selected_menu", {}) or {}
+            for ing in selected.get("ingredient_costs", []):
+                if ing.get("ingredient_id") == ingredient_id:
+                    found = ing
+                    break
+            if found:
+                break
+        if found:
+            break
+    
+    if not found:
+        raise HTTPException(
+            status_code=404,
+            detail=f"재료 정보를 찾을 수 없습니다: {ingredient_id}"
+        )
+    
+    # 2. lookup 된 정보 추출
+    ingredient_name = found.get("ingredient_name", "")
+    standard_unit = found.get("display_amount", "")
+    mock_price = found.get("lowest_price", 0)
+    mock_market = found.get("lowest_market", "coupang")
+    
+    # 3. e_commerce_prices 조립 — 데이터 있는 마켓만 채우고 나머지는 null
+    delivery_types = {
+        "coupang": "로켓프레시",
+        "market_kurly": "샛별배송",
+        "naver_shopping": "일반배송",
     }
-
-    # 2. 최저가 계산 로직
-    # 모든 마켓의 가격 중 최소값을 찾습니다.
-    min_price = min(market["lowest_price"] for market in prices_data.values())
-
-    # 최소값과 일치하는 마켓의 is_lowest를 True로 변경합니다.
-    for details in prices_data.values():
-        if details["lowest_price"] == min_price:
-            details["is_lowest"] = True
-            # 최저가가 여러 곳일 수 있으므로 break를 쓰지 않거나, 
-            # 한 곳만 지정하고 싶다면 break를 추가하세요.
-
+    supported_markets = ["coupang", "market_kurly", "naver_shopping"]
+    
+    prices_data = {}
+    for market in supported_markets:
+        if market == mock_market:
+            prices_data[market] = {
+                "delivery_type": delivery_types[market],
+                "lowest_price": mock_price,
+                "product_title": f"{ingredient_name} {standard_unit}",
+                "purchase_link": "https://example.com/",  # 외부 링크 mock
+                "is_lowest": True,
+            }
+        else:
+            prices_data[market] = None  # 마켓 자체 null
+    
+    # 4. 이미지
+    img_url = await get_food_image_url(ingredient_name, "재료")
+    
     return {
         "ingredient_id": ingredient_id,
-        "ingredient_name": "제철 나물",
-        "standard_unit": "100g",
-        "image_url": None,
-        "e_commerce_prices": prices_data
+        "ingredient_name": ingredient_name,
+        "standard_unit": standard_unit,
+        "image_url": img_url,
+        "e_commerce_prices": prices_data,
     }
 
 # ---------------------------- 재료 상세 화면 관련 ----------------------------------
@@ -84,24 +103,57 @@ async def sync_shopping_items(
 
     added_count = 0
     for item_data in items:
-        # 장바구니에 이미 있는지 확인 (Upsert)
+        # 1. ingredient_id 로 meal_plans JSON 안에서 마스터 정보 lookup
+        found = None
+        meal_plans = db.query(MealPlan).filter(MealPlan.user_id == current_user.id).all()
+        for plan in meal_plans:
+            for meal in (plan.content or []):
+                selected = meal.get("selected_menu", {}) or {}
+                for ing in selected.get("ingredient_costs", []):
+                    if ing.get("ingredient_id") == item_data.ingredient_id:
+                        found = ing
+                        break
+                if found: break
+            if found: break
+        
+        if not found:
+            # lookup 실패 — 그 항목은 스킵
+            continue
+        
+        # 2. lookup 정보로 풀 데이터 구성
+        delivery_types = {
+            "coupang": "로켓프레시",
+            "market_kurly": "샛별배송",
+            "naver_shopping": "일반배송",
+        }
+        enriched = {
+            "ingredient_id": item_data.ingredient_id,
+            "ingredient_name": found.get("ingredient_name", ""),
+            "standard_unit": found.get("display_amount", ""),
+            "market_name": item_data.market_name,
+            "delivery_type": delivery_types.get(item_data.market_name, "일반배송"),
+            "price": found.get("lowest_price", 0),
+            "product_title": f"{found.get('ingredient_name', '')} {found.get('display_amount', '')}",
+            "purchase_link": "https://example.com/",
+            "is_checked": item_data.is_checked,
+            "is_essential": item_data.is_essential,
+            "is_lowest": item_data.market_name == found.get("lowest_market"),
+        }
+        
+        # 3. 기존 항목 있으면 update, 없으면 새로 추가
         existing_item = db.query(ShoppingItem).filter(
             ShoppingItem.list_id == shopping_list.id,
             ShoppingItem.ingredient_id == item_data.ingredient_id
         ).first()
-
+        
         if existing_item:
-            for key, value in item_data.dict().items():
+            for key, value in enriched.items():
                 setattr(existing_item, key, value)
         else:
-            # 없다면 새로 추가
-            new_item = ShoppingItem(
-                list_id=shopping_list.id,
-                **item_data.dict()
-            )
+            new_item = ShoppingItem(list_id=shopping_list.id, **enriched)
             db.add(new_item)
         added_count += 1
-    
+        
     db.commit()
     return {"message": "선택된 재료들이 장바구니에 반영되었습니다.", "added_count": added_count}
 

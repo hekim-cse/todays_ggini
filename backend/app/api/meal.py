@@ -346,6 +346,7 @@ async def get_menu_detail(
     supported_markets = ["coupang", "market_kurly", "naver_shopping"]
 
     # 4. 재료 데이터 변환 (AI 데이터의 ingredient_costs 리스트 활용)
+    ing_costs = target_menu.get("ingredient_costs", [])
     for ing_cost in target_menu.get("ingredient_costs", []):
         ing_id = ing_cost.get("ingredient_id")
         required_ingredient_ids.append(ing_id)
@@ -354,23 +355,22 @@ async def get_menu_detail(
         mock_price = ing_cost.get("lowest_price", 0)
         mock_market = ing_cost.get("lowest_market", "coupang") # 기본값 fallback
         
-        # e_commerce_prices 조립 (요청하신 100,000원 처리 로직)
+        # e_commerce_prices 조립
         e_commerce_prices = {}
         for market in supported_markets:
             if market == mock_market:
                 e_commerce_prices[market] = {"lowest_price": mock_price}
             else:
-                # 데이터가 없는 마켓은 임시로 100,000원 처리
-                e_commerce_prices[market] = {"lowest_price": 100000}
+                # 데이터가 없는 마켓은 임시로 None 처리
+                e_commerce_prices[market] = {"lowest_price": None}
         
-        img_url = await get_food_image_url(ing_cost.get("ingredient_name"), "재료")
                 
         # 개별 재료 정보 조립
         ingredients_data.append({
             "ingredient_id": ing_id,
             "ingredient_name": ing_cost.get("ingredient_name"),
             "standard_unit": ing_cost.get("display_amount"), # 예: "122g", "1공기"
-            "image_url": img_url,
+            "image_url": None,
             "lowest_price_between_market": {
                 "market": mock_market,
                 "price": mock_price
@@ -378,13 +378,27 @@ async def get_menu_detail(
             "e_commerce_prices": e_commerce_prices
         })
 
+    menu_name = target_menu.get("name", "")
+    menu_category = target_menu.get("category", "")
+    img_tasks = [
+        get_food_image_url(menu_name, menu_category),  # 메뉴 자체 이미지 (인덱스 0)
+        *[get_food_image_url(ic.get("ingredient_name"), "재료") for ic in ing_costs],  # 재료 이미지들
+    ]
+    all_img_urls = await asyncio.gather(*img_tasks)
+    menu_img_url = all_img_urls[0]
+    ingredient_img_urls = all_img_urls[1:]
+
+    # 4-3. 재료 결과 매핑
+    for ingredient, url in zip(ingredients_data, ingredient_img_urls):
+        ingredient["image_url"] = url
+
     # 5. 최종 응답 JSON 조립
     response_data = {
         "meal_id": str(target_menu.get("menu_id")),
         "menu_name": target_menu.get("name"),
         "calories": target_menu.get("calories"),
         "price": target_menu.get("estimated_cost"), # 메뉴 전체 예상 비용
-        "image_url": img_url,
+        "image_url": menu_img_url,
         "video_url": None,
         "required_ingredient_ids": required_ingredient_ids,
         "ingredients": ingredients_data

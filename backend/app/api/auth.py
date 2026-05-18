@@ -61,6 +61,7 @@ def initialize_guest_session(db: Session = Depends(get_db)) -> Any:
         "token_type": "bearer",
     }
 
+# -------------------- 구글 소셜 로그인 -----------------------
 async def verify_google_token(access_token: str) -> dict:
     """구글 서버에 찔러서 이 토큰이 진짜인지 확인하고 유저 정보를 받아옵니다."""
     async with httpx.AsyncClient() as client:
@@ -120,6 +121,120 @@ async def google_login(request: SocialLoginRequest, db: Session = Depends(get_db
         "refreshToken": refresh_token,
         "user": {
             "id": user.id,
-            "nickname": google_nickname
+            "nickname": google_nickname,
+            "email": email,
+            "is_onboarded": user.is_onboarded
+        }
+    }
+
+# ------------------ 카카오 소셜 로그인 -----------------------
+async def verify_kakao_token(access_token: str) -> dict:
+    """ 카카오 Access Token 검증 및 유저 정보 추출 """
+    headers = {"Authorization": f"Bearer {access_token}"}
+    async with httpx.AsyncClient() as client:
+        response = await client.get("https://kapi.kakao.com/v2/user/me", headers=headers)
+        
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="유효하지 않은 카카오 토큰입니다."
+        )
+    return response.json()
+
+@router.post("/kakao", response_model=SocialLoginResponse)
+async def kakao_login(request: SocialLoginRequest, db: Session = Depends(get_db)):
+    """ [소셜 로그인] 카카오 토큰을 검증하고 로그인/가입을 처리합니다. """
+    kakao_info = await verify_kakao_token(request.accessToken)
+    
+    # 카카오는 고유 ID를 정수형(int)으로 주므로 문자열로 변환 필요
+    social_id = str(kakao_info.get("id"))
+    kakao_account = kakao_info.get("kakao_account", {})
+    email = kakao_account.get("email")
+    nickname = kakao_account.get("profile", {}).get("nickname", "카카오유저")
+
+    if not social_id:
+        raise HTTPException(status_code=400, detail="카카오 유저 정보를 파싱할 수 없습니다.")
+
+    # DB 유저 조회 및 생성
+    user = crud_user.get_user_by_social_id(db, social_id=social_id, provider="kakao")
+    
+    if not user:
+        user = crud_user.create_user(
+            db=db, 
+            provider="kakao", 
+            social_id=social_id,
+            email=email
+            )
+    elif not user.is_active:
+        raise HTTPException(status_code=400, detail="비활성화된 계정입니다.")
+
+    # 자체 JWT 발급
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = security.create_access_token(user.id, expires_delta=access_token_expires)
+    
+    return {
+        "accessToken": access_token,
+        "refreshToken": "dummy_refresh_token_for_mvp",
+        "user": {
+            "id": user.id,
+            "nickname": nickname,
+            "email": user.email,
+            "is_onboarded": user.is_onboarded # 👈 프론트가 화면 분기할 때 쓸 변수
+        }
+    }
+
+# ---------------------- 네이버 소셜 로그인 ---------------------------
+async def verify_naver_token(access_token: str) -> dict:
+    """ 네이버 Access Token 검증 및 유저 정보 추출 """
+    headers = {"Authorization": f"Bearer {access_token}"}
+    async with httpx.AsyncClient() as client:
+        response = await client.get("https://openapi.naver.com/v1/nid/me", headers=headers)
+        
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="유효하지 않은 네이버 토큰입니다."
+        )
+    return response.json()
+
+@router.post("/naver", response_model=SocialLoginResponse)
+async def naver_login(request: SocialLoginRequest, db: Session = Depends(get_db)):
+    """ [소셜 로그인] 네이버 토큰을 검증하고 로그인/가입을 처리합니다. """
+    naver_data = await verify_naver_token(request.accessToken)
+    
+    # 네이버는 response 라는 키 안에 실제 데이터가 들어있음
+    naver_response = naver_data.get("response", {})
+    social_id = naver_response.get("id") # 네이버 고유 고정 ID (문자열형태)
+    email = naver_response.get("email")
+    nickname = naver_response.get("name", "네이버유저")
+
+    if not social_id:
+        raise HTTPException(status_code=400, detail="네이버 유저 정보를 파싱할 수 없습니다.")
+
+    # DB 유저 조회 및 생성
+    user = crud_user.get_user_by_social_id(db, social_id=social_id, provider="naver")
+    
+    if not user:
+        user = crud_user.create_user(
+            db=db, 
+            provider="naver", 
+            social_id=social_id, 
+            email=email
+            )
+    elif not user.is_active:
+        raise HTTPException(status_code=400, detail="비활성화된 계정입니다.")
+
+    # 자체 JWT 발급
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = security.create_access_token(user.id, expires_delta=access_token_expires)
+    
+    return {
+        "accessToken": access_token,
+        "refreshToken": "dummy_refresh_token_for_mvp",
+        "user": {
+            "id": user.id,
+            "nickname": nickname,
+            "email": user.email,
+            "is_onboarded": user.is_onboarded
         }
     }

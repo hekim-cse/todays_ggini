@@ -84,6 +84,8 @@ class SocialLoginRequest(BaseModel):
 class UserInformation(BaseModel):
     id: int
     nickname: Optional[str] = None
+    email: str
+    is_onboarded: bool
 
 class SocialLoginResponse(BaseModel):
     accessToken: str
