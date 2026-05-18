@@ -737,6 +737,33 @@ def is_blank_string(value) -> bool:
     return value is None or str(value).strip() == ""
 
 
+def is_invalid_ingredient_name(value) -> bool:
+    """
+    재료명이 실제 의미 있는 값인지 확인한다.
+
+    RAG 응답에서 "-", "", "N/A"처럼 내려오는 값은
+    실제 재료명으로 보기 어렵기 때문에 품질 이슈로 처리한다.
+    """
+
+    if is_blank_string(value):
+        return True
+
+    normalized_value = str(value).replace(" ", "").strip().lower()
+
+    invalid_values = {
+        "-",
+        "없음",
+        "없슴",
+        "n/a",
+        "na",
+        "none",
+        "null",
+        "unknown",
+    }
+
+    return normalized_value in invalid_values
+
+
 def is_empty_string_list(values) -> bool:
     """
     리스트가 비어 있거나, [""]처럼 빈 문자열만 들어 있는지 확인한다.
@@ -746,7 +773,7 @@ def is_empty_string_list(values) -> bool:
         return True
 
     for value in values:
-        if not is_blank_string(value):
+        if not is_invalid_ingredient_name(value):
             return False
 
     return True
@@ -829,16 +856,26 @@ def validate_rag_candidate_menu(menu: dict) -> tuple[bool, list[str]]:
         issues.append("ingredient_groups_empty")
 
     valid_usage_count = 0
-
+    invalid_usage_name_count = 0
+    
     for usage in ingredient_usages:
         ingredient_name = usage.get("ingredient_name")
         ingredient_id = usage.get("ingredient_id")
 
-        if not is_blank_string(ingredient_name) or not is_blank_string(ingredient_id):
+        has_valid_name = not is_invalid_ingredient_name(ingredient_name)
+        has_valid_id = not is_blank_string(ingredient_id)
+
+        if has_valid_name:
             valid_usage_count += 1
+
+        elif has_valid_id:
+            invalid_usage_name_count += 1
 
     if valid_usage_count == 0:
         issues.append("ingredient_usages_empty_or_invalid")
+
+    if invalid_usage_name_count > 0:
+        issues.append("ingredient_usage_name_invalid")
 
     return True, issues
 
@@ -858,6 +895,7 @@ def calculate_rag_data_quality_score(issues: list[str]) -> int:
         "ingredients_empty": 20,
         "ingredient_groups_empty": 10,
         "ingredient_usages_empty_or_invalid": 20,
+        "ingredient_usage_name_invalid": 15,
     }
 
     score = 100
