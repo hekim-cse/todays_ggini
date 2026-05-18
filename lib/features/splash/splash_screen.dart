@@ -18,7 +18,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(milliseconds: 2000), () {
+    _timer = Timer(const Duration(milliseconds: 3000), () {
       if (mounted) context.go(AppRoutes.auth);
     });
   }
@@ -37,16 +37,8 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // 로고 이미지
-            Image(
-              image: AssetImage('assets/images/pic.png'),
-              width: 200,
-            ),
+            Image(image: AssetImage('assets/images/start.png'), width: 300),
             SizedBox(height: 10),
-            Image(
-              image: AssetImage('assets/images/logo.png'),
-              width: 200,
-            ),
-            SizedBox(height: 16),
           ],
         ),
       ),

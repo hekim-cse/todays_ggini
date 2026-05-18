@@ -25,20 +25,18 @@ class IngredientHeaderCard extends StatelessWidget {
               color: AppColors.border,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: prices.imageUrl == null
-                ? const Center(
-                    child: Text(
-                      '이미지',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textPrimary,
+            child:
+                prices.imageUrl == null
+                    ? Center(
+                      child: Text(
+                        '이미지',
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
+                    )
+                    : ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(prices.imageUrl!, fit: BoxFit.cover),
                     ),
-                  )
-                : ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: Image.network(prices.imageUrl!, fit: BoxFit.cover),
-                  ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -47,19 +45,12 @@ class IngredientHeaderCard extends StatelessWidget {
               children: [
                 Text(
                   prices.ingredientName,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${prices.standardUnit} 이상',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
             ),

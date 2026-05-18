@@ -45,30 +45,21 @@ class ShoppingItemRow extends StatelessWidget {
               children: [
                 Text(
                   item.ingredientName,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${item.standardUnit} · ${shoppingMarketLabel(market)}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
+                  '${item.standardUnit} - ${shoppingMarketLabel(market)}',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppColors.textPrimary),
                 ),
               ],
             ),
           ),
           Text(
             '₩${formatPrice(item.lowestPrice)}',
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],
       ),

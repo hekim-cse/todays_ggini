@@ -32,20 +32,18 @@ class SlotCard extends StatelessWidget {
               color: AppColors.border,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: meal.imageUrl == null
-                ? const Center(
-                    child: Text(
-                      '이미지',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textPrimary,
+            child:
+                meal.imageUrl == null
+                    ? Center(
+                      child: Text(
+                        '이미지',
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
+                    )
+                    : ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(meal.imageUrl!, fit: BoxFit.cover),
                     ),
-                  )
-                : ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: Image.network(meal.imageUrl!, fit: BoxFit.cover),
-                  ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -53,37 +51,31 @@ class SlotCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '식단 ${meal.slot}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  meal.menuName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
+                  '식단 ${meal.slot}) ${meal.menuName}',
+                  style: Theme.of(context).textTheme.bodyLarge,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                // const SizedBox(height: 2),
                 const SizedBox(height: 4),
                 Text(
                   '${formatPrice(meal.calories)} kcal · ₩${formatPrice(meal.price)}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Expanded(child: _smallButton('재료 선택', onSelectIngredients)),
+                    Expanded(
+                      child: _smallButton(
+                        context,
+                        '재료 선택',
+                        onSelectIngredients,
+                      ),
+                    ),
                     const SizedBox(width: 8),
-                    Expanded(child: _smallButton('메뉴 변경', onChangeMenu)),
+                    Expanded(
+                      child: _smallButton(context, '메뉴 변경', onChangeMenu),
+                    ),
                   ],
                 ),
               ],
@@ -94,22 +86,20 @@ class SlotCard extends StatelessWidget {
     );
   }
 
-  Widget _smallButton(String label, VoidCallback onTap) {
+  Widget _smallButton(BuildContext context, String label, VoidCallback onTap) {
     return OutlinedButton(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: const EdgeInsets.symmetric(vertical: 6),
         side: const BorderSide(color: AppColors.primary),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        minimumSize: const Size(0, 32),
+        minimumSize: const Size(0, 40),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: AppColors.primary,
-        ),
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: AppColors.primary),
       ),
     );
   }

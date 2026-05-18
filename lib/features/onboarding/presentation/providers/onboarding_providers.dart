@@ -7,6 +7,13 @@ import '../../data/onboarding_repository.dart';
 import '../../domain/persona.dart';
 import '../../domain/user_profile.dart';
 
+// diversity int → String 변환 헬퍼
+String diversityToString(int value) {
+  if (value == 1) return '낮음';
+  if (value == 2) return '보통';
+  return '높음';
+}
+
 // ─────────────────────────────────────────────────────────────
 // Data layer providers
 // ─────────────────────────────────────────────────────────────
@@ -57,7 +64,7 @@ class OnboardingDraft {
     List<String>? foods,
     List<String>? ingredient,
     List<String>? allergies,
-    int? diversity,
+    int? diversity, // String? → int?
     int? cookingSkill,
     int? mealCount,
     int? monthlyBudget,
@@ -77,7 +84,7 @@ class OnboardingDraft {
 
 class OnboardingNotifier extends StateNotifier<OnboardingDraft> {
   OnboardingNotifier(this._repo, this._readPersona)
-      : super(const OnboardingDraft());
+    : super(const OnboardingDraft());
 
   final OnboardingRepository _repo;
   final Persona Function() _readPersona;
@@ -91,34 +98,34 @@ class OnboardingNotifier extends StateNotifier<OnboardingDraft> {
   void setMealCount(int v) => state = state.copyWith(mealCount: v);
   void setMonthlyBudget(int v) => state = state.copyWith(monthlyBudget: v);
 
-  Future<UserProfile> submit() async {
+  Future<void> submit() async {
     final profile = UserProfile(
       persona: _readPersona(),
       goals: state.goals,
       foods: state.foods,
       ingredient: state.ingredient,
       allergies: state.allergies,
-      diversity: state.diversity,
+      diversity: diversityToString(state.diversity), // 변환
       cookingSkill: state.cookingSkill,
       mealCount: state.mealCount,
       monthlyBudget: state.monthlyBudget,
     );
-    return _repo.saveProfile(profile);
+    await _repo.saveProfile(profile);
   }
 }
 
 final onboardingNotifierProvider =
     StateNotifierProvider<OnboardingNotifier, OnboardingDraft>((ref) {
-  return OnboardingNotifier(
-    ref.watch(onboardingRepositoryProvider),
-    () => ref.read(selectedPersonaProvider),
-  );
-});
+      return OnboardingNotifier(
+        ref.watch(onboardingRepositoryProvider),
+        () => ref.read(selectedPersonaProvider),
+      );
+    });
 
 // ─────────────────────────────────────────────────────────────
 // submit 결과
 // ─────────────────────────────────────────────────────────────
 
-final submitOnboardingProvider = StateProvider<AsyncValue<UserProfile>?>(
+final submitOnboardingProvider = StateProvider<AsyncValue<void>?>(
   (ref) => null,
 );

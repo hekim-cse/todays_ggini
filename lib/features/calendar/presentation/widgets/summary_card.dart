@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';  // ← 추가
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format.dart';
 
 class SummaryCard extends StatelessWidget {
@@ -20,17 +20,15 @@ class SummaryCard extends StatelessWidget {
       children: [
         Expanded(
           child: _summaryItem(
+            context: context,
             label: '$month월 총 비용',
             value: '₩${formatPrice(totalPrice)}',
           ),
         ),
-        Container(
-          width: 1,
-          height: 36,
-          color: AppColors.border,  // ← 변경
-        ),
+        Container(width: 3, height: 60, color: AppColors.border),
         Expanded(
           child: _summaryItem(
+            context: context,
             label: '평균 칼로리',
             value: '${formatPrice(averageCalories)} kcal',
           ),
@@ -39,25 +37,16 @@ class SummaryCard extends StatelessWidget {
     );
   }
 
-  Widget _summaryItem({required String label, required String value}) {
+  Widget _summaryItem({
+    required BuildContext context,
+    required String label,
+    required String value,
+  }) {
     return Column(
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 16,
-            color: AppColors.textPrimary,  // ← 변경
-          ),
-        ),
+        Text(label, style: Theme.of(context).textTheme.bodyMedium),
         const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,  // ← 변경
-          ),
-        ),
+        Text(value, style: Theme.of(context).textTheme.bodyLarge),
       ],
     );
   }

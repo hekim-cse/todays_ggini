@@ -62,7 +62,9 @@ class MealDetailScreen extends ConsumerWidget {
           child: Text(
             '식단을 불러오지 못했습니다.\n${state.error}',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.red),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.error),
           ),
         ),
       );
@@ -73,12 +75,12 @@ class MealDetailScreen extends ConsumerWidget {
     }
 
     if (!state.hasMealPlan) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           child: Text(
             '이 날은 식단이 없습니다.',
-            style: TextStyle(fontSize: 14, color: AppColors.textPrimary),
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
         ),
       );
@@ -86,43 +88,51 @@ class MealDetailScreen extends ConsumerWidget {
 
     final plan = state.plan!;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: [
-          const SizedBox(height: 12),
-          MealDetailSummary(
-            totalPrice: plan.pricePerDay,
-            totalCalories: plan.caloriesPerDay,
-          ),
-          const SizedBox(height: 16),
-          ...plan.meals.map(
-            (m) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: SlotCard(
-                meal: m,
-                onSelectIngredients: () {
-                  final dateStr =
-                      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-                  context.push(
-                    '${AppRoutes.ingredientListPath(m.mealId)}?date=$dateStr&slot=${m.slot}',
-                  );
-                },
-                onChangeMenu: () {
-                  context.push(
-                    AppRoutes.menuChangePath(
-                      mealId: m.mealId,
-                      date: date,
-                      slot: m.slot,
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                const SizedBox(height: 12),
+                MealDetailSummary(
+                  totalPrice: plan.pricePerDay,
+                  totalCalories: plan.caloriesPerDay,
+                ),
+                const SizedBox(height: 16),
+                ...plan.meals.map(
+                  (m) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: SlotCard(
+                      meal: m,
+                      onSelectIngredients: () {
+                        final dateStr =
+                            '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+                        context.push(
+                          '${AppRoutes.ingredientListPath(m.mealId)}?date=$dateStr&slot=${m.slot}',
+                        );
+                      },
+                      onChangeMenu: () {
+                        context.push(
+                          AppRoutes.menuChangePath(
+                            mealId: m.mealId,
+                            date: date,
+                            slot: m.slot,
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
+                  ),
+                ),
+              ],
             ),
           ),
-          SizedBox(
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          child: SizedBox(
             width: double.infinity,
-            height: 48,
             child: ElevatedButton(
               onPressed: () async {
                 final plan = state.plan;
@@ -174,23 +184,19 @@ class MealDetailScreen extends ConsumerWidget {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
+                disabledBackgroundColor: AppColors.buttonGray,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),
               ),
-              child: const Text(
+              child: Text(
                 '이 날 장보기 목록 추가',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
+                style: Theme.of(context).textTheme.labelLarge,
               ),
             ),
           ),
-          const SizedBox(height: 16),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

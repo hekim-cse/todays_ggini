@@ -33,20 +33,18 @@ class MenuSummaryCard extends StatelessWidget {
               color: AppColors.border,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: menu.imageUrl == null
-                ? const Center(
-                    child: Text(
-                      '이미지',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.textPrimary,
+            child:
+                menu.imageUrl == null
+                    ? Center(
+                      child: Text(
+                        '이미지',
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
+                    )
+                    : ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(menu.imageUrl!, fit: BoxFit.cover),
                     ),
-                  )
-                : ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: Image.network(menu.imageUrl!, fit: BoxFit.cover),
-                  ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -55,30 +53,20 @@ class MenuSummaryCard extends StatelessWidget {
               children: [
                 Text(
                   menu.menuName,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyLarge,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${formatPrice(menu.calories)} kcal',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 if (sourceDate != null || sourceSlot != null) ...[
                   const SizedBox(height: 4),
                   Text(
                     _formatSource(),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textPrimary,
-                    ),
+                    style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
               ],
@@ -95,7 +83,7 @@ class MenuSummaryCard extends StatelessWidget {
       parts.add('${sourceDate!.month}월 ${sourceDate!.day}일');
     }
     if (sourceSlot != null) {
-      parts.add('식단$sourceSlot');
+      parts.add('- 식단$sourceSlot');
     }
     return parts.join(' ');
   }

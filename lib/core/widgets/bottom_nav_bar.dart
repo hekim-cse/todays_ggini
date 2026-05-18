@@ -12,8 +12,16 @@ class BottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = [
       {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'label': '홈'},
-      {'icon': Icons.calendar_month_outlined, 'activeIcon': Icons.calendar_month, 'label': '캘린더'},
-      {'icon': Icons.shopping_cart_outlined, 'activeIcon': Icons.shopping_cart, 'label': '장보기'},
+      {
+        'icon': Icons.calendar_month_outlined,
+        'activeIcon': Icons.calendar_month,
+        'label': '캘린더',
+      },
+      {
+        'icon': Icons.shopping_cart_outlined,
+        'activeIcon': Icons.shopping_cart,
+        'label': '장보기',
+      },
       {'icon': Icons.person_outline, 'activeIcon': Icons.person, 'label': '마이'},
     ];
 
@@ -27,7 +35,7 @@ class BottomNavBar extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Divider(height: 2, thickness: 2, color: AppColors.textSecondary),
+        Divider(height: 2, thickness: 2, color: AppColors.border),
         Container(
           color: AppColors.background,
           child: Row(
@@ -36,15 +44,16 @@ class BottomNavBar extends StatelessWidget {
               return Expanded(
                 child: InkWell(
                   onTap: () {
-                    context.go(routes[index]); 
+                    context.go(routes[index]);
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
                     decoration: BoxDecoration(
                       border: Border(
-                        right: index < items.length - 1
-                            ? BorderSide(color: AppColors.textSecondary, width: 2)
-                            : BorderSide.none,
+                        right:
+                            index < items.length - 1
+                                ? BorderSide(color: AppColors.border, width: 2)
+                                : BorderSide.none,
                       ),
                     ),
                     child: Column(
@@ -54,19 +63,19 @@ class BottomNavBar extends StatelessWidget {
                           isSelected
                               ? items[index]['activeIcon'] as IconData
                               : items[index]['icon'] as IconData,
-                          color: isSelected
-                              ? AppColors.primary
-                              : AppColors.textSecondary,
+                          color:
+                              isSelected ? AppColors.primary : AppColors.border,
                           size: 24,
                         ),
                         const SizedBox(height: 4),
                         Text(
                           items[index]['label'] as String,
                           style: TextStyle(
-                            fontSize: 12,
-                            color: isSelected
-                                ? AppColors.primary
-                                : AppColors.textSecondary,
+                            fontSize: 16,
+                            color:
+                                isSelected
+                                    ? AppColors.primary
+                                    : AppColors.border,
                           ),
                         ),
                       ],

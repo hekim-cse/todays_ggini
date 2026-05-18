@@ -41,33 +41,25 @@ class _SettingItemState extends State<SettingItem> {
             Expanded(
               child: Text(
                 widget.title,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: widget.titleColor ?? AppColors.textPrimary,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
             if (widget.showToggle)
-              Switch( // 토글
+              Switch(
                 value: _toggleValue,
                 onChanged: (v) => setState(() => _toggleValue = v),
-                activeColor: AppColors.primary,
-                activeTrackColor: AppColors.mypage,
+                activeThumbColor: AppColors.primary,
                 inactiveThumbColor: Colors.white,
-                inactiveTrackColor: AppColors.surfaceDim,
+                inactiveTrackColor: AppColors.buttonGray,
               )
             else if (widget.value.isNotEmpty)
               SizedBox(
-                width: MediaQuery.of(context).size.width * 0.4,
+                width: MediaQuery.of(context).size.width * 0.5,
                 child: Text(
                   widget.value,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.right,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textSecondary,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
             if (widget.showArrow) ...[
@@ -75,6 +67,7 @@ class _SettingItemState extends State<SettingItem> {
               const Icon(
                 Icons.chevron_right,
                 color: AppColors.textSecondary,
+                size: 32,
               ),
             ],
           ],

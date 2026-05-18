@@ -32,8 +32,7 @@ class LoadingStageItem extends StatelessWidget {
           const SizedBox(width: 16),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 16,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               color: isDone ? AppColors.textPrimary : AppColors.border,
             ),
           ),

@@ -16,32 +16,32 @@ class MealSlotTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: List.generate(slotCount, (i) {
         final slot = i + 1;
         final isSelected = slot == selectedSlot;
 
         return Expanded(
-          child: InkWell(
+          child: GestureDetector(
             onTap: () => onSlotSelected(slot),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Column(
-                children: [
-                  Text(
-                    '식단 $slot',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
-                      color: isSelected ? AppColors.primary : AppColors.textPrimary,
-                    ),
+            child: Container(
+              margin: EdgeInsets.only(right: i < slotCount - 1 ? 8 : 0),
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.mypage : AppColors.buttonGray,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected ? AppColors.primary : Colors.transparent,
+                  width: 2,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  '식단 $slot',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color:
+                        isSelected ? AppColors.primary : AppColors.textPrimary,
                   ),
-                  const SizedBox(height: 6),
-                  Container(
-                    height: 2,
-                    color: isSelected ? AppColors.primary : AppColors.border,
-                  ),
-                ],
+                ),
               ),
             ),
           ),

@@ -43,34 +43,25 @@ class MenuChangeScreen extends ConsumerWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
-    return SizedBox(
-      height: 48,
-      child: Stack(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: IconButton(
-              icon: const Icon(Icons.chevron_left, color: AppColors.textPrimary),
-              onPressed: () {
-                if (context.canPop()) {
-                  context.pop();
-                } else {
-                  context.go(AppRoutes.calendar);
-                }
-              },
-            ),
+          IconButton(
+            icon: const Icon(Icons.chevron_left, size: 32),
+            color: AppColors.textPrimary,
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go(AppRoutes.calendar);
+              }
+            },
           ),
-          const Align(
-            alignment: Alignment.center,
-            child: Text(
-              '메뉴 변경',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
+          const Spacer(),
+          Text('메뉴 변경', style: Theme.of(context).textTheme.headlineLarge),
+          const Spacer(),
+          const SizedBox(width: 48),
         ],
       ),
     );
@@ -89,7 +80,9 @@ class MenuChangeScreen extends ConsumerWidget {
           child: Text(
             '대안 식단을 불러오지 못했습니다.\n${state.error}',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.red),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.error),
           ),
         ),
       );
@@ -104,13 +97,15 @@ class MenuChangeScreen extends ConsumerWidget {
 
     final matching = currentPlan.meals.where((m) => m.slot == slot);
     if (matching.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           child: Text(
             '해당 슬롯 데이터를 찾을 수 없습니다.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.red),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.error),
           ),
         ),
       );
@@ -127,9 +122,10 @@ class MenuChangeScreen extends ConsumerWidget {
       slot: slot,
     );
 
-    final visibleAlternatives = state.data!.alternatives
-        .where((a) => a.mealId != currentSlotMeal.mealId)
-        .toList();
+    final visibleAlternatives =
+        state.data!.alternatives
+            .where((a) => a.mealId != currentSlotMeal.mealId)
+            .toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -146,7 +142,8 @@ class MenuChangeScreen extends ConsumerWidget {
             AlternativeMealRow(
               meal: alt,
               isDisabled: state.isChanging,
-              onChange: () => _onChange(context, ref, notifier, currentPlan, alt),
+              onChange:
+                  () => _onChange(context, ref, notifier, currentPlan, alt),
             ),
             const SizedBox(height: 8),
           ],
@@ -173,9 +170,9 @@ class MenuChangeScreen extends ConsumerWidget {
     if (!context.mounted) return;
 
     if (newPlan == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('메뉴 변경에 실패했습니다.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('메뉴 변경에 실패했습니다.')));
       return;
     }
 
@@ -194,13 +191,6 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w600,
-        color: AppColors.textPrimary,
-      ),
-    );
+    return Text(text, style: Theme.of(context).textTheme.headlineMedium);
   }
 }

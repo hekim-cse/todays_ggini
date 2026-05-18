@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';  // ← 추가
+import '../../../../core/theme/app_colors.dart';
 
 class MonthHeader extends StatelessWidget {
   final int year;
@@ -24,22 +24,20 @@ class MonthHeader extends StatelessWidget {
         children: [
           IconButton(
             icon: const Icon(Icons.chevron_left),
-            color: AppColors.textPrimary,  // ← 변경
+            color: AppColors.textPrimary,
+            iconSize: 32,
             onPressed: onPrevMonth,
           ),
-          const SizedBox(width: 100),
+          const Spacer(),
           Text(
-            '$year · $month월',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,  // ← 변경
-            ),
+            '$year년 $month월',
+            style: Theme.of(context).textTheme.headlineLarge,
           ),
-          const SizedBox(width: 100),
+          const Spacer(),
           IconButton(
             icon: const Icon(Icons.chevron_right),
-            color: AppColors.textPrimary,  // ← 변경
+            color: AppColors.textPrimary,
+            iconSize: 32,
             onPressed: onNextMonth,
           ),
         ],
