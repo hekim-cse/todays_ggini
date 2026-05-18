@@ -8,13 +8,15 @@ import '../providers/meal_plan_loading_provider.dart';
 import '../widgets/loading_stage_item.dart';
 
 class MealPlanLoadingScreen extends ConsumerWidget {
-  const MealPlanLoadingScreen({super.key});
+  final String styleId;
+
+  const MealPlanLoadingScreen({super.key, required this.styleId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(mealPlanLoadingProvider);
+    final state = ref.watch(mealPlanLoadingProvider(styleId));
 
-    ref.listen(mealPlanLoadingProvider, (prev, next) {
+    ref.listen(mealPlanLoadingProvider(styleId), (prev, next) {
       if (next.isComplete && !(prev?.isComplete ?? false)) {
         context.go(AppRoutes.home);
       }
@@ -35,10 +37,7 @@ class MealPlanLoadingScreen extends ConsumerWidget {
                   height: 200,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppColors.border,
-                      width: 1.5,
-                    ),
+                    border: Border.all(color: AppColors.border, width: 1.5),
                   ),
                   child: Stack(
                     alignment: Alignment.center,
@@ -46,7 +45,7 @@ class MealPlanLoadingScreen extends ConsumerWidget {
                       Padding(
                         padding: const EdgeInsets.all(20),
                         child: Image.asset(
-                          'assets/images/pic.png',  // ← 변경
+                          'assets/images/pic.png', // ← 변경
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) {
                             return Text(

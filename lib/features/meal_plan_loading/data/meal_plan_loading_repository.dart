@@ -3,14 +3,36 @@ import '../domain/meal_plan_job.dart';
 
 class MealPlanLoadingRepository {
   final Dio _dio;
-  // 서버와 HTTP 통신을 하기 위한 Dio 객체를 외부에서 주입
   MealPlanLoadingRepository(this._dio);
 
-  Future<MealPlanJob> generateMealPlan() async {
-    // 백엔드: POST /api/v1/meal/generate
-    final response = await _dio.post('/meal/generate');
-    // 서버 응답 데이터를 Map<String, dynamic>으로 변환한 뒤,
-    // MealPlanJob.fromJson을 통해 Domain 객체로 변환
+  /// 식단 생성 시작 — job_id 받음
+  Future<MealPlanJob> startGeneration(String selectedStyleId) async {
+    final response = await _dio.post(
+      '/meal/generate',
+      data: {'selected_style_id': selectedStyleId},
+    );
     return MealPlanJob.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  /// job 상태 폴링 — COMPLETED 될 때까지 대기
+  /// progress 콜백으로 진행 상태 전달
+  Future<void> pollUntilComplete(
+    String jobId, {
+    void Function(String progress)? onProgress,
+  }) async {
+    while (true) {
+      await Future.delayed(const Duration(seconds: 1));
+      final resp = await _dio.get('/meal/generate/status/$jobId');
+      final data = resp.data as Map<String, dynamic>;
+      final status = data['status'] as String;
+      final progress = data['progress'] as String? ?? '';
+
+      onProgress?.call(progress);
+
+      if (status == 'COMPLETED') return;
+      if (status == 'FAILED') {
+        throw Exception(data['error'] ?? '식단 생성 실패');
+      }
+    }
   }
 }

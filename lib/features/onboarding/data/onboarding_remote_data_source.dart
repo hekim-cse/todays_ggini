@@ -12,7 +12,7 @@ class OnboardingRemoteDataSource {
     //   '/users/me/profile',
     //   data: body,
     // );
-    // TODO: (jungsoo) 임시 테스트용으로 추후에 제거하고 위로 복원
+    // TODO(jungsoo): 임시 테스트용으로 추후에 제거하고 위로 복원
     final response = await _dio.patch<Map<String, dynamic>>(
       '/user/onboarding',
       data: body,

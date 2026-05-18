@@ -135,7 +135,6 @@ class IngredientListScreen extends ConsumerWidget {
                   sourceSlot: sourceSlot,
                 ),
                 const SizedBox(height: 16),
-                _buildSecondaryToggle(state, notifier),
                 ...menu.ingredients.map(
                   (ing) => IngredientRow(
                     ingredient: ing,
@@ -164,30 +163,6 @@ class IngredientListScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSecondaryToggle(
-    IngredientListState state,
-    IngredientListNotifier notifier,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          const Text(
-            '부재료 제외',
-            style: TextStyle(fontSize: 13, color: AppColors.textPrimary),
-          ),
-          const SizedBox(width: 8),
-          Switch(
-            value: state.excludeSecondary,
-            onChanged: (_) => notifier.toggleExcludeSecondary(),
-            activeThumbColor: AppColors.primary,
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildBottomSummary({
     required int checkedCount,
     required int totalPrice,
@@ -205,7 +180,7 @@ class IngredientListScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '장볼 재료 $checkedCount개 · 부재료 0개 포함',
+              '장볼 재료 $checkedCount개',
               style: const TextStyle(
                 fontSize: 13,
                 color: AppColors.textPrimary,

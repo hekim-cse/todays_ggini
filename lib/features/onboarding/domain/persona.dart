@@ -13,6 +13,20 @@ enum Persona {
   final String code;
   final String label;
 
+  /// 백엔드 persona_id (1~6 정수). 백엔드 스키마와 매핑.
+  int get id {
+    switch (this) {
+      case Persona.singleValue:
+        return 1;
+      case Persona.familyNutrition:
+        return 2;
+      case Persona.bodyProfile:
+        return 3;
+      case Persona.salaryBeer:
+        return 4;
+    }
+  }
+
   static Persona fromCode(String code) {
     return Persona.values.firstWhere(
       (p) => p.code == code,

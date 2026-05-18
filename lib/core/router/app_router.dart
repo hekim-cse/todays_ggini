@@ -38,16 +38,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.mealPlanLoading,
-        builder: (_, __) => const MealPlanLoadingScreen(),
+        builder: (context, state) {
+          final styleId =
+              state.uri.queryParameters['style_id'] ?? 'budget_first';
+          return MealPlanLoadingScreen(styleId: styleId);
+        },
       ),
       GoRoute(
         path: AppRoutes.calendar,
         builder: (_, __) => const CalendarScreen(),
       ),
-      GoRoute(
-        path: AppRoutes.myPage,
-        builder: (_, __) => const MyPageScreen(),
-      ),
+      GoRoute(path: AppRoutes.myPage, builder: (_, __) => const MyPageScreen()),
       GoRoute(
         path: AppRoutes.mealDetail,
         builder: (_, state) {
@@ -56,17 +57,15 @@ final routerProvider = Provider<GoRouter>((ref) {
           return MealDetailScreen(date: date);
         },
       ),
-      GoRoute(
-        path: AppRoutes.home,
-        builder: (_, __) => const HomeScreen(),
-      ),
+      GoRoute(path: AppRoutes.home, builder: (_, __) => const HomeScreen()),
       GoRoute(
         path: AppRoutes.ingredientList,
         builder: (_, state) {
           final mealId = state.pathParameters['mealId'] ?? '';
           final dateStr = state.uri.queryParameters['date'];
           final slotStr = state.uri.queryParameters['slot'];
-          final sourceDate = dateStr != null ? DateTime.tryParse(dateStr) : null;
+          final sourceDate =
+              dateStr != null ? DateTime.tryParse(dateStr) : null;
           final sourceSlot = slotStr != null ? int.tryParse(slotStr) : null;
           return IngredientListScreen(
             mealId: mealId,
@@ -92,7 +91,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           final mealId = state.pathParameters['mealId'] ?? '';
           final dateStr = state.uri.queryParameters['date'];
           final slotStr = state.uri.queryParameters['slot'];
-          final date = dateStr != null ? DateTime.tryParse(dateStr) ?? DateTime.now() : DateTime.now();
+          final date =
+              dateStr != null
+                  ? DateTime.tryParse(dateStr) ?? DateTime.now()
+                  : DateTime.now();
           final slot = slotStr != null ? int.tryParse(slotStr) ?? 1 : 1;
           return MenuChangeScreen(mealId: mealId, date: date, slot: slot);
         },

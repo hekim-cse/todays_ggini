@@ -50,29 +50,47 @@ class MealPlanLoadingState {
 // state 변수와 mounted 변수를 사용 가능
 class MealPlanLoadingNotifier extends StateNotifier<MealPlanLoadingState> {
   final MealPlanLoadingRepository _repository;
+  final String _styleId;
 
-  MealPlanLoadingNotifier(this._repository)
+  MealPlanLoadingNotifier(this._repository, this._styleId)
     : super(const MealPlanLoadingState()) {
     _start();
   }
 
   Future<void> _start() async {
     try {
-      final job =
-          await _repository.generateMealPlan(); // API 호출 → Domain 객체로 받음
+      // 1. 식단 생성 시작 — job 받음
+      final job = await _repository.startGeneration(_styleId);
       if (!mounted) return;
-      state = state.copyWith(job: job); // 응답받은 Domain 객체만 갈아끼워 저장
+      state = state.copyWith(job: job);
 
-      // estimated_seconds를 stages 개수로 나눠서 한 단계씩 진행
-      final stepMs = (job.estimatedSeconds * 1000) ~/ job.stages.length;
-      for (var i = 0; i < job.stages.length; i++) {
-        await Future.delayed(Duration(milliseconds: stepMs));
-        if (!mounted) return;
-        state = state.copyWith(completedStages: i + 1);
-      }
-      state = state.copyWith(isComplete: true);
+      // 2. 폴링 — progress 텍스트가 바뀔 때마다 stage 완료 카운트 증가
+      int lastCompleted = 0;
+      String lastProgress = '';
+
+      await _repository.pollUntilComplete(
+        job.jobId,
+        onProgress: (progress) {
+          if (!mounted) return;
+          if (progress != lastProgress) {
+            lastProgress = progress;
+            // 새 progress 받을 때마다 다음 stage 완료 처리
+            if (lastCompleted < job.stages.length) {
+              lastCompleted++;
+              state = state.copyWith(completedStages: lastCompleted);
+            }
+          }
+        },
+      );
+
+      if (!mounted) return;
+      // 모든 stage 완료 처리
+      state = state.copyWith(
+        completedStages: job.stages.length,
+        isComplete: true,
+      );
     } catch (e) {
-      if (!mounted) return; // Notifier가 dispose되면 종료
+      if (!mounted) return;
       state = state.copyWith(error: e);
     }
   }
@@ -81,10 +99,10 @@ class MealPlanLoadingNotifier extends StateNotifier<MealPlanLoadingState> {
 // StateNotifierProvider: Notifier가 State를 관리함을 명시
 // StateNotifierProvider.autoDispose<Notifier 클래스, State 클래스>
 // autoDispose: 화면 떠나면 Notifier도 정리되어 다음 진입 시 처음부터 다시 시작
-final mealPlanLoadingProvider = StateNotifierProvider.autoDispose<
-  MealPlanLoadingNotifier,
-  MealPlanLoadingState
->(
-  (ref) =>
-      MealPlanLoadingNotifier(ref.watch(mealPlanLoadingRepositoryProvider)),
-);
+final mealPlanLoadingProvider = StateNotifierProvider.autoDispose
+    .family<MealPlanLoadingNotifier, MealPlanLoadingState, String>(
+      (ref, styleId) => MealPlanLoadingNotifier(
+        ref.watch(mealPlanLoadingRepositoryProvider),
+        styleId,
+      ),
+    );

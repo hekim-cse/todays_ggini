@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_logo.dart';
@@ -35,14 +36,15 @@ Color _getBarColor(int value) {
   return Colors.blue;
 }
 
-class MealStyleSelectScreen extends StatefulWidget {
+class MealStyleSelectScreen extends ConsumerStatefulWidget {
   const MealStyleSelectScreen({super.key});
 
   @override
-  State<MealStyleSelectScreen> createState() => _MealStyleSelectScreenState();
+  ConsumerState<MealStyleSelectScreen> createState() =>
+      _MealStyleSelectScreenState();
 }
 
-class _MealStyleSelectScreenState extends State<MealStyleSelectScreen> {
+class _MealStyleSelectScreenState extends ConsumerState<MealStyleSelectScreen> {
   int? _selectedIndex;
 
   @override
@@ -80,14 +82,14 @@ class _MealStyleSelectScreenState extends State<MealStyleSelectScreen> {
                     onTap: () => setState(() => _selectedIndex = index),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: isSelected
-                          ? AppColors.mypage
-                          : AppColors.surface,
+                        color:
+                            isSelected ? AppColors.mypage : AppColors.surface,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: isSelected
-                              ? AppColors.primary
-                              : AppColors.surfaceDim,
+                          color:
+                              isSelected
+                                  ? AppColors.primary
+                                  : AppColors.surfaceDim,
                           width: 2.5,
                         ),
                       ),
@@ -134,26 +136,29 @@ class _MealStyleSelectScreenState extends State<MealStyleSelectScreen> {
                                       ),
                                     ),
                                     const SizedBox(height: 4),
-                                    ...(style['meals'] as List<String>)
-                                        .map((meal) => Padding(
-                                              padding: const EdgeInsets.symmetric(
-                                                  vertical: 2),
-                                              child: Row(
-                                                children: [
-                                                  const Text('🍽️',
-                                                      style: TextStyle(
-                                                          fontSize: 12)),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    meal,
-                                                    style: const TextStyle(
-                                                      fontSize: 12,
-                                                      color: AppColors.textPrimary,
-                                                    ),
-                                                  ),
-                                                ],
+                                    ...(style['meals'] as List<String>).map(
+                                      (meal) => Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 2,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Text(
+                                              '🍽️',
+                                              style: TextStyle(fontSize: 12),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              meal,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: AppColors.textPrimary,
                                               ),
-                                            )),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                                     const SizedBox(height: 4),
                                     Text(
                                       style['desc'],
@@ -172,45 +177,54 @@ class _MealStyleSelectScreenState extends State<MealStyleSelectScreen> {
                               // 오른쪽: 스탯 바
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                children: (style['stats'] as Map<String, int>)
-                                    .entries
-                                    .map((e) => Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              vertical: 3),
-                                          child: Row(
-                                            children: [
-                                              SizedBox(
-                                                width: 40,
-                                                child: Text(
-                                                  e.key,
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                    color: AppColors.textPrimary,
+                                children:
+                                    (style['stats'] as Map<String, int>).entries
+                                        .map(
+                                          (e) => Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 3,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                SizedBox(
+                                                  width: 40,
+                                                  child: Text(
+                                                    e.key,
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      color:
+                                                          AppColors.textPrimary,
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Container(
-                                                width: e.value * 8.0,
-                                                height: 8,
-                                                decoration: BoxDecoration(
-                                                  color: _getBarColor(e.value),
-                                                  borderRadius:
-                                                      BorderRadius.circular(4),
+                                                const SizedBox(width: 4),
+                                                Container(
+                                                  width: e.value * 8.0,
+                                                  height: 8,
+                                                  decoration: BoxDecoration(
+                                                    color: _getBarColor(
+                                                      e.value,
+                                                    ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          4,
+                                                        ),
+                                                  ),
                                                 ),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                '${e.value}',
-                                                style: const TextStyle(
-                                                  fontSize: 10,
-                                                  color: AppColors.textPrimary,
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  '${e.value}',
+                                                  style: const TextStyle(
+                                                    fontSize: 10,
+                                                    color:
+                                                        AppColors.textPrimary,
+                                                  ),
                                                 ),
-                                              ),
-                                            ],
+                                              ],
+                                            ),
                                           ),
-                                        ))
-                                    .toList(),
+                                        )
+                                        .toList(),
                               ),
                             ],
                           ),
@@ -228,9 +242,22 @@ class _MealStyleSelectScreenState extends State<MealStyleSelectScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _selectedIndex == null
-                      ? null
-                      : () => context.go(AppRoutes.mealPlanLoading),
+                  onPressed:
+                      _selectedIndex == null
+                          ? null
+                          : () async {
+                            // TODO(jungsoo): 임시 테스트용으로 추후에 제거
+                            // 선택된 스타일에 해당하는 백엔드 style_id 매핑
+                            final styleIds = [
+                              'budget_first',
+                              'nutrition_balance',
+                              'diet_light',
+                            ];
+                            final styleId = styleIds[_selectedIndex!];
+                            context.go(
+                              '${AppRoutes.mealPlanLoading}?style_id=$styleId',
+                            );
+                          },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     disabledBackgroundColor: AppColors.surfaceDim,

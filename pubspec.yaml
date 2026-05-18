@@ -16,11 +16,25 @@ dependencies:
   dio: ^5.9.2
   intl: ^0.20.2
 
+  # 소셜 로그인
+  kakao_flutter_sdk_user: ^1.9.0
+  google_sign_in: ^6.2.0
+  google_sign_in_web: ^0.12.4+4
+  flutter_web_auth_2: ^4.0.0       # 네이버
+
+  # 토큰 로컬 저장
+  flutter_secure_storage: ^9.2.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
   flutter_lints: ^5.0.0
+
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/start.png"
 
 flutter:
 
@@ -35,14 +49,7 @@ flutter:
     - assets/mocks/shopping-list/
     - assets/images/
   fonts:
-    - family: MemomentKkukkukk
+    - family: NanumSquareNeo
       fonts:
-        - asset: assets/fonts/MemomentKkukkukk.ttf
-    - family: NanumSquareNeo-cBd
-      fonts:
-        - asset: assets/fonts/NanumSquareNeo-bRg.ttf
-          weight: 400
-        - asset: assets/fonts/NanumSquareNeo-cBd.ttf
-          weight: 700
+
         - asset: assets/fonts/NanumSquareNeo-dEb.ttf
-          weight: 900

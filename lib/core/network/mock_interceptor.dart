@@ -18,7 +18,7 @@ class MockInterceptor extends Interceptor {
     // 'GET /meal-plan/preview':  'assets/mocks/meal-plan/preview_single-value.json',
     // ...
 
-    // TODO: (jungsoo) 임시 테스트용으로 추후에 제거
+    // TODO(jungsoo): 임시 테스트용으로 추후에 제거
     'PATCH /user/onboarding': 'assets/mocks/users/jungsoo_test.json',
 
     'POST /meal/generate': 'assets/mocks/meal-plans/generate.json', // 식단 생성 트리거

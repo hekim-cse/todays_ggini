@@ -30,7 +30,12 @@ class IngredientPrices {
     final pricesJson = json['e_commerce_prices'] as Map<String, dynamic>;
     final prices = <String, MarketPrice>{};
     pricesJson.forEach((market, data) {
-      prices[market] = MarketPrice.fromJson(data as Map<String, dynamic>);
+      // 마켓 자체가 null (재고 없음) → 빈 MarketPrice 로 채움
+      if (data == null) {
+        prices[market] = const MarketPrice();
+      } else {
+        prices[market] = MarketPrice.fromJson(data as Map<String, dynamic>);
+      }
     });
     return IngredientPrices(
       ingredientId: json['ingredient_id'] as String,

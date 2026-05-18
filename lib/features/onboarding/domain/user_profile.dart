@@ -15,7 +15,6 @@ class UserProfile {
     required this.monthlyBudget,
   });
 
-
   /// 페르소나 (가성비 자취생 등)
   final Persona persona;
 
@@ -44,16 +43,30 @@ class UserProfile {
   final int monthlyBudget;
 
   Map<String, dynamic> toJson() => {
-    'persona': persona.code,
-    'goals': goals,
-    'foods': foods,
-    'ingredient': ingredient,
-    'allergies': allergies,
-    'diversity': diversity,
-    'cookingSkill': cookingSkill,
-    'mealCount': mealCount,
-    'monthlyBudget': monthlyBudget,
+    'persona_id': persona.id, // string code → int 1-6
+    'purpose': goals, // 목표 (식비 절약 등)
+    'preferred_categories': foods, // 한식/양식/...
+    'preferred_ingredients': ingredient, // 선호 재료
+    'excluded_ingredients': allergies, // 알레르기/제외 재료
+    'diversity_level': _diversityIntToStr(diversity), // 1-3 → "낮음/보통/높음"
+    'cooking_skill': cookingSkill, // camelCase → snake_case
+    'meals_per_day': mealCount, // mealCount → meals_per_day
+    'monthly_budget': monthlyBudget, // camelCase → snake_case
   };
+
+  /// 다양성 슬라이더 정수 (1-3) → 백엔드 enum 문자열
+  static String _diversityIntToStr(int level) {
+    switch (level) {
+      case 1:
+        return '낮음';
+      case 2:
+        return '보통';
+      case 3:
+        return '높음';
+      default:
+        return '보통';
+    }
+  }
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
     persona: Persona.fromCode(json['persona'] as String),
