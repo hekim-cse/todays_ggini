@@ -27,7 +27,7 @@ class AuthRepository {
   /// 게스트 세션 생성 → JWT 받음
   Future<String> initGuestSession() async {
     final tokenData = await _remote.initGuestSession();
-    return tokenData['access_token'] as String;
+    return tokenData['accessToken'] as String;
   }
 
   /// JWT 가 secure storage 에 저장된 상태에서 /me 호출

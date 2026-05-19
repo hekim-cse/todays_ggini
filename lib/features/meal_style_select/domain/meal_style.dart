@@ -18,11 +18,11 @@ class MealStyle {
   factory MealStyle.fromJson(Map<String, dynamic> json) {
     return MealStyle(
       styleId: json['style_id'] as String,
-      styleName: json['style_name'] as String,
+      styleName : json['style_name'] as String,
       representativeMenus: List<String>.from(json['representative_menus'] as List),
       displayScores: Map<String, int>.from(json['display_scores'] as Map),
       displayLabels: Map<String, String>.from(json['display_labels'] as Map),
-      summaryComment: json['summary_comment'] as String,
+      summaryComment: json['description'] as String,
     );
   }
 }

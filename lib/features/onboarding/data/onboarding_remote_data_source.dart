@@ -6,7 +6,7 @@ class OnboardingRemoteDataSource {
 
   Future<Map<String, dynamic>> postOnboarding(Map<String, dynamic> body) async {
     final response = await _dio.patch<Map<String, dynamic>>(
-      '/api/v1/user/onboarding',
+      '/user/onboarding',
       data: body,
     );
     final data = response.data;
