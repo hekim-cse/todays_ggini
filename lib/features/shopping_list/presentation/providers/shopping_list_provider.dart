@@ -1,9 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
+import '../../../../core/env/env.dart';
 import '../../../../core/network/api_client.dart';
 import '../../data/shopping_list_repository.dart';
 import '../../domain/shopping_list.dart';
+import '../../domain/shopping_summary.dart';
 
 // Repository Provider
 final shoppingListRepositoryProvider = Provider<ShoppingListRepository>((ref) {
@@ -55,31 +57,68 @@ class ShoppingListNotifier extends StateNotifier<ShoppingListState> {
   // 사용자가 새로고침을 원할 때
   Future<void> refresh() => _load();
 
-  // 항목 체크/해제. 백엔드 연동 전이므로 클라이언트에서 즉시 갱신
-  // 추후 PATCH /shopping-list/items/{itemId} 응답의 summary 로 교체 예정
-  void toggleItem(String itemId) {
+  // 항목 체크/해제
+  //
+  // Optimistic 동기화 패턴:
+  // 1) 로컬에서 즉시 토글 + _recomputeSummary 로 UI 반영 (반응성)
+  // 2) 백엔드 PATCH 호출
+  // 3) 실서버 모드면 응답 summary 로 합계 부분만 덮어쓰기 (서버 진실 신뢰)
+  //    mock 모드면 응답 무시 (mock JSON 이 fixed 값이라 부정확)
+  //
+  // market_groups 의 subtotal 은 응답에 없으므로 로컬 _recomputeSummary 결과 유지.
+  Future<void> toggleItem(String itemId) async {
     final current = state.data;
     if (current == null) return;
 
+    // 1) 로컬 토글 + 새 상태 계산
+    bool? newCheckedValue;
     final newGroups =
         current.marketGroups.map((group) {
           final newItems =
               group.items.map((item) {
                 if (item.itemId != itemId) return item;
-                return item.copyWith(isChecked: !item.isChecked);
+                newCheckedValue = !item.isChecked;
+                return item.copyWith(isChecked: newCheckedValue);
               }).toList();
           return group.copyWith(items: newItems);
         }).toList();
 
     state = state.copyWith(data: _recomputeSummary(current, newGroups));
+
+    // 2) 백엔드 sync
+    if (newCheckedValue == null) return; // 해당 itemId 가 없으면 호출 안 함
+    try {
+      final summary = await _repository.updateItemChecks([
+        (itemId: itemId, isChecked: newCheckedValue!),
+      ]);
+      if (!mounted) return;
+      // 3) 실서버 모드일 때만 서버 summary 로 덮어쓰기
+      if (!Env.useMocks) {
+        state = state.copyWith(data: _applyServerSummary(state.data!, summary));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      // 실패해도 로컬 결과는 유지 (사용자 경험 우선). 에러는 state 에 노출.
+      state = state.copyWith(error: e);
+    }
   }
 
   // 체크된 항목 일괄 삭제
-  // 추후 DELETE /shopping-list/items 응답으로 받은 summary 로 교체 예정
-  void deleteCheckedItems() {
+  //
+  // toggleItem 과 같은 optimistic 패턴.
+  Future<void> deleteCheckedItems() async {
     final current = state.data;
     if (current == null) return;
 
+    // 체크된 itemId 수집
+    final checkedItemIds = <String>[
+      for (final group in current.marketGroups)
+        for (final item in group.items)
+          if (item.isChecked) item.itemId,
+    ];
+    if (checkedItemIds.isEmpty) return;
+
+    // 1) 로컬 삭제 + 새 상태 계산
     final newGroups =
         current.marketGroups.map((group) {
           final remaining =
@@ -88,10 +127,36 @@ class ShoppingListNotifier extends StateNotifier<ShoppingListState> {
         }).toList();
 
     state = state.copyWith(data: _recomputeSummary(current, newGroups));
+
+    // 2) 백엔드 sync
+    try {
+      final summary = await _repository.deleteItems(checkedItemIds);
+      if (!mounted) return;
+      if (!Env.useMocks) {
+        state = state.copyWith(data: _applyServerSummary(state.data!, summary));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      state = state.copyWith(error: e);
+    }
   }
 
-  // market_groups 가 바뀐 후 상단 summary 필드들을 다시 계산
-  // 백엔드 응답이 summary 를 같이 주면 이 함수는 필요 없어짐
+  // 서버 응답 summary 로 합계 필드들만 덮어쓰기 — market_groups 는 보존
+  ShoppingList _applyServerSummary(
+    ShoppingList current,
+    ShoppingSummary summary,
+  ) {
+    return current.copyWith(
+      totalItems: summary.totalItems,
+      checkedItemsCount: summary.checkedItemsCount,
+      totalPricePerShopping: summary.totalPricePerShopping,
+      marketCounts: summary.marketCounts,
+    );
+  }
+
+  // market_groups 가 바뀐 후 상단 summary 필드들을 다시 계산.
+  // 백엔드 응답이 summary 를 같이 주지만 market_groups 의 subtotal 은 응답에 없으므로
+  // 이 함수가 계속 필요 (subtotal 계산용 + 1차 optimistic 갱신용).
   ShoppingList _recomputeSummary(
     ShoppingList current,
     List<ShoppingMarketGroup> newGroups,

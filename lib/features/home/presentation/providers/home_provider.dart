@@ -79,7 +79,10 @@ class HomeNotifier extends StateNotifier<HomeState> {
       );
 
       final defaultMeal = plan.meals.firstWhere((m) => m.slot == defaultSlot);
-      final menu = await _repository.fetchMenuDetail(defaultMeal.mealId);
+      final menu = await _repository.fetchMenuDetail(
+        mealDate: today,
+        mealId: defaultMeal.mealId,
+      );
       if (!mounted) return;
 
       state = state.copyWith(selectedMenu: menu, isLoadingMenu: false);
@@ -98,7 +101,10 @@ class HomeNotifier extends StateNotifier<HomeState> {
 
     try {
       final meal = state.dailyPlan!.meals.firstWhere((m) => m.slot == slot);
-      final menu = await _repository.fetchMenuDetail(meal.mealId);
+      final menu = await _repository.fetchMenuDetail(
+        mealDate: state.dailyPlan!.date,
+        mealId: meal.mealId,
+      );
       if (!mounted) return;
       state = state.copyWith(selectedMenu: menu, isLoadingMenu: false);
     } catch (e) {

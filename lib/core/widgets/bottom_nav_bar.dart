@@ -12,8 +12,16 @@ class BottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = [
       {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'label': '홈'},
-      {'icon': Icons.calendar_month_outlined, 'activeIcon': Icons.calendar_month, 'label': '캘린더'},
-      {'icon': Icons.shopping_cart_outlined, 'activeIcon': Icons.shopping_cart, 'label': '장보기'},
+      {
+        'icon': Icons.calendar_month_outlined,
+        'activeIcon': Icons.calendar_month,
+        'label': '캘린더',
+      },
+      {
+        'icon': Icons.shopping_cart_outlined,
+        'activeIcon': Icons.shopping_cart,
+        'label': '장보기',
+      },
       {'icon': Icons.person_outline, 'activeIcon': Icons.person, 'label': '마이'},
     ];
 
@@ -36,17 +44,10 @@ class BottomNavBar extends StatelessWidget {
               return Expanded(
                 child: InkWell(
                   onTap: () {
-                    context.go(routes[index]); 
+                    context.go(routes[index]);
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    // decoration: BoxDecoration(
-                    //   border: Border(
-                    //     right: index < items.length - 1
-                    //         ? BorderSide(color: AppColors.border, width: 2)
-                    //         : BorderSide.none,
-                    //   ),
-                    // ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [

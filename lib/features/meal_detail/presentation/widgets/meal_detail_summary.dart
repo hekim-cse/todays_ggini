@@ -23,11 +23,16 @@ class MealDetailSummary extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: _item(context, label: '총 비용', value: '₩${formatPrice(totalPrice)}'),
+            child: _item(
+              context,
+              label: '총 비용',
+              value: '₩${formatPrice(totalPrice)}',
+            ),
           ),
           Container(width: 3, height: 60, color: AppColors.border),
           Expanded(
-            child: _item(context,
+            child: _item(
+              context,
               label: '총 칼로리',
               value: '${formatPrice(totalCalories)} kcal',
             ),

@@ -6,6 +6,7 @@ import '../../../home/domain/menu_detail.dart';
 class IngredientRow extends StatelessWidget {
   final Ingredient ingredient;
   final bool isChecked;
+  final String? selectedMarket;
   final VoidCallback onToggle;
   final VoidCallback onTapDetail;
 
@@ -13,13 +14,18 @@ class IngredientRow extends StatelessWidget {
     super.key,
     required this.ingredient,
     required this.isChecked,
+    this.selectedMarket,
     required this.onToggle,
     required this.onTapDetail,
   });
 
   @override
   Widget build(BuildContext context) {
-    final lowest = ingredient.lowestPrice;
+    // 사용자가 선택한 마켓이 있으면 그 가격/마켓을 우선 표시.
+    // 선택 없거나 재고 없으면 최저가 마켓으로 폴백 (effective* 가 처리).
+    final shownPrice = ingredient.effectivePrice(selectedMarket);
+    final shownMarket = ingredient.effectiveMarket(selectedMarket);
+    final isUserPick = selectedMarket != null && shownMarket == selectedMarket;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
@@ -44,9 +50,10 @@ class IngredientRow extends StatelessWidget {
                 ),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: isChecked
-                  ? const Icon(Icons.check, size: 16, color: Colors.white)
-                  : null,
+              child:
+                  isChecked
+                      ? const Icon(Icons.check, size: 16, color: Colors.white)
+                      : null,
             ),
           ),
           const SizedBox(width: 12),
@@ -74,15 +81,17 @@ class IngredientRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '₩${formatPrice(lowest.price)}',
+                '₩${formatPrice(shownPrice)}',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 2),
               Text(
-                '${_marketLabel(lowest.market)} 최저가',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textPrimary,
-                ),
+                isUserPick
+                    ? _marketLabel(shownMarket)
+                    : '${_marketLabel(shownMarket)} 최저가',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: AppColors.textPrimary),
               ),
             ],
           ),
@@ -101,10 +110,14 @@ class IngredientRow extends StatelessWidget {
 
   String _marketLabel(String market) {
     switch (market) {
-      case 'coupang': return '쿠팡';
-      case 'market_kurly': return '컬리';
-      case 'naver_shopping': return '네이버';
-      default: return market;
+      case 'coupang':
+        return '쿠팡';
+      case 'market_kurly':
+        return '컬리';
+      case 'naver_shopping':
+        return '네이버';
+      default:
+        return market;
     }
   }
 }

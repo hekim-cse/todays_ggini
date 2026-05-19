@@ -40,6 +40,7 @@ class _MealStyleSelectScreenState extends State<MealStyleSelectScreen> {
               ),
             ),
             Padding(
+<<<<<<< HEAD
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
               child: Center(
                 child: Text(
@@ -56,6 +57,35 @@ class _MealStyleSelectScreenState extends State<MealStyleSelectScreen> {
                   onPressed: _selectedIndex == null
                       ? null
                       : () => context.go(AppRoutes.mealPlanLoading),
+=======
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                '위 식단은 예시 샘플 식단입니다.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed:
+                      _selectedIndex == null
+                          ? null
+                          : () async {
+                            // TODO(jungsoo): 임시 테스트용으로 추후에 제거
+                            // 선택된 스타일에 해당하는 백엔드 style_id 매핑
+                            final styleIds = [
+                              'budget_first',
+                              'nutrition_balance',
+                              'diet_light',
+                            ];
+                            final styleId = styleIds[_selectedIndex!];
+                            context.go(
+                              '${AppRoutes.mealPlanLoading}?style_id=$styleId',
+                            );
+                          },
+>>>>>>> origin/feature/frontend-jungsoo-api-call
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     disabledBackgroundColor: AppColors.buttonGray,

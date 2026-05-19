@@ -23,7 +23,7 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 // Google Sign In Provider
 final googleSignInProvider = Provider<GoogleSignIn>((ref) {
   return GoogleSignIn(
-    clientId: Env.googleClientId,
+    clientId: Env.googleWebClientId,
     scopes: ['email', 'profile'],
   );
 });
@@ -64,7 +64,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final FlutterSecureStorage _storage;
 
   AuthNotifier(this._repository, this._googleSignIn, this._storage)
-      : super(const AuthState());
+    : super(const AuthState());
 
   // 토큰 저장 헬퍼
   Future<void> _saveTokens(User user) async {
@@ -73,6 +73,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
     if (user.refreshToken != null) {
       await _storage.write(key: 'refreshToken', value: user.refreshToken);
+    }
+  }
+
+  /// 백엔드에서 최신 user 상태를 가져와 authState 갱신.
+  /// 온보딩 저장 등 user 가 바뀐 직후 호출.
+  Future<void> refreshUser() async {
+    final accessToken = await _storage.read(key: 'accessToken');
+    if (accessToken == null || accessToken.isEmpty) return;
+    final refreshToken = await _storage.read(key: 'refreshToken');
+    try {
+      final user = await _repository.getCurrentUser(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+      );
+      if (!mounted) return;
+      state = state.copyWith(user: user);
+    } catch (_) {
+      // 무시 - 현재 상태 유지
     }
   }
 
@@ -142,8 +160,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> loginAsGuest() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final user = await _repository.loginAsGuest();
-      await _saveTokens(user);
+      // 1. 백엔드에 게스트 세션 만들고 JWT 받기
+      final accessToken = await _repository.initGuestSession();
+
+      // 2. JWT 를 storage 에 먼저 저장 (다음 호출에서 AuthInterceptor 가 자동으로 헤더 부착)
+      await _storage.write(key: 'accessToken', value: accessToken);
+
+      // 3. 저장된 JWT 로 /me 호출해서 user 정보 가져오기
+      final user = await _repository.getCurrentUser(
+        accessToken: accessToken,
+        refreshToken: null,
+      );
+
       if (!mounted) return;
       state = state.copyWith(user: user, isLoading: false);
     } catch (e) {

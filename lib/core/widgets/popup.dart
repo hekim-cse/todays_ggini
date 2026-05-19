@@ -5,8 +5,8 @@ import '../../../../core/theme/app_colors.dart';
 
 class AppPopup extends StatelessWidget {
   final String? content;
-  final Widget? contentWidget;  // ← 추가
-  final String? title;  // ← 추가
+  final Widget? contentWidget;
+  final String? title;
   final String leftButtonText;
   final String rightButtonText;
   final VoidCallback onLeftTap;
@@ -108,15 +108,16 @@ void showAppPopup({
 }) {
   showDialog(
     context: context,
-    builder: (dialogContext) => AppPopup(
-      content: content,
-      leftButtonText: leftButtonText,
-      rightButtonText: rightButtonText,
-      onLeftTap: onLeftTap,
-      onRightTap: onRightTap,
-      leftButtonColor: leftButtonColor,
-      rightButtonColor: rightButtonColor,
-    ),
+    builder:
+        (dialogContext) => AppPopup(
+          content: content,
+          leftButtonText: leftButtonText,
+          rightButtonText: rightButtonText,
+          onLeftTap: onLeftTap,
+          onRightTap: onRightTap,
+          leftButtonColor: leftButtonColor,
+          rightButtonColor: rightButtonColor,
+        ),
   );
 }
 

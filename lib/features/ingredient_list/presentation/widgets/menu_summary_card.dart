@@ -33,17 +33,18 @@ class MenuSummaryCard extends StatelessWidget {
               color: AppColors.border,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: menu.imageUrl == null
-                ? Center(
-                    child: Text(
-                      '이미지',
-                      style: Theme.of(context).textTheme.bodySmall,
+            child:
+                menu.imageUrl == null
+                    ? Center(
+                      child: Text(
+                        '이미지',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    )
+                    : ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(menu.imageUrl!, fit: BoxFit.cover),
                     ),
-                  )
-                : ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: Image.network(menu.imageUrl!, fit: BoxFit.cover),
-                  ),
           ),
           const SizedBox(width: 12),
           Expanded(

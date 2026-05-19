@@ -18,19 +18,41 @@ class MyPageScreen extends StatefulWidget {
 }
 
 class _MyPageScreenState extends State<MyPageScreen> {
-  String _persona = '맛과 밸런스';
-  List<String> _goals = ['식비 절약', '간편식', '맛 중심'];
-  List<String> _foods = ['한식', '일식', '패스트푸드'];
-  List<String> _ingredients = ['육류', '채소류'];
-  List<String> _allergies = ['우유', '새우'];
-  int _diversity = 2;
-  int _cookingSkill = 4;
-  int _mealCount = 4;
-  int _monthlyBudget = 400000;
+  final String _persona = '맛과 밸런스';
+  final List<String> _goals = ['식비 절약', '간편식', '맛 중심'];
+  final List<String> _foods = ['한식', '일식', '패스트푸드'];
+  final List<String> _ingredients = ['육류', '채소류'];
+  final List<String> _allergies = ['우유', '새우'];
+  final int _diversity = 2;
+  final int _cookingSkill = 4;
+  final int _mealCount = 4;
+  final int _monthlyBudget = 400000;
 
-  final List<String> _goalOptions = ['식비 절약', '영양 균형', '다이어트', '고단백', '간편식', '맛 중심'];
-  final List<String> _foodOptions = ['한식', '중식', '일식', '양식', '분식', '패스트푸드', '샐러드/건강식', '다 좋아요'];
-  final List<String> _ingredientOptions = ['육류', '해산물류', '채소류', '식물성 단백질류', '계란 및 유제품류'];
+  final List<String> _goalOptions = [
+    '식비 절약',
+    '영양 균형',
+    '다이어트',
+    '고단백',
+    '간편식',
+    '맛 중심',
+  ];
+  final List<String> _foodOptions = [
+    '한식',
+    '중식',
+    '일식',
+    '양식',
+    '분식',
+    '패스트푸드',
+    '샐러드/건강식',
+    '다 좋아요',
+  ];
+  final List<String> _ingredientOptions = [
+    '육류',
+    '해산물류',
+    '채소류',
+    '식물성 단백질류',
+    '계란 및 유제품류',
+  ];
 
   String _formatList(List<String> list) {
     if (list.isEmpty) return '없음';

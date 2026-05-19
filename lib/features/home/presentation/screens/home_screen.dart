@@ -21,9 +21,7 @@ class HomeScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
-          children: [
-            Expanded(child: _buildBody(context, ref, state)),
-          ],
+          children: [Expanded(child: _buildBody(context, ref, state))],
         ),
       ),
       bottomNavigationBar: const BottomNavBar(currentIndex: 0),

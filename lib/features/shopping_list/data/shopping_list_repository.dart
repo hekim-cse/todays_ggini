@@ -1,93 +1,56 @@
 import 'package:dio/dio.dart';
+
+import '../domain/shopping_item_request.dart';
 import '../domain/shopping_list.dart';
+import '../domain/shopping_summary.dart';
 
 class ShoppingListRepository {
   final Dio _dio;
+
   ShoppingListRepository(this._dio);
 
+  // 장보기 목록 조회
+  // 백엔드: GET /api/v1/shopping/shopping-list
   Future<ShoppingList> fetchShoppingList() async {
-    // TODO: 백엔드 연동 후 mock 제거
-    return _mockShoppingList();
-
-    // 실제 API 호출
-    // final response = await _dio.get('/shopping-list');
-    // return ShoppingList.fromJson(response.data as Map<String, dynamic>);
+    final response = await _dio.get('/shopping/shopping-list');
+    return ShoppingList.fromJson(response.data as Map<String, dynamic>);
   }
 
-  ShoppingList _mockShoppingList() {
-    return ShoppingList(
-      totalItems: 4,
-      checkedItemsCount: 4,
-      totalPricePerShopping: 12000,
-      marketCounts: const [
-        ShoppingMarketCount(market: 'coupang', count: 2),
-        ShoppingMarketCount(market: 'market_kurly', count: 1),
-        ShoppingMarketCount(market: 'naver_shopping', count: 1),
-      ],
-      marketGroups: [
-        ShoppingMarketGroup(
-          market: 'coupang',
-          subtotal: 6000,
-          items: const [
-            ShoppingItem(
-              itemId: 'item_001',
-              ingredientId: 'I_001',
-              ingredientName: '계란',
-              standardUnit: '10개',
-              deliveryType: 'rocket',
-              lowestPrice: 3000,
-              productTitle: '풀무원 신선란 10구',
-              purchaseLink: 'https://coupang.com',
-              isChecked: true,
-            ),
-            ShoppingItem(
-              itemId: 'item_002',
-              ingredientId: 'I_002',
-              ingredientName: '김치',
-              standardUnit: '500g',
-              deliveryType: 'rocket',
-              lowestPrice: 3000,
-              productTitle: '비비고 포기김치 500g',
-              purchaseLink: 'https://coupang.com',
-              isChecked: true,
-            ),
-          ],
-        ),
-        ShoppingMarketGroup(
-          market: 'market_kurly',
-          subtotal: 3000,
-          items: const [
-            ShoppingItem(
-              itemId: 'item_003',
-              ingredientId: 'I_003',
-              ingredientName: '두부',
-              standardUnit: '1모',
-              deliveryType: 'normal',
-              lowestPrice: 3000,
-              productTitle: '풀무원 국산콩 두부',
-              purchaseLink: 'https://kurly.com',
-              isChecked: true,
-            ),
-          ],
-        ),
-        ShoppingMarketGroup(
-          market: 'naver_shopping',
-          subtotal: 3000,
-          items: const [
-            ShoppingItem(
-              itemId: 'item_004',
-              ingredientId: 'I_004',
-              ingredientName: '대파',
-              standardUnit: '1단',
-              deliveryType: 'normal',
-              lowestPrice: 3000,
-              productTitle: '국내산 대파 1단',
-              purchaseLink: 'https://shopping.naver.com',
-              isChecked: true,
-            ),
-          ],
-        ),
-      ],
+  // 항목 체크 상태 갱신 (배치)
+  // 백엔드: PATCH /api/v1/shopping/shopping-list/items/check
+  Future<ShoppingSummary> updateItemChecks(
+    List<({String itemId, bool isChecked})> updates,
+  ) async {
+    final response = await _dio.patch(
+      '/shopping/shopping-list/items/check',
+      data:
+          updates
+              .map((u) => {'item_id': u.itemId, 'is_checked': u.isChecked})
+              .toList(),
+    );
+    final data = response.data as Map<String, dynamic>;
+    return ShoppingSummary.fromJson(data['summary'] as Map<String, dynamic>);
+  }
+
+  // 항목 일괄 삭제
+  // 백엔드: DELETE /api/v1/shopping/shopping-list/items/batch-delete
+  Future<ShoppingSummary> deleteItems(List<String> itemIds) async {
+    final response = await _dio.delete(
+      '/shopping/shopping-list/items/batch-delete',
+      data: {'item_ids': itemIds},
+    );
+    final data = response.data as Map<String, dynamic>;
+    return ShoppingSummary.fromJson(data['summary'] as Map<String, dynamic>);
+  }
+
+  // 식단의 재료들을 장보기 목록에 추가
+  // 백엔드: POST /api/v1/shopping/add-shopping-items
+  // body 로 ShoppingItemRequest 배열 전송.
+  // 응답은 본 메서드에서 사용 안 함 — 호출 후 화면 이동 시 GET 으로 최신 목록 받음.
+  Future<void> addShoppingItems(List<ShoppingItemRequest> items) async {
+    await _dio.post(
+      '/shopping/add-shopping-items',
+      data: items.map((i) => i.toJson()).toList(),
     );
   }
 }

@@ -41,10 +41,6 @@ class MealDetailNotifier extends StateNotifier<MealDetailState> {
     : super(const MealDetailState(isLoading: true)) {
     _load();
   }
-  
-  void replaceWith(DailyMealPlan newPlan) {
-    state = state.copyWith(plan: newPlan, isLoading: false);
-  }
 
   Future<void> _load() async {
     try {
@@ -55,6 +51,13 @@ class MealDetailNotifier extends StateNotifier<MealDetailState> {
       if (!mounted) return;
       state = state.copyWith(error: e, isLoading: false);
     }
+  }
+
+  // 외부(예: menu_change 화면)에서 받은 새 [DailyMealPlan] 으로 state 교체
+  // PUT /meal-plans/{date}/menus/{slot} 응답을 그대로 반영할 때 사용
+  void replaceWith(DailyMealPlan newPlan) {
+    if (!mounted) return;
+    state = state.copyWith(plan: newPlan, isLoading: false);
   }
 }
 

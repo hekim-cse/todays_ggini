@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -19,7 +20,20 @@ import '../../features/menu_change/presentation/screens/menu_change_screen.dart'
 
 import 'app_routes.dart';
 
+/// authState 변화를 GoRouter 의 refreshListenable 에 전달하는 어댑터.
+class _AuthChangeNotifier extends ChangeNotifier {
+  void bump() => notifyListeners();
+}
+
 final routerProvider = Provider<GoRouter>((ref) {
+  final authNotifier = _AuthChangeNotifier();
+
+  // authState 변할 때마다 notifyListeners → GoRouter 가 redirect 재평가
+  ref.listen(authProvider, (_, __) => authNotifier.bump());
+
+  // ref 가 dispose 될 때 notifier 도 정리
+  ref.onDispose(authNotifier.dispose);
+
   return GoRouter(
     initialLocation: AppRoutes.splash,
     redirect: (context, state) {
@@ -76,16 +90,17 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.mealPlanLoading,
-        builder: (_, __) => const MealPlanLoadingScreen(),
+        builder: (context, state) {
+          final styleId =
+              state.uri.queryParameters['style_id'] ?? 'budget_first';
+          return MealPlanLoadingScreen(styleId: styleId);
+        },
       ),
       GoRoute(
         path: AppRoutes.calendar,
         builder: (_, __) => const CalendarScreen(),
       ),
-      GoRoute(
-        path: AppRoutes.myPage,
-        builder: (_, __) => const MyPageScreen(),
-      ),
+      GoRoute(path: AppRoutes.myPage, builder: (_, __) => const MyPageScreen()),
       GoRoute(
         path: AppRoutes.mealDetail,
         builder: (_, state) {
@@ -94,10 +109,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           return MealDetailScreen(date: date);
         },
       ),
-      GoRoute(
-        path: AppRoutes.home,
-        builder: (_, __) => const HomeScreen(),
-      ),
+      GoRoute(path: AppRoutes.home, builder: (_, __) => const HomeScreen()),
       GoRoute(
         path: AppRoutes.ingredientList,
         builder: (_, state) {

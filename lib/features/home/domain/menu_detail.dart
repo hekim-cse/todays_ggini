@@ -98,6 +98,43 @@ class Ingredient {
       ),
     );
   }
+
+  // 마켓 ID로 해당 마켓의 가격을 가져옴. 재고 없으면 null
+  int? priceFor(String market) {
+    switch (market) {
+      case 'coupang':
+        return prices.coupang;
+      case 'market_kurly':
+        return prices.marketKurly;
+      case 'naver_shopping':
+        return prices.naverShopping;
+      default:
+        return null;
+    }
+  }
+
+  // 사용자 선택 마켓에 따른 적용 가격. 선택 안 했거나 재고 없으면 최저가 폴백
+  int effectivePrice(String? selectedMarket) {
+    if (selectedMarket != null) {
+      final p = priceFor(selectedMarket);
+      if (p != null) return p;
+    }
+    return lowestPrice.price;
+  }
+
+  // 어떤 마켓도 재고가 없는 재료인지 (모든 가격 null)
+  bool get hasAnyMarketStock =>
+      prices.coupang != null ||
+      prices.marketKurly != null ||
+      prices.naverShopping != null;
+
+  // 사용자 선택 마켓 ID. 선택 안 했거나 재고 없으면 최저가 마켓
+  String effectiveMarket(String? selectedMarket) {
+    if (selectedMarket != null && priceFor(selectedMarket) != null) {
+      return selectedMarket;
+    }
+    return lowestPrice.market;
+  }
 }
 
 class LowestPrice {
@@ -123,16 +160,20 @@ class EcommercePrices {
   const EcommercePrices({this.coupang, this.marketKurly, this.naverShopping});
 
   factory EcommercePrices.fromJson(Map<String, dynamic> json) {
-    int? extract(String key) {
-      final m = json[key];
-      if (m == null) return null;
-      return (m as Map<String, dynamic>)['lowest_price'] as int?;
+    // 각 마켓이 객체로 옴. lowest_price만 꺼내 씀
+    int? extractPrice(String key) {
+      final marketData = json[key];
+      if (marketData == null) return null;
+      if (marketData is Map<String, dynamic>) {
+        return marketData['lowest_price'] as int?;
+      }
+      return null;
     }
 
     return EcommercePrices(
-      coupang: extract('coupang'),
-      marketKurly: extract('market_kurly'),
-      naverShopping: extract('naver_shopping'),
+      coupang: extractPrice('coupang'),
+      marketKurly: extractPrice('market_kurly'),
+      naverShopping: extractPrice('naver_shopping'),
     );
   }
 }

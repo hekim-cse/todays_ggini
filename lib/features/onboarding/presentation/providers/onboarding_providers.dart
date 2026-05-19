@@ -84,7 +84,7 @@ class OnboardingDraft {
 
 class OnboardingNotifier extends StateNotifier<OnboardingDraft> {
   OnboardingNotifier(this._repo, this._readPersona)
-      : super(const OnboardingDraft());
+    : super(const OnboardingDraft());
 
   final OnboardingRepository _repo;
   final Persona Function() _readPersona;
@@ -116,11 +116,11 @@ class OnboardingNotifier extends StateNotifier<OnboardingDraft> {
 
 final onboardingNotifierProvider =
     StateNotifierProvider<OnboardingNotifier, OnboardingDraft>((ref) {
-  return OnboardingNotifier(
-    ref.watch(onboardingRepositoryProvider),
-    () => ref.read(selectedPersonaProvider),
-  );
-});
+      return OnboardingNotifier(
+        ref.watch(onboardingRepositoryProvider),
+        () => ref.read(selectedPersonaProvider),
+      );
+    });
 
 // ─────────────────────────────────────────────────────────────
 // submit 결과

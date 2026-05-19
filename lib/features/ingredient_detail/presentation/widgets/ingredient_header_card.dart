@@ -25,17 +25,18 @@ class IngredientHeaderCard extends StatelessWidget {
               color: AppColors.border,
               borderRadius: BorderRadius.circular(6),
             ),
-            child: prices.imageUrl == null
-                ? Center(
-                    child: Text(
-                      '이미지',
-                      style: Theme.of(context).textTheme.bodySmall,
+            child:
+                prices.imageUrl == null
+                    ? Center(
+                      child: Text(
+                        '이미지',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    )
+                    : ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.network(prices.imageUrl!, fit: BoxFit.cover),
                     ),
-                  )
-                : ClipRRect(
-                    borderRadius: BorderRadius.circular(6),
-                    child: Image.network(prices.imageUrl!, fit: BoxFit.cover),
-                  ),
           ),
           const SizedBox(width: 12),
           Expanded(

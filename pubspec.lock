@@ -345,7 +345,11 @@ packages:
     source: hosted
     version: "2.5.0"
   google_sign_in_web:
+<<<<<<< HEAD
     dependency: transitive
+=======
+    dependency: "direct main"
+>>>>>>> origin/feature/frontend-jungsoo-api-call
     description:
       name: google_sign_in_web
       sha256: "460547beb4962b7623ac0fb8122d6b8268c951cf0b646dd150d60498430e4ded"
@@ -689,7 +693,11 @@ packages:
     source: hosted
     version: "3.2.1"
   shared_preferences:
+<<<<<<< HEAD
     dependency: "direct main"
+=======
+    dependency: transitive
+>>>>>>> origin/feature/frontend-jungsoo-api-call
     description:
       name: shared_preferences
       sha256: c3025c5534b01739267eb7d76959bbc25a6d10f6988e1c2a3036940133dd10bf

@@ -1,5 +1,5 @@
 name: todaysggini
-description: 스마트 영양 & 예산 플래너 끼니픽
+description: 스마트 영양 & 예산 플래너
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -19,6 +19,7 @@ dependencies:
   # 소셜 로그인
   kakao_flutter_sdk_user: ^1.9.0
   google_sign_in: ^6.2.0
+  google_sign_in_web: ^0.12.4+4
   flutter_web_auth_2: ^4.0.0       # 네이버
 
   # 토큰 로컬 저장

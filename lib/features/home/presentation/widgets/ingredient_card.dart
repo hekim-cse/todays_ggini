@@ -67,12 +67,11 @@ class IngredientCard extends StatelessWidget {
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: AppColors.textPrimary,
                 ),
+              )
+              : ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: Image.network(ingredient.imageUrl!, fit: BoxFit.cover),
               ),
-            )
-          : ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: Image.network(ingredient.imageUrl!, fit: BoxFit.cover),
-            ),
     );
   }
 

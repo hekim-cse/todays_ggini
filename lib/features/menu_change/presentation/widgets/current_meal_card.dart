@@ -62,18 +62,19 @@ class _Thumbnail extends StatelessWidget {
         color: AppColors.border,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: imageUrl == null
-          ? const Center(
-              child: Icon(
-                Icons.restaurant,
-                color: AppColors.textSecondary,
-                size: 28,
+      child:
+          imageUrl == null
+              ? const Center(
+                child: Icon(
+                  Icons.restaurant,
+                  color: AppColors.textSecondary,
+                  size: 28,
+                ),
+              )
+              : ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(imageUrl!, fit: BoxFit.cover),
               ),
-            )
-          : ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(imageUrl!, fit: BoxFit.cover),
-            ),
     );
   }
 }

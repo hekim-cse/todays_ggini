@@ -59,7 +59,6 @@ class CalendarScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             MonthHeader(
               year: state.currentYear,
               month: state.currentMonth,

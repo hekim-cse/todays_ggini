@@ -6,6 +6,7 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/format.dart';
 import '../../../../core/widgets/bottom_nav_bar.dart';
+import '../../../shopping_selection/presentation/providers/shopping_selection_provider.dart';
 import '../providers/ingredient_list_provider.dart';
 import '../widgets/ingredient_row.dart';
 import '../widgets/menu_summary_card.dart';
@@ -24,8 +25,13 @@ class IngredientListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(ingredientListProvider(mealId));
-    final notifier = ref.read(ingredientListProvider(mealId).notifier);
+    final args = (
+      mealId: mealId,
+      date: sourceDate ?? DateTime.now(),
+      slot: sourceSlot ?? 1,
+    );
+    final state = ref.watch(ingredientListProvider(args));
+    final notifier = ref.read(ingredientListProvider(args).notifier);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -33,7 +39,7 @@ class IngredientListScreen extends ConsumerWidget {
         child: Column(
           children: [
             _buildHeader(context),
-            Expanded(child: _buildBodyContent(context, state, notifier)),
+            Expanded(child: _buildBodyContent(context, ref, state, notifier)),
           ],
         ),
       ),
@@ -71,6 +77,7 @@ class IngredientListScreen extends ConsumerWidget {
 
   Widget _buildBodyContent(
     BuildContext context,
+    WidgetRef ref,
     IngredientListState state,
     IngredientListNotifier notifier,
   ) {
@@ -95,6 +102,17 @@ class IngredientListScreen extends ConsumerWidget {
 
     final menu = state.menu!;
 
+    final selection = ref.watch(shoppingSelectionProvider);
+    final checkedSet =
+        selection.selectionFor(sourceDate ?? DateTime.now(), sourceSlot ?? 1) ??
+        <String>{};
+    final totalPrice = menu.ingredients
+        .where((i) => checkedSet.contains(i.ingredientId))
+        .fold<int>(0, (sum, i) {
+          final selectedMarket = selection.selectedMarketFor(i.ingredientId);
+          return sum + i.effectivePrice(selectedMarket);
+        });
+
     return Column(
       children: [
         Expanded(
@@ -110,16 +128,18 @@ class IngredientListScreen extends ConsumerWidget {
                   sourceSlot: sourceSlot,
                 ),
                 const SizedBox(height: 16),
-                _buildSecondaryToggle(context, state, notifier),
                 ...menu.ingredients.map(
                   (ing) => IngredientRow(
                     ingredient: ing,
-                    isChecked: state.checkedIngredientIds.contains(
+                    isChecked: checkedSet.contains(ing.ingredientId),
+                    selectedMarket: selection.selectedMarketFor(
                       ing.ingredientId,
                     ),
                     onToggle: () => notifier.toggleIngredient(ing.ingredientId),
                     onTapDetail: () {
-                      context.push(AppRoutes.ingredientDetailPath(ing.ingredientId));
+                      context.push(
+                        AppRoutes.ingredientDetailPath(ing.ingredientId),
+                      );
                     },
                   ),
                 ),
@@ -128,37 +148,20 @@ class IngredientListScreen extends ConsumerWidget {
             ),
           ),
         ),
-        _buildBottomSummary(context, state),
+        _buildBottomSummary(
+          context: context,
+          checkedCount: checkedSet.length,
+          totalPrice: totalPrice,
+        ),
       ],
     );
   }
 
-  Widget _buildSecondaryToggle(
-    BuildContext context,
-    IngredientListState state,
-    IngredientListNotifier notifier,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Text(
-            '부재료 제외',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(width: 5),
-          Switch(
-            value: state.excludeSecondary,
-            onChanged: (_) => notifier.toggleExcludeSecondary(),
-            activeThumbColor: AppColors.primary,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomSummary(BuildContext context, IngredientListState state) {
+  Widget _buildBottomSummary({
+    required BuildContext context,
+    required int checkedCount,
+    required int totalPrice,
+  }) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Container(
@@ -173,12 +176,12 @@ class IngredientListScreen extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              '장볼 재료 ${state.checkedCount}개 · 부재료 0개 포함',
+              '장볼 재료 $checkedCount개',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
             const SizedBox(height: 8),
             Text(
-              '합계 ₩${formatPrice(state.totalPrice)}',
+              '합계 ₩${formatPrice(totalPrice)}',
               style: Theme.of(context).textTheme.bodyLarge,
             ),
           ],

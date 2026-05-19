@@ -101,9 +101,10 @@ class _IndicatorBox extends StatelessWidget {
         border: Border.all(color: AppColors.textPrimary),
         borderRadius: BorderRadius.circular(3),
       ),
-      child: checked
-          ? const Icon(Icons.check, size: 14, color: AppColors.textPrimary)
-          : null,
+      child:
+          checked
+              ? const Icon(Icons.check, size: 14, color: AppColors.textPrimary)
+              : null,
     );
   }
 }

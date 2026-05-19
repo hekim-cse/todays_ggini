@@ -1,5 +1,10 @@
 import 'package:flutter_riverpod/legacy.dart';
 
+import '../../../home/data/home_repository.dart';
+import '../../../home/domain/daily_meal_plan.dart';
+import '../../../shopping_list/data/shopping_list_repository.dart';
+import '../../../shopping_list/domain/shopping_item_request.dart';
+
 /// 사용자의 장보기 선택 상태.
 ///
 /// 두 가지 정보를 들고 있음:
@@ -89,6 +94,94 @@ class ShoppingSelectionNotifier extends StateNotifier<ShoppingSelectionState> {
       newMap[ingredientId] = market;
     }
     state = state.copyWith(selectedMarketByIngredient: newMap);
+  }
+
+  /// "이 날 장보기 목록 추가" 흐름 전체.
+  ///
+  /// 1) 각 slot 의 menuDetail 을 병렬 fetch
+  /// 2) 슬롯별로 selection state 확인:
+  ///    - selection 있으면 사용자가 체크한 재료만 payload 에 포함
+  ///    - selection 없으면 모든 재료 포함 (기본값)
+  /// 3) 각 재료의 마켓 결정:
+  ///    - 사용자가 마켓 골랐으면 그 마켓 (재고 없으면 최저가로 fallback)
+  ///    - 안 골랐으면 최저가 마켓
+  /// 4) 모든 마켓에서 재고 없는 재료는 스킵 (payload 못 만듦)
+  /// 5) POST /shopping/add-shopping-items
+  ///
+  /// 결과: 추가 개수 + 스킵된 재료 이름 목록 + 에러 정보.
+  /// 위젯이 결과 받아서 스낵바/navigation 처리.
+  Future<AddShoppingResult> submitToShoppingList({
+    required DateTime date,
+    required List<MealSlotSummary> meals,
+    required HomeRepository homeRepo,
+    required ShoppingListRepository shoppingRepo,
+  }) async {
+    try {
+      // 1) 슬롯별 menuDetail 병렬 fetch
+      final details = await Future.wait(
+        meals.map(
+          (m) => homeRepo.fetchMenuDetail(mealDate: date, mealId: m.mealId),
+        ),
+      );
+
+      // 2~4) payload 구성
+      final payload = <ShoppingItemRequest>[];
+      final skipped = <String>[];
+
+      for (int i = 0; i < meals.length; i++) {
+        final meal = meals[i];
+        final detail = details[i];
+
+        final selectionKey = ShoppingSelectionState.makeKey(date, meal.slot);
+        final userSelection = state.selectionsByDateSlot[selectionKey];
+
+        for (final ing in detail.ingredients) {
+          // selection 있는데 이 재료가 체크 안 됐으면 skip
+          if (userSelection != null &&
+              !userSelection.contains(ing.ingredientId)) {
+            continue;
+          }
+
+          // 어떤 마켓도 재고 없으면 skip
+          if (!ing.hasAnyMarketStock) {
+            skipped.add(ing.ingredientName);
+            continue;
+          }
+
+          // 사용자 선택 마켓 또는 최저가 마켓
+          final userMarket = state.selectedMarketByIngredient[ing.ingredientId];
+          final marketName = ing.effectiveMarket(userMarket);
+
+          payload.add(
+            ShoppingItemRequest(
+              ingredientId: ing.ingredientId,
+              marketName: marketName,
+            ),
+          );
+        }
+      }
+
+      if (payload.isEmpty) {
+        return AddShoppingResult(
+          addedCount: 0,
+          skippedIngredientNames: skipped,
+        );
+      }
+
+      // 5) POST
+      await shoppingRepo.addShoppingItems(payload);
+
+      return AddShoppingResult(
+        addedCount: payload.length,
+        skippedIngredientNames: skipped,
+      );
+    } catch (e) {
+      return AddShoppingResult(
+        addedCount: 0,
+        skippedIngredientNames: const [],
+        error: e,
+      );
+    }
   }
 }
 

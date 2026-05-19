@@ -5,6 +5,10 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/mascot_speech.dart';
+<<<<<<< HEAD
+=======
+import '../../../auth/presentation/providers/auth_provider.dart';
+>>>>>>> origin/feature/frontend-jungsoo-api-call
 import '../providers/onboarding_providers.dart';
 import '../widgets/goal_selector.dart';
 import '../widgets/food_selector.dart';
@@ -287,9 +291,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: isSubmitting
-                  ? null
-                  : () => _onSubmit(context, ref, notifier),
+              onPressed:
+                  isSubmitting ? null : () => _onSubmit(context, ref, notifier),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 disabledBackgroundColor: AppColors.buttonGray,
@@ -330,7 +333,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     ref.read(submitOnboardingProvider.notifier).state = const AsyncValue.loading();
     try {
       final saved = await notifier.submit();
-      ref.read(submitOnboardingProvider.notifier).state = AsyncValue.data(saved);
+
+      // 백엔드의 is_onboarded=true 를 프론트 authState 에 반영
+      await ref.read(authProvider.notifier).refreshUser();
+      ref.read(submitOnboardingProvider.notifier).state = AsyncValue.data(
+        saved,
+      );
       if (context.mounted) {
         context.go(AppRoutes.mealStyleSelect);
       }

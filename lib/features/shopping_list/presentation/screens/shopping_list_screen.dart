@@ -20,9 +20,7 @@ class ShoppingListScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: _buildBody(context, state, notifier),
-      ),
+      body: SafeArea(child: _buildBody(context, state, notifier)),
       bottomNavigationBar: const BottomNavBar(currentIndex: 2),
     );
   }
@@ -129,9 +127,9 @@ class ShoppingListScreen extends ConsumerWidget {
   }
 
   void _notImplemented(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('외부 마켓 결제 연동 예정')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('외부 마켓 결제 연동 예정')));
   }
 }
 

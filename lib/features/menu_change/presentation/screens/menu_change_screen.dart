@@ -125,9 +125,10 @@ class MenuChangeScreen extends ConsumerWidget {
       slot: slot,
     );
 
-    final visibleAlternatives = state.data!.alternatives
-        .where((a) => a.mealId != currentSlotMeal.mealId)
-        .toList();
+    final visibleAlternatives =
+        state.data!.alternatives
+            .where((a) => a.mealId != currentSlotMeal.mealId)
+            .toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -144,7 +145,8 @@ class MenuChangeScreen extends ConsumerWidget {
             AlternativeMealRow(
               meal: alt,
               isDisabled: state.isChanging,
-              onChange: () => _onChange(context, ref, notifier, currentPlan, alt),
+              onChange:
+                  () => _onChange(context, ref, notifier, currentPlan, alt),
             ),
             const SizedBox(height: 8),
           ],
@@ -171,9 +173,9 @@ class MenuChangeScreen extends ConsumerWidget {
     if (!context.mounted) return;
 
     if (newPlan == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('메뉴 변경에 실패했습니다.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('메뉴 변경에 실패했습니다.')));
       return;
     }
 

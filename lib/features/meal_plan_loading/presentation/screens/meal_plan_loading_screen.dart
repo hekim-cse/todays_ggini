@@ -9,10 +9,13 @@ import '../widgets/loading_stage_item.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 
 class MealPlanLoadingScreen extends ConsumerStatefulWidget {
-  const MealPlanLoadingScreen({super.key});
+  final String styleId; // ← 추가
+
+  const MealPlanLoadingScreen({super.key, required this.styleId}); // ← 추가
 
   @override
-  ConsumerState<MealPlanLoadingScreen> createState() => _MealPlanLoadingScreenState();
+  ConsumerState<MealPlanLoadingScreen> createState() =>
+      _MealPlanLoadingScreenState();
 }
 
 class _MealPlanLoadingScreenState extends ConsumerState<MealPlanLoadingScreen> {
@@ -35,9 +38,11 @@ class _MealPlanLoadingScreenState extends ConsumerState<MealPlanLoadingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(mealPlanLoadingProvider);
+    // styleId 사용 — widget.styleId 로 접근
+    final state = ref.watch(mealPlanLoadingProvider(widget.styleId)); // ← 변경
 
-    ref.listen(mealPlanLoadingProvider, (prev, next) {
+    ref.listen(mealPlanLoadingProvider(widget.styleId), (prev, next) {
+      // ← 변경
       if (next.isComplete && !(prev?.isComplete ?? false)) {
         ref.read(authProvider.notifier).markOnboarded();
         context.go(AppRoutes.home);
