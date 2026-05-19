@@ -147,6 +147,7 @@
 | SQLite / PostgreSQL | MVP 단계 DB 및 향후 운영 DB |
 | BackgroundTasks | 식단 생성 비동기 처리 |
 | JWT / HTTPBearer | 인증 및 API 요청 검증 |
+|OAuth2.0 | 소셜 로그인 연동 |
 
 ### 🧠 Modeling
 
