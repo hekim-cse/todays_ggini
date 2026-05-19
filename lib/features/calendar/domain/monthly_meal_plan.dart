@@ -16,9 +16,10 @@ class MonthlyMealPlan {
   factory MonthlyMealPlan.fromJson(Map<String, dynamic> json) {
     return MonthlyMealPlan(
       month: json['month'] as String,
-      durationDays: json['duration_days'] as int,
-      totalPricePerMonth: json['total_price_per_month'] as int,
-      averageCaloriesPerMonth: json['average_calories_per_month'] as int,
+      durationDays: (json['duration_days'] as num).toInt(),
+      totalPricePerMonth: (json['total_price_per_month'] as num).toInt(),
+      averageCaloriesPerMonth:
+          (json['average_calories_per_month'] as num).toInt(),
       days:
           (json['days'] as List)
               .map((d) => DayEntry.fromJson(d as Map<String, dynamic>))
@@ -48,8 +49,8 @@ class DayEntry {
   factory DayEntry.fromJson(Map<String, dynamic> json) {
     return DayEntry(
       date: DateTime.parse(json['date'] as String),
-      caloriesPerDay: json['calories_per_day'] as int?,
-      pricePerDay: json['price_per_day'] as int?,
+      caloriesPerDay: (json['calories_per_day'] as num?)?.toInt(),
+      pricePerDay: (json['price_per_day'] as num?)?.toInt(),
       meals:
           (json['meals'] as List)
               .map((m) => DayMeal.fromJson(m as Map<String, dynamic>))

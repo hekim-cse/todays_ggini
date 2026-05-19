@@ -36,6 +36,8 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: AppRoutes.splash,
+    // authNotifier가 authState 변화를 refreshListenable에 전달하는 로직 (빠지면 안됨)
+    refreshListenable: authNotifier,
     redirect: (context, state) {
       final container = ProviderScope.containerOf(context);
       final authState = container.read(authProvider);
@@ -118,8 +120,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           final slotStr = state.uri.queryParameters['slot'];
           final sourceDate =
               dateStr != null ? DateTime.tryParse(dateStr) : null;
-          final sourceSlot =
-              slotStr != null ? int.tryParse(slotStr) : null;
+          final sourceSlot = slotStr != null ? int.tryParse(slotStr) : null;
           return IngredientListScreen(
             mealId: mealId,
             sourceDate: sourceDate,
@@ -144,11 +145,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           final mealId = state.pathParameters['mealId'] ?? '';
           final dateStr = state.uri.queryParameters['date'];
           final slotStr = state.uri.queryParameters['slot'];
-          final date = dateStr != null
-              ? DateTime.tryParse(dateStr) ?? DateTime.now()
-              : DateTime.now();
-          final slot =
-              slotStr != null ? int.tryParse(slotStr) ?? 1 : 1;
+          final date =
+              dateStr != null
+                  ? DateTime.tryParse(dateStr) ?? DateTime.now()
+                  : DateTime.now();
+          final slot = slotStr != null ? int.tryParse(slotStr) ?? 1 : 1;
           return MenuChangeScreen(mealId: mealId, date: date, slot: slot);
         },
       ),

@@ -46,10 +46,11 @@ class SocialLoginSheet extends ConsumerWidget {
                   imagePath: 'assets/images/kakao.png',
                   color: const Color(0xFFFFE812),
                   onTap: () async {
-                    Navigator.pop(context);
-                    await notifier.loginWithKakao();
-                    if (!context.mounted) return;
-                    context.go(AppRoutes.personaSelect); 
+                    await notifier.loginWithKakao(); // 로그인 먼저
+                    if (!context.mounted) return; // sheet 위젯의 context가 살아있는지 체크
+                    Navigator.pop(context); // sheet 닫기
+                    // context.go는 안 불러도 됨 — app_router.dart에서
+                    // refreshListenable: authNotifier 적용했으면 router가 자동 redirect
                   },
                 ),
                 SocialButton(
@@ -58,10 +59,9 @@ class SocialLoginSheet extends ConsumerWidget {
                   color: const Color(0xFF03C75A),
                   labelColor: Colors.white,
                   onTap: () async {
-                    Navigator.pop(context);
                     await notifier.loginWithNaver();
                     if (!context.mounted) return;
-                    context.go(AppRoutes.personaSelect); 
+                    Navigator.pop(context);
                   },
                 ),
                 SocialButton(
@@ -70,10 +70,9 @@ class SocialLoginSheet extends ConsumerWidget {
                   color: Colors.white,
                   border: true,
                   onTap: () async {
-                    Navigator.pop(context);
                     await notifier.loginWithGoogle();
                     if (!context.mounted) return;
-                    context.go(AppRoutes.personaSelect);
+                    Navigator.pop(context);
                   },
                 ),
                 SocialButton(
@@ -121,7 +120,7 @@ class SocialLoginSheet extends ConsumerWidget {
                     onRightTap: () async {
                       await notifier.loginAsGuest();
                       if (!context.mounted) return;
-                      context.go(AppRoutes.personaSelect); 
+                      context.go(AppRoutes.personaSelect);
                     },
                   );
                 },

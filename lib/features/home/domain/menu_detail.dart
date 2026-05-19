@@ -55,8 +55,8 @@ class MenuDetail {
     return MenuDetail(
       mealId: json['meal_id'] as String,
       menuName: json['menu_name'] as String,
-      calories: json['calories'] as int,
-      price: json['price'] as int,
+      calories: (json['calories'] as num).toInt(),
+      price: (json['price'] as num).toInt(),
       imageUrl: json['image_url'] as String?,
       videoUrl: json['video_url'] as String?,
       ingredients:
@@ -146,7 +146,7 @@ class LowestPrice {
   factory LowestPrice.fromJson(Map<String, dynamic> json) {
     return LowestPrice(
       market: json['market'] as String,
-      price: json['price'] as int,
+      price: (json['price'] as num).toInt(),
     );
   }
 }
@@ -165,7 +165,7 @@ class EcommercePrices {
       final marketData = json[key];
       if (marketData == null) return null;
       if (marketData is Map<String, dynamic>) {
-        return marketData['lowest_price'] as int?;
+        return (marketData['lowest_price'] as num?)?.toInt();
       }
       return null;
     }

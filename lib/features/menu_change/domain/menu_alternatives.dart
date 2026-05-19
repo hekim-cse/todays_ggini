@@ -50,8 +50,8 @@ class CurrentMeal {
     return CurrentMeal(
       mealId: json['meal_id'] as String,
       menuName: json['menu_name'] as String,
-      calories: json['calories'] as int,
-      price: json['price'] as int,
+      calories: (json['calories'] as num).toInt(),
+      price: (json['price'] as num).toInt(),
       imageUrl: json['image_url'] as String?,
       date: DateTime.parse(json['date'] as String),
       slot: json['slot'] as int,
@@ -79,8 +79,8 @@ class AlternativeMeal {
     return AlternativeMeal(
       mealId: json['meal_id'] as String,
       menuName: json['menu_name'] as String,
-      calories: json['calories'] as int,
-      price: json['price'] as int,
+      calories: (json['calories'] as num).toInt(),
+      price: (json['price'] as num).toInt(),
       imageUrl: json['image_url'] as String?,
     );
   }

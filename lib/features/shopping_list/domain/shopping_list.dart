@@ -36,9 +36,9 @@ class ShoppingList {
 
   factory ShoppingList.fromJson(Map<String, dynamic> json) {
     return ShoppingList(
-      totalItems: json['total_items'] as int,
-      checkedItemsCount: json['checked_items_count'] as int,
-      totalPricePerShopping: json['total_price_per_shopping'] as int,
+      totalItems: (json['total_items'] as num).toInt(),
+      checkedItemsCount: (json['checked_items_count'] as num).toInt(),
+      totalPricePerShopping: (json['total_price_per_shopping'] as num).toInt(),
       marketCounts:
           (json['market_counts'] as List<dynamic>)
               .map(
@@ -81,7 +81,7 @@ class ShoppingMarketCount {
   factory ShoppingMarketCount.fromJson(Map<String, dynamic> json) {
     return ShoppingMarketCount(
       market: json['market'] as String,
-      count: json['count'] as int,
+      count: (json['count'] as num).toInt(),
     );
   }
 
@@ -107,7 +107,7 @@ class ShoppingMarketGroup {
   factory ShoppingMarketGroup.fromJson(Map<String, dynamic> json) {
     return ShoppingMarketGroup(
       market: json['market'] as String,
-      subtotal: json['subtotal'] as int,
+      subtotal: (json['subtotal'] as num).toInt(),
       items:
           (json['items'] as List<dynamic>)
               .map((e) => ShoppingItem.fromJson(e as Map<String, dynamic>))
@@ -158,7 +158,7 @@ class ShoppingItem {
       ingredientName: json['ingredient_name'] as String,
       standardUnit: json['standard_unit'] as String,
       deliveryType: json['delivery_type'] as String,
-      lowestPrice: json['lowest_price'] as int,
+      lowestPrice: (json['lowest_price'] as num).toInt(),
       productTitle: json['product_title'] as String,
       purchaseLink: json['purchase_link'] as String,
       isChecked: json['is_checked'] as bool,

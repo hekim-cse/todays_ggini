@@ -14,8 +14,8 @@ class DailyMealPlan {
   factory DailyMealPlan.fromJson(Map<String, dynamic> json) {
     return DailyMealPlan(
       date: DateTime.parse(json['date'] as String),
-      caloriesPerDay: json['calories_per_day'] as int,
-      pricePerDay: json['price_per_day'] as int,
+      caloriesPerDay: (json['calories_per_day'] as num).toInt(),
+      pricePerDay: (json['price_per_day'] as num).toInt(),
       meals:
           (json['meals'] as List)
               .map((m) => MealSlotSummary.fromJson(m as Map<String, dynamic>))
@@ -47,8 +47,8 @@ class MealSlotSummary {
       slot: json['slot'] as int,
       mealId: json['meal_id'] as String,
       menuName: json['menu_name'] as String,
-      calories: json['calories'] as int,
-      price: json['price'] as int,
+      calories: (json['calories'] as num).toInt(),
+      price: (json['price'] as num).toInt(),
       imageUrl: json['image_url'] as String?,
     );
   }

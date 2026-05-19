@@ -68,7 +68,7 @@ class MarketPrice {
   factory MarketPrice.fromJson(Map<String, dynamic> json) {
     return MarketPrice(
       deliveryType: json['delivery_type'] as String?,
-      lowestPrice: json['lowest_price'] as int?,
+      lowestPrice: (json['lowest_price'] as num?)?.toInt(),
       productTitle: json['product_title'] as String?,
       purchaseLink: json['purchase_link'] as String?,
       isLowest: json['is_lowest'] as bool? ?? false,

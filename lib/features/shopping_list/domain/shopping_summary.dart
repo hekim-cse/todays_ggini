@@ -22,9 +22,9 @@ class ShoppingSummary {
 
   factory ShoppingSummary.fromJson(Map<String, dynamic> json) {
     return ShoppingSummary(
-      totalItems: json['total_items'] as int,
-      checkedItemsCount: json['checked_items_count'] as int,
-      totalPricePerShopping: json['total_price_per_shopping'] as int,
+      totalItems: (json['total_items'] as num).toInt(),
+      checkedItemsCount: (json['checked_items_count'] as num).toInt(),
+      totalPricePerShopping: (json['total_price_per_shopping'] as num).toInt(),
       marketCounts:
           (json['market_counts'] as List<dynamic>)
               .map(
