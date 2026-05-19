@@ -916,6 +916,7 @@ async def generate_initial_meal_plan(
         frontend_candidates.append({
             "style_id": candidate.get("style_id"),           # 나중에 유저가 선택했을 때 백엔드로 다시 보낼 식별자
             "style_name": candidate.get("style_name"),       # 예: "가성비 최우선"
+            "description": candidate.get("description"),     # "단백질 섭취를 우선으로 고려한 식단" 등 상세 설명
             "summary_comment": candidate.get("summary_comment"), # 예: "단백질 섭취를 늘리고 싶은..."
             "display_labels": candidate.get("display_labels"),   # 점수 라벨 (건강, 가성비 등)
             "display_scores": candidate.get("display_scores"),   # 실제 점수 데이터 (그래프용)
