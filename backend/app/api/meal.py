@@ -182,9 +182,9 @@ def confirm_meal_plan(
 # -------------------- 월간 캘린더 조회 API ----------------------------
 @router.get("/calendar", response_model=CalendarResponse)
 def get_monthly_calendar(
-    month: str, # "2026-04" 형식
+    month: str,  # "2026-04" 형식
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     월간 캘린더를 조회합니다.
@@ -196,12 +196,16 @@ def get_monthly_calendar(
     end_date = date(year, mon, last_day)
 
     # 2. DB에서 해당 기간의 식단 조회
-    plans = db.query(MealPlan).filter(
-        MealPlan.user_id == current_user.id,
-        MealPlan.meal_date >= start_date,
-        MealPlan.meal_date <= end_date
-    ).all()
-    
+    plans = (
+        db.query(MealPlan)
+        .filter(
+            MealPlan.user_id == current_user.id,
+            MealPlan.meal_date >= start_date,
+            MealPlan.meal_date <= end_date,
+        )
+        .all()
+    )
+
     plan_dict = {p.meal_date: p for p in plans}
 
     # 3. 1일부터 말일까지 루프를 돌며 days 배열 생성
@@ -213,34 +217,40 @@ def get_monthly_calendar(
     for day in range(1, last_day + 1):
         curr_date = date(year, mon, day)
         plan = plan_dict.get(curr_date)
-        
+
         if plan:
             # DB의 content JSON에서 필요한 필드만 추출
             extracted_meals = []
             # plan.content는 일일 식단(meals) 리스트
-            for meal in (plan.content or []):
+            for meal in plan.content or []:
                 # Mock 데이터 구조에 맞춰 selected_menu 내부를 탐색
                 selected_menu = meal.get("selected_menu") or {}
-                
+
                 # 데이터가 None이거나 키가 없을 때를 대비한 방어 로직
                 raw_menu_id = selected_menu.get("menu_id")
                 raw_name = selected_menu.get("name")
 
-                extracted_meals.append({
-                    "slot": meal.get("meal_order") or 1,
-                    "meal_id": str(raw_menu_id) if raw_menu_id is not None else "",
-                    "menu_name": raw_name or "메뉴 정보 없음"
-                })
+                extracted_meals.append(
+                    {
+                        "slot": meal.get("meal_order") or 1,
+                        "meal_id": str(raw_menu_id) if raw_menu_id is not None else "",
+                        "menu_name": raw_name or "메뉴 정보 없음",
+                    }
+                )
 
             # 식단이 있는 날
             day_data = {
                 "date": curr_date,
-                "calories_per_day": plan.total_calories,
-                "price_per_day": plan.estimated_cost,
-                "meals": extracted_meals
+                "calories_per_day": int(plan.total_calories)
+                if plan.total_calories is not None
+                else None,
+                "price_per_day": int(plan.estimated_cost)
+                if plan.estimated_cost is not None
+                else None,
+                "meals": extracted_meals,
             }
-            total_price += plan.estimated_cost
-            total_cal += plan.total_calories
+            total_price += int(plan.estimated_cost or 0)
+            total_cal += int(plan.total_calories or 0)
             meal_count += 1
         else:
             # 식단이 없는 날 (명세서 규격 준수)
@@ -248,38 +258,41 @@ def get_monthly_calendar(
                 "date": curr_date,
                 "calories_per_day": None,
                 "price_per_day": None,
-                "meals": []
+                "meals": [],
             }
         days_list.append(day_data)
 
     return {
         "month": month,
         "duration_days": meal_count,
-        "total_price_per_month": total_price,
-        "average_calories_per_month": total_cal // meal_count if meal_count > 0 else 0,
-        "days": days_list
+        "total_price_per_month": int(total_price),
+        "average_calories_per_month": int(total_cal // meal_count)
+        if meal_count > 0
+        else 0,
+        "days": days_list,
     }
 
 # ----------------------- 일일 식단 상세 정보 조회 API ---------------------------------
 @router.get("/{date}", response_model=DailyMealDetailResponse)
 async def get_daily_meal_detail(
-    date: date, # YYYY-MM-DD 형식의 경로 파라미터
+    date: date,  # YYYY-MM-DD 형식의 경로 파라미터
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     [화면 10] 일일 식단 상세 정보를 조회합니다.
     """
     # 1. 해당 유저와 날짜에 맞는 식단 조회
-    plan = db.query(MealPlan).filter(
-        MealPlan.user_id == current_user.id,
-        MealPlan.meal_date == date
-    ).first()
+    plan = (
+        db.query(MealPlan)
+        .filter(MealPlan.user_id == current_user.id, MealPlan.meal_date == date)
+        .first()
+    )
 
     if not plan:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, 
-            detail=f"{date}에 해당하는 식단 데이터가 없습니다."
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"{date}에 해당하는 식단 데이터가 없습니다.",
         )
 
     # 2. DB의 content(JSON) 데이터 정제 및 타입 변환
@@ -290,21 +303,23 @@ async def get_daily_meal_detail(
         category = selected_menu.get("category")
         img_url = await get_food_image_url(menu_name, category)
 
-        detail_meals.append({
-            "slot": item.get("meal_order"),
-            "meal_id": str(selected_menu.get("menu_id")),
-            "menu_name": menu_name,
-            "calories": selected_menu.get("calories", 0),
-            "price": selected_menu.get("estimated_cost", 0),
-            "image_url": img_url # Pixabay API를 호출하여 이미지를 가져옴
-        })
+        detail_meals.append(
+            {
+                "slot": item.get("meal_order"),
+                "meal_id": str(selected_menu.get("menu_id")),
+                "menu_name": menu_name,
+                "calories": int(selected_menu.get("calories") or 0),
+                "price": int(selected_menu.get("estimated_cost") or 0),
+                "image_url": img_url,  # Pixabay API를 호출하여 이미지를 가져옴
+            }
+        )
 
     # 3. 명세서 규격에 맞춘 결과 반환
     return {
         "date": plan.meal_date,
-        "calories_per_day": plan.total_calories,
-        "price_per_day": plan.estimated_cost,
-        "meals": detail_meals
+        "calories_per_day": int(plan.total_calories or 0),
+        "price_per_day": int(plan.estimated_cost or 0),
+        "meals": detail_meals,
     }
 
 # -------------------------- 식단 상세 레시피, 재료, 마켓 정보 조회 API -------------------------
@@ -488,21 +503,24 @@ def swap_meal_plans(
 async def update_specific_menu_slot(
     date: date,
     slot: int,
-    request: MenuUpdateRequest, # 프론트에서 { "new_menu_id": "M_101" } 형태로 보낸다고 가정
+    request: MenuUpdateRequest,  # 프론트에서 { "new_menu_id": "M_101" } 형태로 보낸다고 가정
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     [화면 10-3] 특정 날짜의 특정 슬롯 메뉴를 사용자가 선택한 대안 메뉴로 변경합니다.
     """
     # 1. 기존 식단 조회
-    plan = db.query(MealPlan).filter(
-        MealPlan.user_id == current_user.id,
-        MealPlan.meal_date == date
-    ).first()
+    plan = (
+        db.query(MealPlan)
+        .filter(MealPlan.user_id == current_user.id, MealPlan.meal_date == date)
+        .first()
+    )
 
     if not plan:
-        raise HTTPException(status_code=404, detail="해당 날짜의 식단이 존재하지 않습니다.")
+        raise HTTPException(
+            status_code=404, detail="해당 날짜의 식단이 존재하지 않습니다."
+        )
 
     # 2. content 내에서 대상 슬롯(slot) 찾기
     target_index = -1
@@ -517,7 +535,7 @@ async def update_specific_menu_slot(
     # 3. 대안 메뉴 리스트에서 사용자가 선택한 메뉴 찾기
     current_slot_data = plan.content[target_index]
     alt_menus = current_slot_data.get("alternative_menus", [])
-    
+
     new_menu_data = None
     for alt in alt_menus:
         if str(alt.get("menu_id")) == str(request.new_menu_id):
@@ -525,28 +543,34 @@ async def update_specific_menu_slot(
             break
 
     if not new_menu_data:
-        raise HTTPException(status_code=400, detail="선택한 메뉴가 대안 리스트에 존재하지 않습니다.")
+        raise HTTPException(
+            status_code=400, detail="선택한 메뉴가 대안 리스트에 존재하지 않습니다."
+        )
 
     # 4. 데이터 교체 및 통계 갱신
     try:
         # 기존 메뉴 백업 (selected_menu 구조 확인 필요)
         old_selected = current_slot_data.get("selected_menu", {})
-        
+
         # 새로운 메뉴 데이터 구조 구성 (AI 명세 규격에 맞춤)
         # 선택된 메뉴를 selected_menu로 올리고, 대안 리스트는 유지하거나 갱신
         updated_slot_content = {
             "meal_order": slot,
             "selected_menu": new_menu_data,
-            "alternative_menus": alt_menus # 필요 시 대안 리스트 유지
+            "alternative_menus": alt_menus,  # 필요 시 대안 리스트 유지
         }
 
         # 통계 갱신 (차이만큼 가감)
-        plan.total_calories += (new_menu_data.get("calories", 0) - old_selected.get("calories", 0))
-        plan.estimated_cost += (new_menu_data.get("estimated_cost", 0) - old_selected.get("estimated_cost", 0))
-        
+        plan.total_calories += new_menu_data.get("calories", 0) - old_selected.get(
+            "calories", 0
+        )
+        plan.estimated_cost += new_menu_data.get(
+            "estimated_cost", 0
+        ) - old_selected.get("estimated_cost", 0)
+
         # 교체 실행
         plan.content[target_index] = updated_slot_content
-        
+
         # JSON 변경 명시
         flag_modified(plan, "content")
         db.commit()
@@ -554,7 +578,9 @@ async def update_specific_menu_slot(
 
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"메뉴 업데이트 중 오류 발생: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"메뉴 업데이트 중 오류 발생: {str(e)}"
+        )
 
     # 5. 최종 응답 구성 (이미지 포함)
     img_tasks = []
@@ -571,20 +597,22 @@ async def update_specific_menu_slot(
     detail_meals = []
     for item, img_url in zip(plan.content, all_img_urls):
         menu = item.get("selected_menu", {})
-        detail_meals.append({
-            "slot": item.get("meal_order"),
-            "meal_id": str(menu.get("menu_id")),
-            "menu_name": menu_name,
-            "calories": menu.get("calories", 0),
-            "price": menu.get("estimated_cost", 0),
-            "image_url": img_url
-        })
+        detail_meals.append(
+            {
+                "slot": item.get("meal_order"),
+                "meal_id": str(menu.get("menu_id")),
+                "menu_name": menu.get("name", ""),  # menu_name 변수 말고 menu에서 직접
+                "calories": menu.get("calories", 0),
+                "price": menu.get("estimated_cost", 0),
+                "image_url": img_url,
+            }
+        )
 
     return {
         "date": plan.meal_date,
         "calories_per_day": plan.total_calories,
         "price_per_day": plan.estimated_cost,
-        "meals": detail_meals
+        "meals": detail_meals,
     }
 
 # ----------------------------- 메뉴 변경용 추천 대안 조회 API ------------------------------
