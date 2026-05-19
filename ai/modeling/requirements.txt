@@ -1,2 +1,3 @@
-pydanticrequests
+pydantic
+requests
 requests
