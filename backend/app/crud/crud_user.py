@@ -11,7 +11,7 @@ def create_user(db: Session, provider: str, social_id: str, email: str = None):
     """
     # 이메일이 전달되지 않았을 경우 고유한 가상 이메일 생성(게스트 로그인)
     if email is None:
-        email = f"{provider}_{social_id}@guest.local"
+        email = f"{provider}_{social_id}@guest.example.com"
 
     db_user = User(
         provider=provider,
