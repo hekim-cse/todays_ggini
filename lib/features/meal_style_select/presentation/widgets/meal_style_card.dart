@@ -37,6 +37,7 @@ class MealStyleCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 태그
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
@@ -44,7 +45,7 @@ class MealStyleCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                style.tag,
+                style.styleName,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Colors.white,
                 ),
@@ -54,12 +55,13 @@ class MealStyleCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 왼쪽: 메뉴 목록 + 설명
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 4),
-                      ...style.meals.map((meal) => Padding(
+                      ...style.representativeMenus.map((meal) => Padding(
                             padding: const EdgeInsets.symmetric(vertical: 2),
                             child: Row(
                               children: [
@@ -76,7 +78,7 @@ class MealStyleCard extends StatelessWidget {
                           )),
                       const SizedBox(height: 4),
                       Text(
-                        style.desc,
+                        style.summaryComment,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: AppColors.primary,
                         ),
@@ -85,16 +87,17 @@ class MealStyleCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
+                // 오른쪽: 점수 바
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: style.stats.entries.map((e) => Padding(
+                  children: style.displayScores.entries.map((e) => Padding(
                         padding: const EdgeInsets.symmetric(vertical: 3),
                         child: Row(
                           children: [
                             SizedBox(
                               width: 70,
                               child: Text(
-                                e.key,
+                                style.displayLabels[e.key] ?? e.key,
                                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                   color: AppColors.textPrimary,
                                 ),

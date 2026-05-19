@@ -5,10 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/mascot_speech.dart';
-<<<<<<< HEAD
-=======
 import '../../../auth/presentation/providers/auth_provider.dart';
->>>>>>> origin/feature/frontend-jungsoo-api-call
 import '../providers/onboarding_providers.dart';
 import '../widgets/goal_selector.dart';
 import '../widgets/food_selector.dart';
