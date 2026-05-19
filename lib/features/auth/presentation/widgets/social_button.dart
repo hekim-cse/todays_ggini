@@ -7,7 +7,7 @@ class SocialButton extends StatelessWidget {
   final Color labelColor;
   final VoidCallback onTap;
   final bool border;
-  final TextStyle? labelStyle;
+  final String? imagePath;
 
   const SocialButton({
     super.key,
@@ -16,7 +16,7 @@ class SocialButton extends StatelessWidget {
     required this.onTap,
     this.labelColor = Colors.black,
     this.border = false,
-    this.labelStyle,
+    this.imagePath,
   });
 
   @override
@@ -29,7 +29,6 @@ class SocialButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.circle,
-          border: border ? Border.all(color: AppColors.buttonGray) : null,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
@@ -37,13 +36,23 @@ class SocialButton extends StatelessWidget {
             ),
           ],
         ),
-        child: Center(
-          child: Text(
-            label,
-            style: labelStyle ?? Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: labelColor,
-            ),
-          ),
+        child: ClipOval(
+          child: imagePath != null
+              ? Image.asset(
+                  imagePath!,
+                  width: 64,
+                  height: 64,
+                  fit: BoxFit.cover,
+                )
+              : Container(
+                  color: color,
+                  child: Center(
+                    child: Text(
+                      label,
+                      style: TextStyle(color: labelColor),
+                    ),
+                  ),
+                ),
         ),
       ),
     );

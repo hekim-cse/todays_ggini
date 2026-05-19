@@ -143,11 +143,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final user = await _repository.loginAsGuest();
+      await _saveTokens(user);
       if (!mounted) return;
       state = state.copyWith(user: user, isLoading: false);
     } catch (e) {
       if (!mounted) return;
       state = state.copyWith(error: e, isLoading: false);
+    }
+  }
+  
+  void markOnboarded() {
+    if (state.user != null) {
+      state = state.copyWith(
+        user: User(
+          id: state.user!.id,
+          provider: state.user!.provider,
+          nickname: state.user!.nickname,
+          email: state.user!.email,
+          accessToken: state.user!.accessToken,
+          refreshToken: state.user!.refreshToken,
+          isOnboarded: true,
+        ),
+      );
     }
   }
 

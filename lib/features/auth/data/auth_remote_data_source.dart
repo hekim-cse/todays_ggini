@@ -33,15 +33,9 @@ class AuthRemoteDataSource {
   }
 
   Future<Map<String, dynamic>> loginAsGuest() async {
-    return {
-      'accessToken': null,
-      'refreshToken': null,
-      'user': {
-        'id': 'guest',
-        'nickname': '게스트',
-        'email': null,
-        'is_onboarded': false,
-      }
-    };
+    final response = await _dio.post(
+      '/api/v1/auth/guest/init',
+    );
+    return response.data as Map<String, dynamic>;
   }
 }

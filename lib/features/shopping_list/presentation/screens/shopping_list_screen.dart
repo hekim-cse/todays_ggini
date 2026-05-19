@@ -67,11 +67,13 @@ class ShoppingListScreen extends ConsumerWidget {
                 Expanded(
                   child: flatRows.isEmpty
                       ? const _EmptyState()
-                      : ListView.separated(
+                      : ListView.builder(
                           padding: EdgeInsets.zero,
-                          itemCount: flatRows.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 8),
+                          itemCount: flatRows.length + 1,  // ← +1
                           itemBuilder: (_, i) {
+                            if (i == flatRows.length) {
+                              return Divider(height: 1, color: AppColors.border);
+                            }
                             final (market, item) = flatRows[i];
                             return ShoppingItemRow(
                               item: item,

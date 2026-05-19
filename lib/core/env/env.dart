@@ -13,21 +13,25 @@ class Env {
   );
 
   /// 백엔드 base URL.
+  // static const String apiBaseUrl = String.fromEnvironment(
+  //   'API_BASE_URL',
+  //   defaultValue: 'http://192.168.219.100:8000/',
+  // );
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://192.168.219.100:8000/docs',
+    defaultValue: 'https://blissful-survival-channel.ngrok-free.dev/',
   );
 
   /// 카카오 네이티브 앱 키.
   static const String kakaoNativeKey = String.fromEnvironment(
     'KAKAO_NATIVE_KEY',
-    defaultValue: '',
+    defaultValue: '9eb912137d7833c4bda844bebcce1a3c',
   );
 
   /// 네이버 Client ID.
   static const String naverClientId = String.fromEnvironment(
     'NAVER_CLIENT_ID',
-    defaultValue: '',
+    defaultValue: 'LaLqTUwNHmjlcUpO4Mlv',
   );
 
   /// 네이버 Client Secret.
@@ -39,6 +43,6 @@ class Env {
   /// 구글 Client ID.
   static const String googleClientId = String.fromEnvironment(
     'GOOGLE_CLIENT_ID',
-    defaultValue: '',
+    defaultValue: '987643896621-4mr99pgantk7l6tq6quupq2bvkfiunp4.apps.googleusercontent.com',
   );
 }

@@ -18,34 +18,27 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json, String provider) {
-    final user = json['user'] as Map<String, dynamic>;
-    return User(
-      id: user['id'].toString(), // int → String 변환
-      provider: provider,
-      nickname: user['nickname'] as String?,
-      email: user['email'] as String?,
-      accessToken: json['accessToken'] as String?,
-      refreshToken: json['refreshToken'] as String?,
-      isOnboarded: user['is_onboarded'] as bool? ?? false,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'provider': provider,
-    'nickname': nickname,
-    'email': email,
-    'accessToken': accessToken,
-    'refreshToken': refreshToken,
-    'is_onboarded': isOnboarded,
-  };
-
-  // 게스트 유저
-  factory User.guest() {
-    return const User(
-      id: 'guest',
-      provider: 'guest',
-      isOnboarded: false,
-    );
+    final user = json['user'] as Map<String, dynamic>?;
+    
+    if (user != null) {
+      // 소셜 로그인 응답 (user 객체 있음)
+      return User(
+        id: user['id'].toString(),
+        provider: provider,
+        nickname: user['nickname'] as String?,
+        email: user['email'] as String?,
+        accessToken: json['accessToken'] as String?,
+        refreshToken: json['refreshToken'] as String?,
+        isOnboarded: user['is_onboarded'] as bool? ?? false,
+      );
+    } else {
+      // 게스트 로그인 응답 (accessToken만 있음)
+      return User(
+        id: 'guest',
+        provider: provider,
+        accessToken: json['accessToken'] as String?,
+        isOnboarded: false,
+      );
+    }
   }
 }

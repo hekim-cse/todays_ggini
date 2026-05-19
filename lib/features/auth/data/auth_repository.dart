@@ -21,7 +21,8 @@ class AuthRepository {
   }
 
   Future<User> loginAsGuest() async {
-    return User.guest();
+    final raw = await _remote.loginAsGuest();
+    return User.fromJson(raw, 'guest');
   }
 
   Future<void> logout() async {

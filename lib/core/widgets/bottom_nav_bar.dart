@@ -40,13 +40,13 @@ class BottomNavBar extends StatelessWidget {
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        right: index < items.length - 1
-                            ? BorderSide(color: AppColors.border, width: 2)
-                            : BorderSide.none,
-                      ),
-                    ),
+                    // decoration: BoxDecoration(
+                    //   border: Border(
+                    //     right: index < items.length - 1
+                    //         ? BorderSide(color: AppColors.border, width: 2)
+                    //         : BorderSide.none,
+                    //   ),
+                    // ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [

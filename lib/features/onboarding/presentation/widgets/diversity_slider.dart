@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:ui' as ui;
 import '../../../../core/theme/app_colors.dart';
-import 'image_thumb_shape.dart';
+import 'thumb_slider.dart';
+
 
 class DiversitySlider extends StatelessWidget {
   final int value;
@@ -12,13 +12,6 @@ class DiversitySlider extends StatelessWidget {
     required this.value,
     required this.onChanged,
   });
-
-  // diversity int → String 변환
-  String diversityToString(int value) {
-    if (value == 1) return '낮음';
-    if (value == 2) return '보통';
-    return '높음';
-  }
 
   String _getLabel(int v) {
     if (v == 1) return '한 가지 음식만 먹어도 괜찮아요';
@@ -32,44 +25,24 @@ class DiversitySlider extends StatelessWidget {
       children: [
         Row(
           children: [
-            Text(
-              '1',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
+            Text('1', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
             Expanded(
-              child: SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  activeTrackColor: AppColors.primary,
-                  inactiveTrackColor: AppColors.buttonGray,
-                  trackHeight: 6,
-                  thumbShape: ImageThumbShape(),
-                  overlayShape: SliderComponentShape.noOverlay,
-                ),
-                child: Slider(
-                  value: value.toDouble(),
-                  min: 1,
-                  max: 3,
-                  divisions: 2,
-                  onChanged: (v) => onChanged(v.round()),
-                ),
+              child: ThumbSlider(
+                value: value.toDouble(),
+                min: 1,
+                max: 3,
+                divisions: 2,
+                label: '$value',
+                onChanged: (v) => onChanged(v.round()),
               ),
             ),
-            Text(
-              '3',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
+            Text('3', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary)),
           ],
         ),
         const SizedBox(height: 8),
         Text(
-          '$value: ${_getLabel(value)}',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: AppColors.textPrimary,
-          ),
+          '${_getLabel(value)}',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textPrimary),
         ),
       ],
     );

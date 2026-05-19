@@ -6,6 +6,7 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../providers/meal_plan_loading_provider.dart';
 import '../widgets/loading_stage_item.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 
 class MealPlanLoadingScreen extends ConsumerStatefulWidget {
   const MealPlanLoadingScreen({super.key});
@@ -38,6 +39,7 @@ class _MealPlanLoadingScreenState extends ConsumerState<MealPlanLoadingScreen> {
 
     ref.listen(mealPlanLoadingProvider, (prev, next) {
       if (next.isComplete && !(prev?.isComplete ?? false)) {
+        ref.read(authProvider.notifier).markOnboarded();
         context.go(AppRoutes.home);
       }
     });

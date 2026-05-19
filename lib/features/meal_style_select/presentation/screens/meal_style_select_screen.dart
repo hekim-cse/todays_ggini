@@ -23,7 +23,6 @@ class _MealStyleSelectScreenState extends State<MealStyleSelectScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // 말풍선
             const MascotSpeech(message: '이런 스타일은\n어떠세요?'),
             const SizedBox(height: 16),
             Expanded(
@@ -41,14 +40,16 @@ class _MealStyleSelectScreenState extends State<MealStyleSelectScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                '위 식단은 예시 샘플 식단입니다.',
-                style: Theme.of(context).textTheme.bodySmall
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+              child: Center(
+                child: Text(
+                  '위 식단은 예시 샘플 식단입니다.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

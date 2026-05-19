@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
-import 'image_thumb_shape.dart';
+import 'thumb_slider.dart';
 
 class BudgetSlider extends StatelessWidget {
   final int value;
@@ -16,38 +16,24 @@ class BudgetSlider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            activeTrackColor: AppColors.primary,
-            inactiveTrackColor: AppColors.buttonGray,
-            trackHeight: 6,
-            thumbShape: ImageThumbShape(),
-            overlayShape: SliderComponentShape.noOverlay,
-          ),
-          child: Slider(
-            value: value.toDouble(),
-            min: 100000,
-            max: 1000000,
-            divisions: 18,
-            onChanged: (v) => onChanged(v.round()),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '10',
-                style: Theme.of(context).textTheme.bodySmall,
+        Row(
+          children: [
+            Text('10', style: Theme.of(context).textTheme.bodySmall),
+            Expanded(
+              child: ThumbSlider(
+                value: value.toDouble(),
+                min: 100000,
+                max: 1000000,
+                divisions: 18,
+                label: '${(value / 10000).round()}',
+                showThumbLabel: false,
+                onChanged: (v) => onChanged(v.round()),
               ),
-              Text(
-                '100',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-            ],
-          ),
+            ),
+            Text('100', style: Theme.of(context).textTheme.bodySmall),
+          ],
         ),
+        const SizedBox(height: 8),
         Center(
           child: RichText(
             text: TextSpan(

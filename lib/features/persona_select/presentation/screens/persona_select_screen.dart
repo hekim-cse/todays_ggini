@@ -23,18 +23,13 @@ class _PersonaSelectScreenState extends ConsumerState<PersonaSelectScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            children: [
-              // 기니피그 + 말풍선
-              MascotSpeech(
-                message: '나는...',
-              ),
-
-              const SizedBox(height: 16),
-
-              Expanded(
+        child: Column(
+          children: [
+            const MascotSpeech(message: '나는...'),
+            const SizedBox(height: 16),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: GridView.count(
                   crossAxisCount: 2,
                   crossAxisSpacing: 12,
@@ -49,8 +44,10 @@ class _PersonaSelectScreenState extends ConsumerState<PersonaSelectScreen> {
                   }).toList(),
                 ),
               ),
-              const SizedBox(height: 16),
-              SizedBox(
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _selectedPersona == null
@@ -63,6 +60,9 @@ class _PersonaSelectScreenState extends ConsumerState<PersonaSelectScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     disabledBackgroundColor: AppColors.buttonGray,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(32),
+                    ),
                   ),
                   child: Text(
                     '이 프로필로 시작하기',
@@ -70,9 +70,8 @@ class _PersonaSelectScreenState extends ConsumerState<PersonaSelectScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

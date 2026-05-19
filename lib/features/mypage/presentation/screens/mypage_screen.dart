@@ -7,6 +7,8 @@ import '../widgets/profile_section.dart';
 import '../widgets/section_title.dart';
 import '../widgets/setting_item.dart';
 import '../../../../core/widgets/popup.dart';
+import '../widgets/mypage_slider.dart';
+import '../widgets/mypage_budget_slider.dart';
 
 class MyPageScreen extends StatefulWidget {
   const MyPageScreen({super.key});
@@ -93,40 +95,6 @@ class _MyPageScreenState extends State<MyPageScreen> {
     }
   }
 
-  Widget _buildSliderContent(BuildContext context, int value, int min, int max, String label) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium,
-        ),
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            disabledActiveTrackColor: AppColors.primary,
-            disabledInactiveTrackColor: AppColors.buttonGray,
-            disabledThumbColor: AppColors.primary,
-            trackHeight: 6,
-          ),
-          child: Slider(
-            value: value.toDouble(),
-            min: min.toDouble(),
-            max: max.toDouble(),
-            divisions: max - min,
-            onChanged: null,
-          ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('$min', style: Theme.of(context).textTheme.bodySmall),
-            Text('$max', style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
-      ],
-    );
-  }
-
   void _showChipDialog(String title, List<String> options, List<String> selected) {
     showAppPopupWidget(
       context: context,
@@ -148,7 +116,12 @@ class _MyPageScreenState extends State<MyPageScreen> {
     showAppPopupWidget(
       context: context,
       title: '[$title]',
-      contentWidget: _buildSliderContent(context, value, min, max, getLabel(value)),
+      contentWidget: MyPageSlider(
+        value: value,
+        min: min,
+        max: max,
+        label: getLabel(value),
+      ),
       leftButtonText: '재설정하기',
       rightButtonText: '확인',
       leftButtonColor: AppColors.textSecondary,
@@ -165,37 +138,7 @@ class _MyPageScreenState extends State<MyPageScreen> {
     showAppPopupWidget(
       context: context,
       title: '[한달 식비 예산]',
-      contentWidget: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '${(_monthlyBudget / 10000).round()}만원 내에서 최적의 식단을 짜드려요!',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              disabledActiveTrackColor: AppColors.primary,
-              disabledInactiveTrackColor: AppColors.buttonGray,
-              disabledThumbColor: AppColors.primary,
-              trackHeight: 6,
-            ),
-            child: Slider(
-              value: _monthlyBudget.toDouble(),
-              min: 100000,
-              max: 1000000,
-              divisions: 18,
-              onChanged: null,
-            ),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('10만원', style: Theme.of(context).textTheme.bodySmall),
-              Text('100만원', style: Theme.of(context).textTheme.bodySmall),
-            ],
-          ),
-        ],
-      ),
+      contentWidget: MyPageBudgetSlider(value: _monthlyBudget),
       leftButtonText: '재설정하기',
       rightButtonText: '확인',
       leftButtonColor: AppColors.primary,
@@ -304,16 +247,29 @@ class _MyPageScreenState extends State<MyPageScreen> {
               ),
               SettingItem(
                 emoji: '🍚', title: '식사 수', value: '$_mealCount끼',
-                onTap: () => _showSliderDialog('식사 수', _mealCount, 1, 5, (v) => '$v끼 먹어요'),
+                onTap: () => _showSliderDialog('식사 수', _mealCount, 1, 5, (v) {
+                  switch (v) {
+                    case 1: return '하루에 한 끼 먹어요';
+                    case 2: return '하루에 두 끼 먹어요';
+                    case 3: return '하루에 세 끼 먹어요';
+                    case 4: return '하루에 네 끼 먹어요';
+                    case 5: return '하루에 다섯 끼 먹어요';
+                    default: return '';
+                  }
+                }),
               ),
               SettingItem(
                 emoji: '💰', title: '한달 식비 예산', value: '${(_monthlyBudget / 10000).round()}만원',
                 onTap: () => _showBudgetDialog(),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
+              Divider(color: AppColors.border, thickness: 2),
+              const SizedBox(height: 12),
               const SectionTitle(title: '앱 설정'),
               SettingItem(emoji: '🔔', title: '알림 설정', value: '', onTap: () {}, showToggle: true, showArrow: false),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
+              Divider(color: AppColors.border, thickness: 2),
+              const SizedBox(height: 12),
               const SectionTitle(title: '계정 설정'),
               SettingItem(emoji: '🚪', title: '로그아웃', value: '', onTap: () => _showLogoutDialog(context), showArrow: false),
               SettingItem(emoji: '⚠️', title: '회원탈퇴', value: '', titleColor: AppColors.error, onTap: () => _showDeleteAccountDialog(context), showArrow: false),

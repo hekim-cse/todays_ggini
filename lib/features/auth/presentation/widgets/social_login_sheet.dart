@@ -43,28 +43,37 @@ class SocialLoginSheet extends ConsumerWidget {
               children: [
                 SocialButton(
                   label: '카카오',
+                  imagePath: 'assets/images/kakao.png',
                   color: const Color(0xFFFFE812),
                   onTap: () async {
                     Navigator.pop(context);
                     await notifier.loginWithKakao();
+                    if (!context.mounted) return;
+                    context.go(AppRoutes.personaSelect); 
                   },
                 ),
                 SocialButton(
                   label: '네이버',
+                  imagePath: 'assets/images/naver.png',
                   color: const Color(0xFF03C75A),
                   labelColor: Colors.white,
                   onTap: () async {
                     Navigator.pop(context);
                     await notifier.loginWithNaver();
+                    if (!context.mounted) return;
+                    context.go(AppRoutes.personaSelect); 
                   },
                 ),
                 SocialButton(
                   label: '구글',
+                  imagePath: 'assets/images/google.png',
                   color: Colors.white,
                   border: true,
                   onTap: () async {
                     Navigator.pop(context);
                     await notifier.loginWithGoogle();
+                    if (!context.mounted) return;
+                    context.go(AppRoutes.personaSelect);
                   },
                 ),
                 SocialButton(
@@ -112,9 +121,7 @@ class SocialLoginSheet extends ConsumerWidget {
                     onRightTap: () async {
                       await notifier.loginAsGuest();
                       if (!context.mounted) return;
-                      Navigator.pop(context);
-                      Navigator.pop(context);
-                      context.go(AppRoutes.personaSelect);
+                      context.go(AppRoutes.personaSelect); 
                     },
                   );
                 },

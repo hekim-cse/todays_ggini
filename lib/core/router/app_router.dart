@@ -20,19 +20,22 @@ import '../../features/menu_change/presentation/screens/menu_change_screen.dart'
 import 'app_routes.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authProvider);
-
   return GoRouter(
     initialLocation: AppRoutes.splash,
     redirect: (context, state) {
+      final container = ProviderScope.containerOf(context);
+      final authState = container.read(authProvider);
       final isLoggedIn = authState.isLoggedIn;
       final isOnboarded = authState.user?.isOnboarded ?? false;
       final currentPath = state.uri.path;
 
-      // 로그인(소셜 or 게스트) 안 됐으면 → auth로
-      if (!isLoggedIn &&
-          currentPath != AppRoutes.splash &&
-          currentPath != AppRoutes.auth) {
+      // splash는 자체적으로 처리
+      if (currentPath == AppRoutes.splash) {
+        return null;
+      }
+
+      // 로그인 안 됐으면 → auth로
+      if (!isLoggedIn && currentPath != AppRoutes.auth) {
         return AppRoutes.auth;
       }
 
@@ -51,7 +54,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // 온보딩 완료 후 auth 화면 접근 막기
       if (isLoggedIn && isOnboarded && currentPath == AppRoutes.auth) {
-        return AppRoutes.calendar;
+        return AppRoutes.home;
       }
 
       return null;

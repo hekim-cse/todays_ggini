@@ -11,10 +11,10 @@ class ShoppingListSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.transparent,
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.border, width: 3.0),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(

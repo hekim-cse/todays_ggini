@@ -37,58 +37,6 @@ class _GoalSelectorState extends State<GoalSelector> {
     widget.onChanged(newList);
   }
 
-  // Widget _buildRow(BuildContext context, List<String> items) {
-  //   return LayoutBuilder(
-  //     builder: (context, constraints) {
-  //       final textStyle = Theme.of(context).textTheme.bodyMedium;
-  //       final horizontalPadding = 16.0 * 2;
-  //       final spacing = 8.0;
-
-  //       double totalTextWidth = 0;
-  //       for (final goal in items) {
-  //         final tp = TextPainter(
-  //           text: TextSpan(text: goal, style: textStyle),
-  //           textDirection: TextDirection.ltr,
-  //         )..layout();
-  //         totalTextWidth += tp.width + horizontalPadding;
-  //       }
-  //       totalTextWidth += spacing * (items.length - 1);
-
-  //       final extraPerItem = (constraints.maxWidth - totalTextWidth) > 0
-  //           ? (constraints.maxWidth - totalTextWidth) / items.length
-  //           : 0.0;
-
-  //       return Row(
-  //         children: items.asMap().entries.map((entry) {
-  //           final index = entry.key;
-  //           final goal = entry.value;
-  //           final isSelected = widget.selectedGoals.contains(goal);
-
-  //           return GestureDetector(
-  //             onTap: () => _onTap(goal),
-  //             child: Container(
-  //               margin: EdgeInsets.only(right: index < items.length - 1 ? spacing : 0),
-  //               padding: EdgeInsets.symmetric(
-  //                 horizontal: 16 + extraPerItem / 2,
-  //                 vertical: 10,
-  //               ),
-  //               decoration: BoxDecoration(
-  //                 color: isSelected ? AppColors.primary : AppColors.buttonGray,
-  //                 borderRadius: BorderRadius.circular(12),
-  //               ),
-  //               child: Text(
-  //                 goal,
-  //                 style: textStyle?.copyWith(
-  //                   color: isSelected ? Colors.white : AppColors.textPrimary,
-  //                 ),
-  //               ),
-  //             ),
-  //           );
-  //         }).toList(),
-  //       );
-  //     },
-  //   );
-  // }
 
   Widget _buildRow(BuildContext context, List<String> items) {
     return Row(
