@@ -11,9 +11,16 @@ from app.utils.meal_transformer import transform_ai_plan_to_front
 from app.models.user import User
 from app.crud.crud_user import update_user_selected_style
 from app.models.meal import MealPlan
-from app.schemas.meal import (DailyMealDetailResponse, MealConfirmResponse, CalendarResponse,
-                              MealSwapResponse, MealSwapRequest, MenuUpdateRequest, AlternativeMenuResponse,
-                              StyleSelectRequest)
+from app.schemas.meal import (
+    DailyMealDetailResponse,
+    MealConfirmResponse,
+    CalendarResponse,
+    MealSwapResponse,
+    MealSwapRequest,
+    MenuUpdateRequest,
+    AlternativeMenuResponse,
+    StyleSelectRequest,
+)
 from app.crud import crud_meal
 from app.utils.image_search import get_food_image_url
 
@@ -41,14 +48,18 @@ router = APIRouter()
 
 # ---------------------------  프론트엔드 호출용 API ---------------------------------
 JOB_STORE = {}
+
+
 # -------------------- 월간 식단 요청(비동기 실행) ----------------------------
-async def background_monthly_plan_task(job_id: str, user_id: int, selected_style_id: str):
+async def background_monthly_plan_task(
+    job_id: str, user_id: int, selected_style_id: str
+):
     """
     API 응답이 나간 뒤 백그라운드에서 조용히 실행될 함수
     """
     # 작업 시작 기록
     JOB_STORE[job_id] = {"status": "PROCESSING", "progress": "프로필 분석 중"}
-    
+
     # 💡 백그라운드 작업이므로 DB 세션을 새로 엽니다.
     db = SessionLocal()
 
@@ -79,17 +90,18 @@ async def background_monthly_plan_task(job_id: str, user_id: int, selected_style
             ),
         }
 
-        
         JOB_STORE[job_id]["progress"] = "식단 후보 생성 중 (AI 연산)"
         # AI 호출
         ai_response = await asyncio.to_thread(create_monthly_plan, modeling_payload)
-        
+
         days_data = ai_response.get("monthly_plan", {}).get("days", [])
-        
+
         JOB_STORE[job_id]["progress"] = "DB에 결과 저장 중"
         # 💡 DB 저장
-        crud_meal.save_monthly_plan(db=db, user_id=current_user.id, ai_days_list=days_data)
-        
+        crud_meal.save_monthly_plan(
+            db=db, user_id=current_user.id, ai_days_list=days_data
+        )
+
         # 모든 작업 완료 기록
         JOB_STORE[job_id] = {"status": "COMPLETED", "progress": "완료"}
 
@@ -97,38 +109,40 @@ async def background_monthly_plan_task(job_id: str, user_id: int, selected_style
         print(f"Background Task Error: {str(e)}")
         JOB_STORE[job_id] = {"status": "FAILED", "error": str(e)}
     finally:
-        db.close() # 필수: 작업이 끝나면 DB 세션 닫기
+        db.close()  # 필수: 작업이 끝나면 DB 세션 닫기
+
 
 # ---------------------- 식단 생성 트리거 --------------------------------
 @router.post("/generate", status_code=status.HTTP_202_ACCEPTED)
 async def generate_meal_plans_trigger(
-    request: StyleSelectRequest, # 프론트에서 넘어온 스타일 ID
+    request: StyleSelectRequest,  # 프론트에서 넘어온 스타일 ID
     background_tasks: BackgroundTasks,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     [화면 6] 프로필 기반 식단 생성 트리거
     Celery로 백그라운드 작업을 호출하고 작업 ID를 반환합니다.
     """
-    
+
     # 1. Celery Task 백그라운드 호출 (.delay 사용)
     # 반드시 DB 객체가 아닌 원시 타입(Primitive Type)만 넘겨야 합니다.
     job_id = f"job_{uuid.uuid4().hex[:8]}"
-    
+
     # 2. 백그라운드에 일거리 던지기 (함수 이름과 인자들을 넘김)
     background_tasks.add_task(
-        background_monthly_plan_task, 
-        job_id=job_id, 
-        user_id=current_user.id, 
-        selected_style_id=request.selected_style_id
+        background_monthly_plan_task,
+        job_id=job_id,
+        user_id=current_user.id,
+        selected_style_id=request.selected_style_id,
     )
-    
+
     # 2. Celery가 발급한 고유 Task ID를 프론트에 전달
     return {
-        "job_id": job_id, 
+        "job_id": job_id,
         "estimated_seconds": 10,
-        "stages": ["프로필 분석", "식단 후보 생성", "최적 조합 선정", "DB 저장"]
+        "stages": ["프로필 분석", "식단 후보 생성", "최적 조합 선정", "DB 저장"],
     }
+
 
 @router.get("/generate/status/{job_id}")
 async def check_generation_status(job_id: str):
@@ -137,24 +151,29 @@ async def check_generation_status(job_id: str):
     """
     job_info = JOB_STORE.get(job_id)
     if not job_info:
-        raise HTTPException(status_code=404, detail="존재하지 않거나 만료된 작업입니다.")
-        
+        raise HTTPException(
+            status_code=404, detail="존재하지 않거나 만료된 작업입니다."
+        )
+
     return job_info
+
 
 # --------------------- 생성된 30일 식단 최종 확정 및 요약 정보 반환 API -----------------------
 @router.post("/confirm", response_model=MealConfirmResponse)
 def confirm_meal_plan(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
 ):
     """
     [화면 9] 생성된 30일 식단을 최종 확정하고 요약 정보를 반환합니다.
     """
     # 1. 해당 유저의 가장 최근 생성된(혹은 임시 상태인) 식단 리스트 조회
     # (실제 서비스에서는 is_confirmed 등의 상태 값을 활용할 수 있습니다)
-    plans = db.query(MealPlan).filter(
-        MealPlan.user_id == current_user.id
-    ).order_by(MealPlan.meal_date.asc()).all()
+    plans = (
+        db.query(MealPlan)
+        .filter(MealPlan.user_id == current_user.id)
+        .order_by(MealPlan.meal_date.asc())
+        .all()
+    )
 
     if not plans:
         raise HTTPException(status_code=404, detail="확정할 식단 내역이 없습니다.")
@@ -163,7 +182,7 @@ def confirm_meal_plan(
     start_date = plans[0].meal_date
     end_date = plans[-1].meal_date
     duration = (end_date - start_date).days + 1
-    
+
     total_price = sum(p.estimated_cost for p in plans if p.estimated_cost)
     total_calories = sum(p.total_calories for p in plans if p.total_calories)
     avg_calories = total_calories // duration if duration > 0 else 0
@@ -176,8 +195,9 @@ def confirm_meal_plan(
         "duration_days": duration,
         "total_price_per_plan": total_price,
         "average_calories_per_plan": avg_calories,
-        "generated_at": datetime.now() # 혹은 DB의 생성일시 컬럼 사용
+        "generated_at": datetime.now(),  # 혹은 DB의 생성일시 컬럼 사용
     }
+
 
 # -------------------- 월간 캘린더 조회 API ----------------------------
 @router.get("/calendar", response_model=CalendarResponse)
@@ -272,6 +292,7 @@ def get_monthly_calendar(
         "days": days_list,
     }
 
+
 # ----------------------- 일일 식단 상세 정보 조회 API ---------------------------------
 @router.get("/{date}", response_model=DailyMealDetailResponse)
 async def get_daily_meal_detail(
@@ -322,6 +343,7 @@ async def get_daily_meal_detail(
         "meals": detail_meals,
     }
 
+
 # -------------------------- 식단 상세 레시피, 재료, 마켓 정보 조회 API -------------------------
 @router.get("/menu/{meal_date}/{menu_id}")
 async def get_menu_detail(
@@ -364,32 +386,31 @@ async def get_menu_detail(
     # 4. 재료 데이터 변환 (AI 데이터의 ingredient_costs 리스트 활용)
     ing_costs = target_menu.get("ingredient_costs", [])
     for ing_cost in target_menu.get("ingredient_costs", []):
+        print(f"[ING] {ing_cost.get('ingredient_name')}: {ing_cost}")
         ing_id = ing_cost.get("ingredient_id")
         required_ingredient_ids.append(ing_id)
 
-        # 모델링 데이터에서 제공한 최저가 및 마켓 정보
-        mock_price = ing_cost.get("lowest_price", 0)
-        mock_market = ing_cost.get("lowest_market", "coupang")  # 기본값 fallback
+        has_price = ing_cost.get("pricing_status") == "calculated"
+        mock_price = ing_cost.get("lowest_price") if has_price else None
+        mock_market = ing_cost.get("lowest_market") if has_price else None
 
-        # e_commerce_prices 조립
-        e_commerce_prices = {}
-        for market in supported_markets:
-            if market == mock_market:
-                e_commerce_prices[market] = {"lowest_price": mock_price}
-            else:
-                # 데이터가 없는 마켓은 임시로 None 처리
-                e_commerce_prices[market] = {"lowest_price": None}
+        # 일단 모든 마켓을 null로 초기화
+        e_commerce_prices = {m: {"lowest_price": None} for m in supported_markets}
 
-        # 개별 재료 정보 조립
+        # 가격 있는 경우에만 해당 마켓 채우기
+        if has_price and mock_market in supported_markets:
+            e_commerce_prices[mock_market] = {"lowest_price": mock_price}
+
+        # 개별 재료 정보 조립 (lowest_price_between_market도 None 가능)
         ingredients_data.append(
             {
                 "ingredient_id": ing_id,
                 "ingredient_name": ing_cost.get("ingredient_name"),
-                "standard_unit": ing_cost.get("display_amount"),  # 예: "122g", "1공기"
+                "standard_unit": ing_cost.get("display_amount"),
                 "image_url": None,
                 "lowest_price_between_market": {
-                    "market": mock_market,
-                    "price": mock_price,
+                    "market": mock_market,  # None 가능
+                    "price": mock_price,  # None 가능
                 },
                 "e_commerce_prices": e_commerce_prices,
             }
@@ -425,13 +446,14 @@ async def get_menu_detail(
 
     return response_data
 
+
 # -------------------------- 식단 swap API -----------------------------------
 @router.patch("/{date}/swap", response_model=MealSwapResponse)
 def swap_meal_plans(
     date: date,
     request: MealSwapRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     내용물(JSON)은 그대로 두고, 두 식단의 날짜(meal_date) 라벨만 서로 교환합니다.
@@ -445,8 +467,16 @@ def swap_meal_plans(
         raise HTTPException(status_code=400, detail="동일한 날짜는 스왑할 수 없습니다.")
 
     # 1. 두 날짜 데이터 레코드 자체를 가져옴
-    plan1 = db.query(MealPlan).filter(MealPlan.user_id == current_user.id, MealPlan.meal_date == date1).first()
-    plan2 = db.query(MealPlan).filter(MealPlan.user_id == current_user.id, MealPlan.meal_date == date2).first()
+    plan1 = (
+        db.query(MealPlan)
+        .filter(MealPlan.user_id == current_user.id, MealPlan.meal_date == date1)
+        .first()
+    )
+    plan2 = (
+        db.query(MealPlan)
+        .filter(MealPlan.user_id == current_user.id, MealPlan.meal_date == date2)
+        .first()
+    )
 
     if not plan1 and not plan2:
         raise HTTPException(status_code=404, detail="스왑할 데이터가 없습니다.")
@@ -454,11 +484,11 @@ def swap_meal_plans(
     # 2. 날짜(Date) 라벨만 교환 (temp 변수 활용)
     try:
         # DB Unique 제약 조건 충돌을 막기 위해 plan1을 아주 먼 임시 날짜로 잠깐 대피
-        temp_date = dt_date(9999, 12, 31) 
+        temp_date = dt_date(9999, 12, 31)
 
         if plan1:
             plan1.meal_date = temp_date
-        db.flush() # DB에 임시 반영 (commit 전 상태)
+        db.flush()  # DB에 임시 반영 (commit 전 상태)
 
         if plan2:
             plan2.meal_date = date1
@@ -466,9 +496,9 @@ def swap_meal_plans(
 
         if plan1:
             plan1.meal_date = date2
-            
-        db.commit() # 최종 확정!
-        
+
+        db.commit()  # 최종 확정!
+
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"스왑 실패: {str(e)}")
@@ -480,27 +510,30 @@ def swap_meal_plans(
             for m in p.content:
                 selected = m.get("selected_menu") or {}
                 m_id = selected.get("menu_id")
-                
-                formatted_meals.append({
-                    "slot": m.get("meal_order") or 1,
-                    "meal_id": str(m_id) if m_id is not None else "",
-                    "menu_name": selected.get("name") or "메뉴 정보 없음"
-                })
+
+                formatted_meals.append(
+                    {
+                        "slot": m.get("meal_order") or 1,
+                        "meal_id": str(m_id) if m_id is not None else "",
+                        "menu_name": selected.get("name") or "메뉴 정보 없음",
+                    }
+                )
 
         return {
             "date": d,
             "calories_per_day": int(p.total_calories or 0) if p else None,
             "price_per_day": int(p.estimated_cost or 0) if p else None,
-            "meals": formatted_meals
+            "meals": formatted_meals,
         }
 
     # 주의: plan1은 이제 date2를, plan2는 date1을 가리키고 있습니다.
     return {
         "swapped": [
-            format_day(date1, plan2), # 날짜1에는 원래 날짜2의 데이터(plan2)를 매핑
-            format_day(date2, plan1)  # 날짜2에는 원래 날짜1의 데이터(plan1)를 매핑
+            format_day(date1, plan2),  # 날짜1에는 원래 날짜2의 데이터(plan2)를 매핑
+            format_day(date2, plan1),  # 날짜2에는 원래 날짜1의 데이터(plan1)를 매핑
         ]
     }
+
 
 # ------------------------ 특정 날짜의 특정 메뉴 변경 API ----------------------------
 @router.put("/{date}/menus/{slot}", response_model=DailyMealDetailResponse)
@@ -619,26 +652,29 @@ async def update_specific_menu_slot(
         "meals": detail_meals,
     }
 
+
 # ----------------------------- 메뉴 변경용 추천 대안 조회 API ------------------------------
 @router.get("/menus/{meal_id}/alternatives", response_model=AlternativeMenuResponse)
 async def get_meal_alternatives(
     meal_id: str,
-    target_date: str = Query(None, description="YYYY-MM-DD 형식 (정확한 식단 검색을 위해 권장)"),
+    target_date: str = Query(
+        None, description="YYYY-MM-DD 형식 (정확한 식단 검색을 위해 권장)"
+    ),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     [화면 10-3] 메뉴 변경용 추천 대안 조회 API
     DB에 저장된 월간 식단 원본 데이터에서 현재 메뉴 정보와 대안 메뉴(alternatives)를 추출하여 반환합니다.
     """
-    
+
     query = db.query(MealPlan).filter(MealPlan.user_id == current_user.id)
-    
+
     if target_date:
         query = query.filter(MealPlan.meal_date == target_date)
     else:
         query = query.filter(MealPlan.meal_date >= date.today())
-        
+
     meal_plans = query.order_by(MealPlan.meal_date.asc()).all()
 
     target_meal_data = None
@@ -648,36 +684,40 @@ async def get_meal_alternatives(
     for plan in meal_plans:
         if not plan.content:
             continue
-            
+
         for meal in plan.content:
             selected_menu = meal.get("selected_menu", {})
             if selected_menu.get("menu_id") == meal_id:
                 target_meal_data = meal
-                target_meal_date = plan.meal_date # 날짜 객체
+                target_meal_date = plan.meal_date  # 날짜 객체
                 break
-                
+
         if target_meal_data:
             break
 
     if not target_meal_data:
-        raise HTTPException(status_code=404, detail="해당 메뉴가 포함된 식단 기록을 찾을 수 없습니다.")
+        raise HTTPException(
+            status_code=404, detail="해당 메뉴가 포함된 식단 기록을 찾을 수 없습니다."
+        )
 
     selected_menu = target_meal_data.get("selected_menu", {})
     alt_menus = target_meal_data.get("alternative_menus", [])
 
     current_menu_name = selected_menu.get("name", "")
-    current_menu_category = selected_menu.get("category", "") # 카테고리 추출
+    current_menu_category = selected_menu.get("category", "")  # 카테고리 추출
 
     # 인덱스 0번은 항상 Current Meal의 이미지가 되도록 세팅
     img_tasks = [get_food_image_url(current_menu_name, current_menu_category)]
-    
+
     # Alternatives 이미지 작업 추가
     for alt in alt_menus:
-        img_tasks.append(get_food_image_url(alt.get("name", ""), alt.get("category", "")))
+        img_tasks.append(
+            get_food_image_url(alt.get("name", ""), alt.get("category", ""))
+        )
 
     # 모아둔 작업 병렬 실행
     all_img_urls = await asyncio.gather(*img_tasks)
-    
+
     # 결과 분리
     current_img_url = all_img_urls[0]
     alt_img_urls = all_img_urls[1:]
@@ -689,30 +729,34 @@ async def get_meal_alternatives(
         "menu_name": selected_menu.get("name", ""),
         "calories": int(selected_menu.get("calories") or 0),
         "price": int(selected_menu.get("estimated_cost") or 0),
-        "image_url": current_img_url, # 병렬 결과 매핑
-        "date": target_meal_date.strftime("%Y-%m-%d") if target_meal_date else "", # 문자열로 변환
-        "slot": target_meal_data.get("meal_order", 1)
+        "image_url": current_img_url,  # 병렬 결과 매핑
+        "date": target_meal_date.strftime("%Y-%m-%d")
+        if target_meal_date
+        else "",  # 문자열로 변환
+        "slot": target_meal_data.get("meal_order", 1),
     }
 
     # 4. 명세서 기반 Alternatives 가공
     alternatives = []
     for alt, url in zip(alt_menus, alt_img_urls):
-        alternatives.append({
-            "meal_id": alt.get("menu_id", ""),
-            "menu_name": alt.get("name", ""),
-            "calories": int(alt.get("calories") or 0),
-            "price": int(alt.get("estimated_cost") or 0),
-            "image_url": url # 병렬 결과 매핑
-        })
+        alt_menu_name = alt.get("name", "")
+        alt_menu_category = alt.get("category", "")
+        alternatives.append(
+            {
+                "meal_id": alt.get("menu_id", ""),
+                "menu_name": alt.get("name", ""),
+                "calories": int(alt.get("calories") or 0),
+                "price": int(alt.get("estimated_cost") or 0),
+                "image_url": url,  # 병렬 결과 매핑
+            }
+        )
 
     # 5. 최종 반환 (Pydantic 스키마가 자동으로 JSON 변환 및 검증을 수행합니다)
-    return {
-        "current_meal": current_meal,
-        "alternatives": alternatives
-    }
+    return {"current_meal": current_meal, "alternatives": alternatives}
 
 
-# ------------------------------- AI 모델 서버 호출용 API ----------------------------------  
+# ------------------------------- AI 모델 서버 호출용 API ----------------------------------
+
 
 def get_modeling_user_id(current_user: User) -> str:
     """
@@ -894,7 +938,7 @@ def build_selected_style_from_style_id(style_id: str) -> dict:
     return selected_style
 
 
-# ---------------- 3일치 식단 샘플 생성 요청 API ---------------------- 
+# ---------------- 3일치 식단 샘플 생성 요청 API ----------------------
 @router.post("/generate_sample_3days")
 async def generate_initial_meal_plan(
     sample_period_days: int = 3,
@@ -937,7 +981,7 @@ async def generate_initial_meal_plan(
         )
 
     frontend_candidates = []
-    
+
     for candidate in ai_response.get("meal_style_candidates", []):
         # 첫째 날의 메뉴 3개를 뽑아서 대표 메뉴로 사용
         # 1. 먼저 days 리스트를 안전하게 가져옵니다.
@@ -947,22 +991,38 @@ async def generate_initial_meal_plan(
         first_day_meals = days_list[0].get("meals", []) if days_list else []
         representative_menus = [meal.get("name") for meal in first_day_meals[:3]]
 
-        frontend_candidates.append({
-            "style_id": candidate.get("style_id"),           # 나중에 유저가 선택했을 때 백엔드로 다시 보낼 식별자
-            "style_name": candidate.get("style_name"),       # 예: "가성비 최우선"
-            "description": candidate.get("description"),     # "단백질 섭취를 우선으로 고려한 식단" 등 상세 설명
-            "summary_comment": candidate.get("summary_comment"), # 예: "단백질 섭취를 늘리고 싶은..."
-            "display_labels": candidate.get("display_labels"),   # 점수 라벨 (건강, 가성비 등)
-            "display_scores": candidate.get("display_scores"),   # 실제 점수 데이터 (그래프용)
-            "representative_menus": representative_menus     # 예: ["새우 두부 계란찜", "닭가슴살 브로콜리 만두", "부추 콩가루 찜"]
-        })
+        frontend_candidates.append(
+            {
+                "style_id": candidate.get(
+                    "style_id"
+                ),  # 나중에 유저가 선택했을 때 백엔드로 다시 보낼 식별자
+                "style_name": candidate.get("style_name"),  # 예: "가성비 최우선"
+                "description": candidate.get(
+                    "description"
+                ),  # "단백질 섭취를 우선으로 고려한 식단" 등 상세 설명
+                "summary_comment": candidate.get(
+                    "summary_comment"
+                ),  # 예: "단백질 섭취를 늘리고 싶은..."
+                "display_labels": candidate.get(
+                    "display_labels"
+                ),  # 점수 라벨 (건강, 가성비 등)
+                "display_scores": candidate.get(
+                    "display_scores"
+                ),  # 실제 점수 데이터 (그래프용)
+                "representative_menus": representative_menus,  # 예: ["새우 두부 계란찜", "닭가슴살 브로콜리 만두", "부추 콩가루 찜"]
+            }
+        )
 
     return {
         "message": "3일치 식단 스타일 후보 생성이 완료되었습니다.",
-        "candidates": frontend_candidates
+        "request body": ai_payload,
+        "ai_response": ai_response,
+        "candidates": frontend_candidates,
     }
 
+
 # --------------------------- 모델링 연동 API ---------------------------
+
 
 @router.post("/modeling/style-candidates")
 async def create_modeling_style_candidates(

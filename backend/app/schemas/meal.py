@@ -144,8 +144,8 @@ class MealSwapResponse(BaseModel):
 # -------------- 식단 상세 레시피 영상, 재료, 마켓 정보 조회 스키마 --------------------
 
 class MarketPrice(BaseModel):
-    market: str
-    price: int
+    market: Optional[str] = None
+    price: Optional[int] = None
 
 class ECommercePrices(BaseModel):
     coupang: Optional[Dict[str, int]] = None
