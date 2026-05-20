@@ -1,63 +1,76 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/bottom_nav_bar.dart';
+import '../providers/mypage_provider.dart';
 import '../widgets/profile_section.dart';
 import '../widgets/section_title.dart';
 import '../widgets/setting_item.dart';
 import '../../../../core/widgets/popup.dart';
 import '../widgets/mypage_slider.dart';
 import '../widgets/mypage_budget_slider.dart';
+import '../../domain/my_profile.dart';
 
-class MyPageScreen extends StatefulWidget {
+class MyPageScreen extends ConsumerStatefulWidget {
   const MyPageScreen({super.key});
 
   @override
-  State<MyPageScreen> createState() => _MyPageScreenState();
+  ConsumerState<MyPageScreen> createState() => _MyPageScreenState();
 }
 
-class _MyPageScreenState extends State<MyPageScreen> {
-  final String _persona = '맛과 밸런스';
-  final List<String> _goals = ['식비 절약', '간편식', '맛 중심'];
-  final List<String> _foods = ['한식', '일식', '패스트푸드'];
-  final List<String> _ingredients = ['육류', '채소류'];
-  final List<String> _allergies = ['우유', '새우'];
-  final int _diversity = 2;
-  final int _cookingSkill = 4;
-  final int _mealCount = 4;
-  final int _monthlyBudget = 400000;
+class _MyPageScreenState extends ConsumerState<MyPageScreen> {
 
   final List<String> _goalOptions = [
-    '식비 절약',
-    '영양 균형',
-    '다이어트',
-    '고단백',
-    '간편식',
-    '맛 중심',
+    '식비 절약', '영양 균형', '다이어트', '고단백', '간편식', '맛 중심',
   ];
   final List<String> _foodOptions = [
-    '한식',
-    '중식',
-    '일식',
-    '양식',
-    '분식',
-    '패스트푸드',
-    '샐러드/건강식',
-    '다 좋아요',
+    '한식', '중식', '일식', '양식', '분식', '패스트푸드', '샐러드/건강식', '다 좋아요',
   ];
   final List<String> _ingredientOptions = [
-    '육류',
-    '해산물류',
-    '채소류',
-    '식물성 단백질류',
-    '계란 및 유제품류',
+    '육류', '해산물류', '채소류', '식물성 단백질류', '계란 및 유제품류',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() =>
+        ref.read(myPageProvider.notifier).fetchMyProfile());
+  }
 
   String _formatList(List<String> list) {
     if (list.isEmpty) return '없음';
     if (list.length <= 2) return list.join(', ');
     return '${list.take(2).join(', ')}, ...';
+  }
+
+  String _personaLabel(int id) {
+    switch (id) {
+      case 1: return '가성비 자취생';
+      case 2: return '우리가족 영양사';
+      case 3: return '내 몸이 곧 재산';
+      case 4: return '퇴근 후 맥주한잔';
+      default: return '알 수 없음';
+    }
+  }
+
+  String _diversityLabel(String level) {
+    switch (level) {
+      case '낮음': return '한 가지 음식만 먹어도 괜찮아요';
+      case '보통': return '적당히 다양하게 먹고 싶어요';
+      case '높음': return '매일 다른 음식을 먹고 싶어요';
+      default: return level;
+    }
+  }
+
+  int _diversityToInt(String level) {
+    switch (level) {
+      case '낮음': return 1;
+      case '보통': return 2;
+      case '높음': return 3;
+      default: return 2;
+    }
   }
 
   Widget _buildChipRow(BuildContext context, List<String> items, List<String> selected) {
@@ -156,11 +169,11 @@ class _MyPageScreenState extends State<MyPageScreen> {
     );
   }
 
-  void _showBudgetDialog() {
+  void _showBudgetDialog(int budget) {
     showAppPopupWidget(
       context: context,
       title: '[한달 식비 예산]',
-      contentWidget: MyPageBudgetSlider(value: _monthlyBudget),
+      contentWidget: MyPageBudgetSlider(value: budget),
       leftButtonText: '재설정하기',
       rightButtonText: '확인',
       leftButtonColor: AppColors.primary,
@@ -173,15 +186,11 @@ class _MyPageScreenState extends State<MyPageScreen> {
     );
   }
 
-  void _showAllergyDialog() {
+  void _showAllergyDialog(List<String> allergies) {
     showAppPopupWidget(
       context: context,
       title: '[제외 재료]',
-      contentWidget: _buildChipRow(
-        context,
-        _allergies,
-        _allergies,
-      ),
+      contentWidget: _buildChipRow(context, allergies, allergies),
       leftButtonText: '재설정하기',
       rightButtonText: '확인',
       leftButtonColor: AppColors.primary,
@@ -220,43 +229,94 @@ class _MyPageScreenState extends State<MyPageScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(myPageProvider);
+
+    if (state.isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (state.error != null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('프로필을 불러오지 못했어요.'),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: () => ref.read(myPageProvider.notifier).fetchMyProfile(),
+                child: const Text('다시 시도'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final profile = state.profile;
+    if (profile == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             children: [
-              ProfileSection(persona: _persona),
+              ProfileSection(persona: _personaLabel(profile.personaId)),
               const SizedBox(height: 24),
               const SectionTitle(title: '내 설정'),
-              SettingItem(emoji: '😊', title: '페르소나', value: _persona, onTap: () {}),
               SettingItem(
-                emoji: '✅', title: '목적', value: _formatList(_goals),
-                onTap: () => _showChipDialog('목적', _goalOptions, _goals),
+                emoji: '😊',
+                title: '페르소나',
+                value: _personaLabel(profile.personaId),
+                onTap: () {},
               ),
               SettingItem(
-                emoji: '🥨', title: '취향', value: _formatList(_foods),
-                onTap: () => _showChipDialog('취향', _foodOptions, _foods),
+                emoji: '✅',
+                title: '목적',
+                value: _formatList(profile.purpose),
+                onTap: () => _showChipDialog('목적', _goalOptions, profile.purpose),
               ),
               SettingItem(
-                emoji: '🥦', title: '선호 식재료', value: _formatList(_ingredients),
-                onTap: () => _showChipDialog('선호 식재료', _ingredientOptions, _ingredients),
+                emoji: '🥨',
+                title: '취향',
+                value: _formatList(profile.preferredCategories),
+                onTap: () => _showChipDialog('취향', _foodOptions, profile.preferredCategories),
               ),
               SettingItem(
-                emoji: '🫙', title: '제외 재료', value: _formatList(_allergies),
-                onTap: () => _showAllergyDialog(),
+                emoji: '🥦',
+                title: '선호 식재료',
+                value: _formatList(profile.preferredIngredients),
+                onTap: () => _showChipDialog('선호 식재료', _ingredientOptions, profile.preferredIngredients),
               ),
               SettingItem(
-                emoji: '🍱', title: '다양성', value: '$_diversity단계',
-                onTap: () => _showSliderDialog('다양성', _diversity, 1, 3, (v) {
-                  if (v == 1) return '한 가지 음식만 먹어도 괜찮아요';
-                  if (v == 2) return '적당히 다양하게 먹고 싶어요';
-                  return '매일 다른 음식을 먹고 싶어요';
-                }),
+                emoji: '🫙',
+                title: '제외 재료',
+                value: _formatList(profile.excludedIngredients),
+                onTap: () => _showAllergyDialog(profile.excludedIngredients),
               ),
               SettingItem(
-                emoji: '🍳', title: '요리 실력', value: '$_cookingSkill단계',
-                onTap: () => _showSliderDialog('요리 실력', _cookingSkill, 1, 5, (v) {
+                emoji: '🍱',
+                title: '다양성',
+                value: profile.diversityLevel,
+                onTap: () => _showSliderDialog(
+                  '다양성',
+                  _diversityToInt(profile.diversityLevel),
+                  1, 3,
+                  (v) => _diversityLabel(profile.diversityLevel),
+                ),
+              ),
+              SettingItem(
+                emoji: '🍳',
+                title: '요리 실력',
+                value: '${profile.cookingSkill}단계',
+                onTap: () => _showSliderDialog('요리 실력', profile.cookingSkill, 1, 5, (v) {
                   switch (v) {
                     case 1: return '라면도 태워요';
                     case 2: return '간단한 요리는 해요';
@@ -268,8 +328,10 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 }),
               ),
               SettingItem(
-                emoji: '🍚', title: '식사 수', value: '$_mealCount끼',
-                onTap: () => _showSliderDialog('식사 수', _mealCount, 1, 5, (v) {
+                emoji: '🍚',
+                title: '식사 수',
+                value: '${profile.mealsPerDay}끼',
+                onTap: () => _showSliderDialog('식사 수', profile.mealsPerDay, 1, 5, (v) {
                   switch (v) {
                     case 1: return '하루에 한 끼 먹어요';
                     case 2: return '하루에 두 끼 먹어요';
@@ -281,20 +343,42 @@ class _MyPageScreenState extends State<MyPageScreen> {
                 }),
               ),
               SettingItem(
-                emoji: '💰', title: '한달 식비 예산', value: '${(_monthlyBudget / 10000).round()}만원',
-                onTap: () => _showBudgetDialog(),
+                emoji: '💰',
+                title: '한달 식비 예산',
+                value: '${(profile.monthlyBudget / 10000).round()}만원',
+                onTap: () => _showBudgetDialog(profile.monthlyBudget),
               ),
               const SizedBox(height: 12),
               Divider(color: AppColors.border, thickness: 2),
               const SizedBox(height: 12),
               const SectionTitle(title: '앱 설정'),
-              SettingItem(emoji: '🔔', title: '알림 설정', value: '', onTap: () {}, showToggle: true, showArrow: false),
+              SettingItem(
+                emoji: '🔔',
+                title: '알림 설정',
+                value: '',
+                onTap: () {},
+                showToggle: true,
+                showArrow: false,
+              ),
               const SizedBox(height: 12),
               Divider(color: AppColors.border, thickness: 2),
               const SizedBox(height: 12),
               const SectionTitle(title: '계정 설정'),
-              SettingItem(emoji: '🚪', title: '로그아웃', value: '', onTap: () => _showLogoutDialog(context), showArrow: false),
-              SettingItem(emoji: '⚠️', title: '회원탈퇴', value: '', titleColor: AppColors.error, onTap: () => _showDeleteAccountDialog(context), showArrow: false),
+              SettingItem(
+                emoji: '🚪',
+                title: '로그아웃',
+                value: '',
+                onTap: () => _showLogoutDialog(context),
+                showArrow: false,
+              ),
+              SettingItem(
+                emoji: '⚠️',
+                title: '회원탈퇴',
+                value: '',
+                titleColor: AppColors.error,
+                onTap: () => _showDeleteAccountDialog(context),
+                showArrow: false,
+              ),
               const SizedBox(height: 40),
             ],
           ),

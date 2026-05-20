@@ -53,12 +53,13 @@ class MealStyleCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // 왼쪽: 메뉴 목록 + 설명
+                // 왼쪽: 메뉴 목록
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const SizedBox(height: 4),
                       ...style.representativeMenus.map((meal) => Padding(
@@ -67,22 +68,21 @@ class MealStyleCard extends StatelessWidget {
                               children: [
                                 const Text('🍽️', style: TextStyle(fontSize: 12)),
                                 const SizedBox(width: 4),
-                                Text(
-                                  meal,
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppColors.textPrimary,
+                                Expanded(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      meal,
+                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
                           )),
-                      const SizedBox(height: 4),
-                      Text(
-                        style.summaryComment,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppColors.primary,
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -123,6 +123,14 @@ class MealStyleCard extends StatelessWidget {
                       )).toList(),
                 ),
               ],
+            ),
+            // 설명 - 아래에 전체 너비로
+            const SizedBox(height: 8),
+            Text(
+              style.summaryComment,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.primary,
+              ),
             ),
           ],
         ),
