@@ -12,8 +12,16 @@ class HomeRepository {
   // 백엔드: GET /api/v1/meal/{date}
   Future<DailyMealPlan> fetchDailyMealPlan(DateTime date) async {
     final dateStr = formatDate(date);
-    final response = await _dio.get('/meal/$dateStr');
-    return DailyMealPlan.fromJson(response.data as Map<String, dynamic>);
+    try {
+      final response = await _dio.get('/meal/$dateStr');
+      return DailyMealPlan.fromJson(response.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      // 식단이 없는 날은 에러가 아니라 "빈 날"로 정상 처리
+      if (e.response?.statusCode == 404) {
+        return DailyMealPlan.empty(date);
+      }
+      rethrow; // 나머지 에러(500, 네트워크 등)는 그대로 위로 전달
+    }
   }
 
   // 특정 메뉴의 상세 정보 (재료 + 마켓별 가격)
