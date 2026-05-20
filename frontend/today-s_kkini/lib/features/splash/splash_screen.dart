@@ -1,13 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
-import '../../../../core/theme/app_colors.dart';
 
-/// 스플래시 (피그마 #1).
-/// 1.5초 후 페르소나 선택으로 자동 이동.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -16,20 +14,30 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  Timer? _timer;
-
   @override
   void initState() {
     super.initState();
-    _timer = Timer(const Duration(milliseconds: 1500), () {
-      if (mounted) context.go(AppRoutes.personaSelect);
-    });
+    _checkAuth();
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+  Future<void> _checkAuth() async {
+    // 스플래시 최소 2초 보여주기
+    await Future.delayed(const Duration(milliseconds: 2000));
+
+    if (!mounted) return;
+
+    final storage = const FlutterSecureStorage();
+    final token = await storage.read(key: 'accessToken');
+
+    if (!mounted) return;
+
+    if (token != null) {
+      // 토큰 있으면 홈으로
+      context.go(AppRoutes.home);
+    } else {
+      // 없으면 로그인 화면으로
+      context.go(AppRoutes.auth);
+    }
   }
 
   @override
@@ -39,20 +47,11 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              '끼니픽',
-              style: TextStyle(
-                fontSize: 48,
-                fontWeight: FontWeight.w800,
-                color: AppColors.primaryDark,
-              ),
+            Image(
+              image: AssetImage('assets/images/start.png'),
+              width: 300,
             ),
-            SizedBox(height: 16),
-            Text(
-              '당신의 완벽한 식단을\n장보는 중이에요!',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
-            ),
+            SizedBox(height: 10),
           ],
         ),
       ),

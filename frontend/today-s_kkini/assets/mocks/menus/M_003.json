@@ -1,0 +1,78 @@
+{
+    "meal_id": "M_003",
+    "menu_name": "제철 나물 비빔밥",
+    "calories": 650,
+    "price": 3500,
+    "image_url": null,
+    "video_url": null,
+    "required_ingredient_ids": [
+        "I_001",
+        "I_002",
+        "I_003"
+    ],
+    "ingredients": [
+        {
+            "ingredient_id": "I_001",
+            "ingredient_name": "제철 나물",
+            "standard_unit": "100g",
+            "image_url": null,
+            "lowest_price_between_market": {
+                "market": "coupang",
+                "price": 1200
+            },
+            "e_commerce_prices": {
+                "coupang": {
+                    "lowest_price": 1200
+                },
+                "market_kurly": {
+                    "lowest_price": 1400
+                },
+                "naver_shopping": {
+                    "lowest_price": 1300
+                }
+            }
+        },
+        {
+            "ingredient_id": "I_002",
+            "ingredient_name": "계란",
+            "standard_unit": "2구",
+            "image_url": null,
+            "lowest_price_between_market": {
+                "market": "coupang",
+                "price": 1200
+            },
+            "e_commerce_prices": {
+                "coupang": {
+                    "lowest_price": 1200
+                },
+                "market_kurly": {
+                    "lowest_price": null
+                },
+                "naver_shopping": {
+                    "lowest_price": 1300
+                }
+            }
+        },
+        {
+            "ingredient_id": "I_003",
+            "ingredient_name": "현미밥",
+            "standard_unit": "200g",
+            "image_url": null,
+            "lowest_price_between_market": {
+                "market": "naver_shopping",
+                "price": 1100
+            },
+            "e_commerce_prices": {
+                "coupang": {
+                    "lowest_price": 1200
+                },
+                "market_kurly": {
+                    "lowest_price": 1400
+                },
+                "naver_shopping": {
+                    "lowest_price": 1100
+                }
+            }
+        }
+    ]
+}

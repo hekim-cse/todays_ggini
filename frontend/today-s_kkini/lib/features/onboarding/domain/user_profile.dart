@@ -1,68 +1,73 @@
 import 'persona.dart';
 
-/// 온보딩 슬라이더로 입력받는 사용자 프로필.
-/// OpenAPI `UserProfile` 스키마와 1:1 매핑.
 class UserProfile {
   const UserProfile({
-    required this.cookingSkill,
-    required this.vegMeatPreference,
-    required this.freshFrozenPreference,
-    required this.mealStyle,
-    required this.monthlyBudget,
     required this.persona,
+    required this.goals,
+    required this.foods,
+    required this.ingredient,
+    required this.allergies,
+    required this.diversity,
+    required this.cookingSkill,
+    required this.mealCount,
+    required this.monthlyBudget,
   });
 
-  /// 1=초보(라면), 10=일류 셰프
+  final Persona persona;
+  final List<String> goals;
+  final List<String> foods;
+  final List<String> ingredient;
+  final List<String> allergies;
+  final String diversity; // int → String ("낮음", "보통", "높음")
   final int cookingSkill;
-
-  /// 1=채소 위주, 10=육류 위주
-  final int vegMeatPreference;
-
-  /// 1=냉동·간편식 OK, 10=생식·신선만
-  final int freshFrozenPreference;
-
-  /// 1=건강식·일상식, 10=술안주·즐거움
-  final int mealStyle;
-
-  /// 한 달 식비 KRW (100,000 ~ 1,000,000)
+  final int mealCount;
   final int monthlyBudget;
 
-  final Persona persona;
-
   Map<String, dynamic> toJson() => {
-    'cookingSkill': cookingSkill,
-    'vegMeatPreference': vegMeatPreference,
-    'freshFrozenPreference': freshFrozenPreference,
-    'mealStyle': mealStyle,
-    'monthlyBudget': monthlyBudget,
-    'persona': persona.code,
+    'persona_id': persona.id,        // int
+    'purpose': goals,
+    'preferred_categories': foods,
+    'preferred_ingredients': ingredient,
+    'excluded_ingredients': allergies,
+    'diversity_level': diversity,    // String
+    'cooking_skill': cookingSkill,
+    'meals_per_day': mealCount,
+    'monthly_budget': monthlyBudget,
   };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
-    cookingSkill: json['cookingSkill'] as int,
-    vegMeatPreference: json['vegMeatPreference'] as int,
-    freshFrozenPreference: json['freshFrozenPreference'] as int,
-    mealStyle: json['mealStyle'] as int,
-    monthlyBudget: json['monthlyBudget'] as int,
-    persona: Persona.fromCode(json['persona'] as String),
+    persona: Persona.fromId(json['persona_id'] as int),
+    goals: List<String>.from(json['purpose'] as List),
+    foods: List<String>.from(json['preferred_categories'] as List),
+    ingredient: List<String>.from(json['preferred_ingredients'] as List),
+    allergies: List<String>.from(json['excluded_ingredients'] as List),
+    diversity: json['diversity_level'] as String,
+    cookingSkill: json['cooking_skill'] as int,
+    mealCount: json['meals_per_day'] as int,
+    monthlyBudget: json['monthly_budget'] as int,
   );
 
   UserProfile copyWith({
-    int? cookingSkill,
-    int? vegMeatPreference,
-    int? freshFrozenPreference,
-    int? mealStyle,
-    int? monthlyBudget,
     Persona? persona,
+    List<String>? goals,
+    List<String>? foods,
+    List<String>? ingredient,
+    List<String>? allergies,
+    String? diversity,
+    int? cookingSkill,
+    int? mealCount,
+    int? monthlyBudget,
   }) {
     return UserProfile(
-      cookingSkill: cookingSkill ?? this.cookingSkill,
-      vegMeatPreference: vegMeatPreference ?? this.vegMeatPreference,
-      freshFrozenPreference:
-          freshFrozenPreference ?? this.freshFrozenPreference,
-      mealStyle: mealStyle ?? this.mealStyle,
-      monthlyBudget: monthlyBudget ?? this.monthlyBudget,
       persona: persona ?? this.persona,
+      goals: goals ?? this.goals,
+      foods: foods ?? this.foods,
+      ingredient: ingredient ?? this.ingredient,
+      allergies: allergies ?? this.allergies,
+      diversity: diversity ?? this.diversity,
+      cookingSkill: cookingSkill ?? this.cookingSkill,
+      mealCount: mealCount ?? this.mealCount,
+      monthlyBudget: monthlyBudget ?? this.monthlyBudget,
     );
   }
 }
