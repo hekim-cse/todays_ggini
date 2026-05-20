@@ -64,12 +64,9 @@ class IngredientListScreen extends ConsumerWidget {
             },
           ),
           const Spacer(),
-          Text(
-            '재료 목록',
-            style: Theme.of(context).textTheme.headlineLarge,
-          ),
+          Text('재료 목록', style: Theme.of(context).textTheme.headlineLarge),
           const Spacer(),
-          const SizedBox(width: 48), 
+          const SizedBox(width: 48),
         ],
       ),
     );
@@ -88,9 +85,9 @@ class IngredientListScreen extends ConsumerWidget {
           child: Text(
             '재료 목록을 불러오지 못했습니다.\n${state.error}',
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color:AppColors.error
-            )
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.error),
           ),
         ),
       );
@@ -110,7 +107,7 @@ class IngredientListScreen extends ConsumerWidget {
         .where((i) => checkedSet.contains(i.ingredientId))
         .fold<int>(0, (sum, i) {
           final selectedMarket = selection.selectedMarketFor(i.ingredientId);
-          return sum + i.effectivePrice(selectedMarket);
+          return sum + (i.effectivePrice(selectedMarket) ?? 0);
         });
 
     return Column(

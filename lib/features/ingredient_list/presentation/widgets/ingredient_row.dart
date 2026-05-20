@@ -70,9 +70,9 @@ class IngredientRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '${ingredient.standardUnit} 이상',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textPrimary,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: AppColors.textPrimary),
                 ),
               ],
             ),
@@ -81,12 +81,14 @@ class IngredientRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '₩${formatPrice(shownPrice)}',
+                shownPrice != null ? '₩${formatPrice(shownPrice)}' : '재고없음',
                 style: Theme.of(context).textTheme.bodyMedium,
               ),
               const SizedBox(height: 2),
               Text(
-                isUserPick
+                shownMarket == null
+                    ? '-'
+                    : isUserPick
                     ? _marketLabel(shownMarket)
                     : '${_marketLabel(shownMarket)} 최저가',
                 style: Theme.of(

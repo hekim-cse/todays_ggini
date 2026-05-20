@@ -114,7 +114,7 @@ class Ingredient {
   }
 
   // 사용자 선택 마켓에 따른 적용 가격. 선택 안 했거나 재고 없으면 최저가 폴백
-  int effectivePrice(String? selectedMarket) {
+  int? effectivePrice(String? selectedMarket) {
     if (selectedMarket != null) {
       final p = priceFor(selectedMarket);
       if (p != null) return p;
@@ -129,7 +129,7 @@ class Ingredient {
       prices.naverShopping != null;
 
   // 사용자 선택 마켓 ID. 선택 안 했거나 재고 없으면 최저가 마켓
-  String effectiveMarket(String? selectedMarket) {
+  String? effectiveMarket(String? selectedMarket) {
     if (selectedMarket != null && priceFor(selectedMarket) != null) {
       return selectedMarket;
     }
@@ -138,15 +138,15 @@ class Ingredient {
 }
 
 class LowestPrice {
-  final String market;
-  final int price;
+  final String? market;
+  final int? price;
 
-  const LowestPrice({required this.market, required this.price});
+  const LowestPrice({this.market, this.price});
 
   factory LowestPrice.fromJson(Map<String, dynamic> json) {
     return LowestPrice(
-      market: json['market'] as String,
-      price: (json['price'] as num).toInt(),
+      market: json['market'] as String?,
+      price: (json['price'] as num?)?.toInt(),
     );
   }
 }

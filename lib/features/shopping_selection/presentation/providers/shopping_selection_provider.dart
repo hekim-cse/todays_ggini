@@ -152,6 +152,12 @@ class ShoppingSelectionNotifier extends StateNotifier<ShoppingSelectionState> {
           final userMarket = state.selectedMarketByIngredient[ing.ingredientId];
           final marketName = ing.effectiveMarket(userMarket);
 
+          // 안전 가드 — 마켓 정보 없으면 skip
+          if (marketName == null) {
+            skipped.add(ing.ingredientName);
+            continue;
+          }
+
           payload.add(
             ShoppingItemRequest(
               ingredientId: ing.ingredientId,
