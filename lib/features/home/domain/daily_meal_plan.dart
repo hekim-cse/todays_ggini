@@ -11,6 +11,15 @@ class DailyMealPlan {
     required this.meals,
   });
 
+  factory DailyMealPlan.empty(DateTime date) {
+    return DailyMealPlan(
+      date: date,
+      caloriesPerDay: 0,
+      pricePerDay: 0,
+      meals: const [],
+    );
+  }
+
   factory DailyMealPlan.fromJson(Map<String, dynamic> json) {
     return DailyMealPlan(
       date: DateTime.parse(json['date'] as String),
