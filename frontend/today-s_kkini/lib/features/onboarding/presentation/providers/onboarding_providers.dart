@@ -7,8 +7,15 @@ import '../../data/onboarding_repository.dart';
 import '../../domain/persona.dart';
 import '../../domain/user_profile.dart';
 
+// diversity int → String 변환 헬퍼
+String diversityToString(int value) {
+  if (value == 1) return '낮음';
+  if (value == 2) return '보통';
+  return '높음';
+}
+
 // ─────────────────────────────────────────────────────────────
-// Data layer providers (의존성 주입 체인)
+// Data layer providers
 // ─────────────────────────────────────────────────────────────
 
 final _onboardingRemoteProvider = Provider<OnboardingRemoteDataSource>((ref) {
@@ -20,47 +27,56 @@ final onboardingRepositoryProvider = Provider<OnboardingRepository>((ref) {
 });
 
 // ─────────────────────────────────────────────────────────────
-// 선택된 페르소나 (persona_select 화면에서 set, onboarding 화면에서 read)
+// 선택된 페르소나
 // ─────────────────────────────────────────────────────────────
 
 final selectedPersonaProvider = StateProvider<Persona>((ref) {
-  // TODO: persona_select 화면 구현 시 거기서 set.
-  // 스타터에선 default 값으로 시작.
   return Persona.singleValue;
 });
 
 // ─────────────────────────────────────────────────────────────
-// 슬라이더 입력값을 들고 있는 draft state
+// 슬라이더 입력값 draft state
 // ─────────────────────────────────────────────────────────────
 
 class OnboardingDraft {
   const OnboardingDraft({
-    this.cookingSkill = 5,
-    this.vegMeatPreference = 5,
-    this.freshFrozenPreference = 5,
-    this.mealStyle = 5,
-    this.monthlyBudget = 350000,
+    this.goals = const [],
+    this.foods = const [],
+    this.ingredient = const [],
+    this.allergies = const [],
+    this.diversity = 2,
+    this.cookingSkill = 3,
+    this.mealCount = 3,
+    this.monthlyBudget = 300000,
   });
 
+  final List<String> goals;
+  final List<String> foods;
+  final List<String> ingredient;
+  final List<String> allergies;
+  final int diversity;
   final int cookingSkill;
-  final int vegMeatPreference;
-  final int freshFrozenPreference;
-  final int mealStyle;
+  final int mealCount;
   final int monthlyBudget;
 
   OnboardingDraft copyWith({
+    List<String>? goals,
+    List<String>? foods,
+    List<String>? ingredient,
+    List<String>? allergies,
+    int? diversity,        // String? → int?
     int? cookingSkill,
-    int? vegMeatPreference,
-    int? freshFrozenPreference,
-    int? mealStyle,
+    int? mealCount,
     int? monthlyBudget,
   }) {
     return OnboardingDraft(
+      goals: goals ?? this.goals,
+      foods: foods ?? this.foods,
+      ingredient: ingredient ?? this.ingredient,
+      allergies: allergies ?? this.allergies,
+      diversity: diversity ?? this.diversity,
       cookingSkill: cookingSkill ?? this.cookingSkill,
-      vegMeatPreference: vegMeatPreference ?? this.vegMeatPreference,
-      freshFrozenPreference:
-          freshFrozenPreference ?? this.freshFrozenPreference,
-      mealStyle: mealStyle ?? this.mealStyle,
+      mealCount: mealCount ?? this.mealCount,
       monthlyBudget: monthlyBudget ?? this.monthlyBudget,
     );
   }
@@ -73,25 +89,28 @@ class OnboardingNotifier extends StateNotifier<OnboardingDraft> {
   final OnboardingRepository _repo;
   final Persona Function() _readPersona;
 
+  void setGoals(List<String> v) => state = state.copyWith(goals: v);
+  void setFoods(List<String> v) => state = state.copyWith(foods: v);
+  void setIngredient(List<String> v) => state = state.copyWith(ingredient: v);
+  void setAllergies(List<String> v) => state = state.copyWith(allergies: v);
+  void setDiversity(int v) => state = state.copyWith(diversity: v);
   void setCookingSkill(int v) => state = state.copyWith(cookingSkill: v);
-  void setVegMeatPreference(int v) =>
-      state = state.copyWith(vegMeatPreference: v);
-  void setFreshFrozenPreference(int v) =>
-      state = state.copyWith(freshFrozenPreference: v);
-  void setMealStyle(int v) => state = state.copyWith(mealStyle: v);
+  void setMealCount(int v) => state = state.copyWith(mealCount: v);
   void setMonthlyBudget(int v) => state = state.copyWith(monthlyBudget: v);
 
-  /// 현재 draft 를 서버에 저장.
-  Future<UserProfile> submit() async {
+  Future<void> submit() async {
     final profile = UserProfile(
-      cookingSkill: state.cookingSkill,
-      vegMeatPreference: state.vegMeatPreference,
-      freshFrozenPreference: state.freshFrozenPreference,
-      mealStyle: state.mealStyle,
-      monthlyBudget: state.monthlyBudget,
       persona: _readPersona(),
+      goals: state.goals,
+      foods: state.foods,
+      ingredient: state.ingredient,
+      allergies: state.allergies,
+      diversity: diversityToString(state.diversity), // 변환
+      cookingSkill: state.cookingSkill,
+      mealCount: state.mealCount,
+      monthlyBudget: state.monthlyBudget,
     );
-    return _repo.saveProfile(profile);
+    await _repo.saveProfile(profile);
   }
 }
 
@@ -104,9 +123,9 @@ final onboardingNotifierProvider =
     });
 
 // ─────────────────────────────────────────────────────────────
-// submit 결과를 별도 AsyncValue 로 노출 (로딩 / 에러 / 성공 처리용)
+// submit 결과
 // ─────────────────────────────────────────────────────────────
 
-final submitOnboardingProvider = StateProvider<AsyncValue<UserProfile>?>(
+final submitOnboardingProvider = StateProvider<AsyncValue<void>?>(
   (ref) => null,
 );

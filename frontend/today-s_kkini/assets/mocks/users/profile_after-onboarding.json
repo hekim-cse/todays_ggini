@@ -1,10 +1,13 @@
 {
   "profile": {
+    "persona": "single_value",
+    "goals": [],
+    "foods": [],
+    "ingredient": [],
+    "allergies": [],
+    "diversity": 2,
     "cookingSkill": 3,
-    "vegMeatPreference": 6,
-    "freshFrozenPreference": 8,
-    "mealStyle": 7,
-    "monthlyBudget": 350000,
-    "persona": "single_value"
+    "mealCount": 3,
+    "monthlyBudget": 300000
   }
 }
