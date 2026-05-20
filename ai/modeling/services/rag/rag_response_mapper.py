@@ -117,19 +117,19 @@ def build_failed_ingredient_cost(
     return result
 
 
-# def normalize_ingredient_name(ingredient_name: str | None) -> str:
-#     """
-#     재료명을 비교하기 쉬운 형태로 정리한다.
+def normalize_ingredient_name(ingredient_name: str | None) -> str:
+    """
+    재료명을 비교하기 쉬운 형태로 정리한다.
 
-#     예:
-#     - " 물 " -> "물"
-#     - "후추 가루" -> "후추가루"
-#     """
+    예:
+    - " 물 " -> "물"
+    - "후추 가루" -> "후추가루"
+    """
 
-#     if not ingredient_name:
-#         return ""
+    if not ingredient_name:
+        return ""
 
-#     return ingredient_name.replace(" ", "").strip()
+    return ingredient_name.replace(" ", "").strip()
 
 
 # def is_basic_pantry_ingredient(ingredient_name: str | None) -> bool:
@@ -153,6 +153,51 @@ def build_failed_ingredient_cost(
 #     }
 
 #     return normalized_name in basic_ingredients
+
+def is_water_ingredient(ingredient_name: str | None) -> bool:
+    """
+    물 계열 재료인지 확인한다.
+
+    물은 1g과 1ml를 거의 동일하게 볼 수 있으므로,
+    사용량 단위와 판매 기준 단위가 g/ml로 엇갈려도 계산할 수 있게 처리한다.
+    """
+
+    normalized_name = normalize_ingredient_name(ingredient_name)
+
+    water_names = {
+        "물",
+        "생수",
+        "정수",
+    }
+
+    return normalized_name in water_names
+
+
+def is_convertible_water_unit(
+    ingredient_name: str | None,
+    usage_unit: str | None,
+    standard_unit_type: str | None
+) -> bool:
+    """
+    물 재료의 g/ml 단위 불일치를 허용할 수 있는지 확인한다.
+
+    예:
+    - 사용량: 500g, 판매 기준: 2000ml
+    - 사용량: 500ml, 판매 기준: 2000g
+
+    물은 1g ≒ 1ml로 간주하여 계산 가능하게 처리한다.
+    """
+
+    if not is_water_ingredient(ingredient_name):
+        return False
+
+    normalized_usage_unit = normalize_unit(usage_unit)
+    normalized_standard_unit_type = normalize_unit(standard_unit_type)
+
+    return {
+        normalized_usage_unit,
+        normalized_standard_unit_type
+    } == {"g", "ml"}
 
 
 # def build_basic_pantry_ingredient_cost(
@@ -304,21 +349,31 @@ def calculate_ingredient_cost(
     normalized_standard_unit_type = normalize_unit(standard_unit_type)
 
     if normalized_usage_unit != normalized_standard_unit_type:
-        return build_failed_ingredient_cost(
-            ingredient_id=ingredient_id,
+        can_convert_water_unit = is_convertible_water_unit(
             ingredient_name=ingredient_name,
-            display_amount=display_amount,
-            amount=amount,
-            unit=unit,
-            is_estimated=is_estimated,
-            pricing_status="unit_mismatch",
-            extra_data={
-                "standard_amount": standard_amount,
-                "standard_unit_type": standard_unit_type,
-                "lowest_price": lowest_price_info["lowest_price"],
-                "lowest_market": lowest_price_info["market"]
-            }
+            usage_unit=unit,
+            standard_unit_type=standard_unit_type
         )
+
+        if not can_convert_water_unit:
+            return build_failed_ingredient_cost(
+                ingredient_id=ingredient_id,
+                ingredient_name=ingredient_name,
+                display_amount=display_amount,
+                amount=amount,
+                unit=unit,
+                is_estimated=is_estimated,
+                pricing_status="unit_mismatch",
+                extra_data={
+                    "standard_amount": standard_amount,
+                    "standard_unit_type": standard_unit_type,
+                    "lowest_price": lowest_price_info["lowest_price"],
+                    "lowest_market": lowest_price_info["market"],
+                    "delivery_type": lowest_price_info.get("delivery_type"),
+                    "product_title": lowest_price_info.get("product_title"),
+                    "purchase_link": lowest_price_info.get("purchase_link"),
+                }
+            )
 
     estimated_cost = lowest_price_info["lowest_price"] * (
         usage_amount / standard_amount
