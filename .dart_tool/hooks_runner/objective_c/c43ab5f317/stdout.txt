@@ -1,0 +1,57 @@
+Running `(cd /Users/y/.pub-cache/hosted/pub.dev/objective_c-9.3.0/; ANDROID_HOME=/Users/y/Library/Android/sdk TMPDIR=/var/folders/gg/th6wn9rn73q0fm6xq4ygs95h0000gn/T/ PATH=/Applications/Xcode.app/Contents/SharedFrameworks/SwiftBuild.framework/Versions/A/PlugIns/SWBBuildService.bundle/Contents/PlugIns/SWBUniversalPlatformPlugin.bundle/Contents/Frameworks/SWBUniversalPlatform.framework/Resources:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/local/bin:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/libexec:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/usr/bin:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/usr/local/bin:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/local/bin:/Applications/Xcode.app/Contents/Developer/usr/bin:/Applications/Xcode.app/Contents/Developer/usr/local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin HOME=/Users/y /opt/homebrew/share/flutter/bin/cache/dart-sdk/bin/dart --packages=/Users/y/Desktop/frontend_integrate/.dart_tool/package_config.json /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/objective_c/c43ab5f317/hook.dill --config=/Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/objective_c/c43ab5f317/input.json )`.
+INFO: 2026-05-20 09:34:16.726028: Running `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang --version`.
+
+INFO: 2026-05-20 09:34:16.740499: Running `/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang --version`.
+
+INFO: 2026-05-20 09:34:16.752288: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -target arm64-apple-ios -mios-version-min=13 -c /Users/y/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/include/dart_api_dl.c -fpic -I src -o /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/include/dart_api_dl.c.o
+
+INFO: 2026-05-20 09:34:16.752618: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -target arm64-apple-ios -mios-version-min=13 -c /Users/y/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c.c -fpic -I src -o /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/objective_c.c.o
+
+INFO: 2026-05-20 09:34:16.752739: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -target arm64-apple-ios -mios-version-min=13 -x objective-c -fobjc-arc -c /Users/y/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/input_stream_adapter.m -fpic -I src -o /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/input_stream_adapter.m.o
+
+INFO: 2026-05-20 09:34:16.752830: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -target arm64-apple-ios -mios-version-min=13 -x objective-c -fobjc-arc -c /Users/y/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c.m -fpic -I src -o /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/objective_c.m.o
+
+INFO: 2026-05-20 09:34:16.753017: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -target arm64-apple-ios -mios-version-min=13 -x objective-c -fobjc-arc -c /Users/y/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/observer.m -fpic -I src -o /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/observer.m.o
+
+INFO: 2026-05-20 09:34:16.753253: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -target arm64-apple-ios -mios-version-min=13 -x objective-c -fobjc-arc -c /Users/y/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/protocol.m -fpic -I src -o /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/protocol.m.o
+
+
+
+INFO: 2026-05-20 09:34:16.753343: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -target arm64-apple-ios -mios-version-min=13 -x objective-c -fobjc-arc -c /Users/y/.pub-cache/hosted/pub.dev/objective_c-9.3.0/src/objective_c_bindings_generated.m -fpic -I src -o /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/objective_c_bindings_generated.m.o
+
+INFO: 2026-05-20 09:34:16.793825: 
+INFO: 2026-05-20 09:34:16.793903: 
+INFO: 2026-05-20 09:34:16.793928: Generated /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/include/dart_api_dl.c.o
+INFO: 2026-05-20 09:34:16.794035: 
+INFO: 2026-05-20 09:34:16.794047: 
+INFO: 2026-05-20 09:34:16.794055: Generated /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/objective_c.c.o
+
+INFO: 2026-05-20 09:34:16.815488: 
+INFO: 2026-05-20 09:34:16.815529: 
+INFO: 2026-05-20 09:34:16.815542: Generated /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/protocol.m.o
+
+INFO: 2026-05-20 09:34:16.816744: 
+INFO: 2026-05-20 09:34:16.816770: 
+INFO: 2026-05-20 09:34:16.816782: Generated /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/observer.m.o
+
+INFO: 2026-05-20 09:34:16.890980: Generated /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/ns_number.m.o
+
+oks_runner/shared/objective_c/build/c43ab5f317/obj/src/objective_c.m.o
+INFO: 2026-05-20 09:34:16.890960: 
+INFO: 2026-05-20 09:34:16.890971: 
+
+INFO: 2026-05-20 09:34:16.892333: 
+INFO: 2026-05-20 09:34:16.892357: 
+INFO: 2026-05-20 09:34:16.892367: Generated /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/input_stream_adapter.m.o
+
+INFO: 2026-05-20 09:34:16.907379: 
+INFO: 2026-05-20 09:34:16.907407: 
+INFO: 2026-05-20 09:34:16.907415: Generated /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/objective_c_bindings_generated.m.o
+
+INFO: 2026-05-20 09:34:16.907871: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -shared -Wl,-encryptable -undefined dynamic_lookup -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.5.sdk -target arm64-apple-ios -mios-version-min=13 /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/include/dart_api_dl.c.o /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/objective_c.c.o /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/input_stream_adapter.m.o /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/objective_c.m.o /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/observer.m.o /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/ns_number.m.o /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/protocol.m.o /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/obj/src/objective_c_bindings_generated.m.o -o /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/objective_c.dylib
+
+INFO: 2026-05-20 09:34:16.930550: 
+INFO: 2026-05-20 09:34:16.930613: ld: warning: -undefined dynamic_lookup is deprecated on iOS
+
+INFO: 2026-05-20 09:34:16.930623: Generated /Users/y/Desktop/frontend_integrate/.dart_tool/hooks_runner/shared/objective_c/build/c43ab5f317/objective_c.dylib
+

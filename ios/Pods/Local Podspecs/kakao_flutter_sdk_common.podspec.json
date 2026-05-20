@@ -1,0 +1,30 @@
+{
+  "name": "kakao_flutter_sdk_common",
+  "version": "1.10.0",
+  "summary": "A new flutter plugin project.",
+  "description": "A new flutter plugin project.",
+  "homepage": "https://github.com/kakao/kakao_flutter_sdk",
+  "license": {
+    "file": "../LICENSE"
+  },
+  "authors": {
+    "tony.mb": "tony.mb@kakaocorp.com"
+  },
+  "source": {
+    "path": "."
+  },
+  "source_files": "kakao_flutter_sdk_common/Sources/kakao_flutter_sdk_common/**/*.swift",
+  "dependencies": {
+    "Flutter": []
+  },
+  "platforms": {
+    "ios": "13.0"
+  },
+  "swift_versions": "5.0",
+  "resource_bundles": {
+    "kakao_flutter_sdk_common_privacy": [
+      "kakao_flutter_sdk_common/Sources/kakao_flutter_sdk_common/PrivacyInfo.xcprivacy"
+    ]
+  },
+  "swift_version": "5.0"
+}

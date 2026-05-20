@@ -1,0 +1,29 @@
+{
+    "ingredient_id": "I_002",
+    "ingredient_name": "계란",
+    "standard_unit": "2구",
+    "image_url": null,
+    "e_commerce_prices": {
+        "coupang": {
+            "delivery_type": "로켓프레시",
+            "lowest_price": 1200,
+            "product_title": "곰곰 동물복지 유정란 2구",
+            "purchase_link": "https://www.coupang.com/products/234",
+            "is_lowest": true
+        },
+        "market_kurly": {
+            "delivery_type": null,
+            "lowest_price": null,
+            "product_title": null,
+            "purchase_link": null,
+            "is_lowest": false
+        },
+        "naver_shopping": {
+            "delivery_type": null,
+            "lowest_price": 1300,
+            "product_title": "네이버 유정란 2구",
+            "purchase_link": "https://shopping.naver.com/890",
+            "is_lowest": false
+        }
+    }
+}
