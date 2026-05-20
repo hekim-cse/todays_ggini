@@ -117,69 +117,69 @@ def build_failed_ingredient_cost(
     return result
 
 
-def normalize_ingredient_name(ingredient_name: str | None) -> str:
-    """
-    재료명을 비교하기 쉬운 형태로 정리한다.
+# def normalize_ingredient_name(ingredient_name: str | None) -> str:
+#     """
+#     재료명을 비교하기 쉬운 형태로 정리한다.
 
-    예:
-    - " 물 " -> "물"
-    - "후추 가루" -> "후추가루"
-    """
+#     예:
+#     - " 물 " -> "물"
+#     - "후추 가루" -> "후추가루"
+#     """
 
-    if not ingredient_name:
-        return ""
+#     if not ingredient_name:
+#         return ""
 
-    return ingredient_name.replace(" ", "").strip()
-
-
-def is_basic_pantry_ingredient(ingredient_name: str | None) -> bool:
-    """
-    기본 조미료/기본 재료 여부를 판단한다.
-
-    이런 재료는 메뉴 1회 조리 비용에 그대로 반영하면
-    가격이 과도하게 계산될 수 있으므로 estimated_cost를 0으로 처리한다.
-    """
-
-    normalized_name = normalize_ingredient_name(ingredient_name)
-
-    basic_ingredients = {
-        "물",
-        "생수",
-        "정수",
-        "소금",
-        "후추",
-        "후추가루",
-        "후춧가루",
-    }
-
-    return normalized_name in basic_ingredients
+#     return ingredient_name.replace(" ", "").strip()
 
 
-def build_basic_pantry_ingredient_cost(
-    ingredient_id: str | None,
-    ingredient_name: str | None,
-    display_amount: str | None,
-    amount: float | int | None,
-    unit: str | None,
-    is_estimated: bool,
-) -> dict:
-    """
-    기본 재료 비용 계산 결과를 만든다.
+# def is_basic_pantry_ingredient(ingredient_name: str | None) -> bool:
+#     """
+#     기본 조미료/기본 재료 여부를 판단한다.
 
-    물, 소금, 후추처럼 보통 가정에 기본적으로 있다고 보는 재료는
-    메뉴 예상 비용 계산에서 0원으로 처리한다.
-    """
+#     이런 재료는 메뉴 1회 조리 비용에 그대로 반영하면
+#     가격이 과도하게 계산될 수 있으므로 estimated_cost를 0으로 처리한다.
+#     """
 
-    return {
-        "ingredient_id": ingredient_id,
-        "ingredient_name": ingredient_name,
-        "display_amount": display_amount,
-        "amount": amount,
-        "unit": unit,
-        "is_estimated": is_estimated,
-        "estimated_cost": 0,
-        "pricing_status": "basic_pantry_ingredient"
-    }
+#     normalized_name = normalize_ingredient_name(ingredient_name)
+
+#     basic_ingredients = {
+#         "물",
+#         "생수",
+#         "정수",
+#         "소금",
+#         "후추",
+#         "후추가루",
+#         "후춧가루",
+#     }
+
+#     return normalized_name in basic_ingredients
+
+
+# def build_basic_pantry_ingredient_cost(
+#     ingredient_id: str | None,
+#     ingredient_name: str | None,
+#     display_amount: str | None,
+#     amount: float | int | None,
+#     unit: str | None,
+#     is_estimated: bool,
+# ) -> dict:
+#     """
+#     기본 재료 비용 계산 결과를 만든다.
+
+#     물, 소금, 후추처럼 보통 가정에 기본적으로 있다고 보는 재료는
+#     메뉴 예상 비용 계산에서 0원으로 처리한다.
+#     """
+
+#     return {
+#         "ingredient_id": ingredient_id,
+#         "ingredient_name": ingredient_name,
+#         "display_amount": display_amount,
+#         "amount": amount,
+#         "unit": unit,
+#         "is_estimated": is_estimated,
+#         "estimated_cost": 0,
+#         "pricing_status": "basic_pantry_ingredient"
+#     }
 
 
 def calculate_ingredient_cost(
@@ -208,15 +208,15 @@ def calculate_ingredient_cost(
 
     resolved_ingredient_name = ingredient_name or pool_ingredient_name
 
-    if is_basic_pantry_ingredient(resolved_ingredient_name):
-        return build_basic_pantry_ingredient_cost(
-            ingredient_id=ingredient_id,
-            ingredient_name=resolved_ingredient_name,
-            display_amount=display_amount,
-            amount=amount,
-            unit=unit,
-            is_estimated=is_estimated,
-        )
+    # if is_basic_pantry_ingredient(resolved_ingredient_name):
+    #     return build_basic_pantry_ingredient_cost(
+    #         ingredient_id=ingredient_id,
+    #         ingredient_name=resolved_ingredient_name,
+    #         display_amount=display_amount,
+    #         amount=amount,
+    #         unit=unit,
+    #         is_estimated=is_estimated,
+    #     )
 
     if not ingredient:
         return build_failed_ingredient_cost(
