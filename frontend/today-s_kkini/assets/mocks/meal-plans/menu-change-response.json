@@ -1,0 +1,31 @@
+{
+    "date": "2026-04-01",
+    "calories_per_day": 1820,
+    "price_per_day": 13700,
+    "meals": [
+        {
+            "slot": 1,
+            "meal_id": "M_101",
+            "menu_name": "두부 김치덮밥",
+            "calories": 620,
+            "price": 6500,
+            "image_url": null
+        },
+        {
+            "slot": 2,
+            "meal_id": "M_002",
+            "menu_name": "콩나물국",
+            "calories": 550,
+            "price": 3600,
+            "image_url": null
+        },
+        {
+            "slot": 3,
+            "meal_id": "M_003",
+            "menu_name": "제철 나물 비빔밥",
+            "calories": 650,
+            "price": 3600,
+            "image_url": null
+        }
+    ]
+}

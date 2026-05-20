@@ -1,0 +1,13 @@
+{
+  "profile": {
+    "persona": "single_value",
+    "goals": [],
+    "foods": [],
+    "ingredient": [],
+    "allergies": [],
+    "diversity": 2,
+    "cookingSkill": 3,
+    "mealCount": 3,
+    "monthlyBudget": 300000
+  }
+}

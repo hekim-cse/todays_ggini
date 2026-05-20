@@ -1,0 +1,274 @@
+{
+    "month": "2026-05",
+    "duration_days": 5,
+    "total_price_per_month": 50000,
+    "average_calories_per_month": 1850,
+    "days": [
+        {
+            "date": "2026-05-01",
+            "calories_per_day": 1850,
+            "price_per_day": 10000,
+            "meals": [
+                {
+                    "slot": 1,
+                    "meal_id": "M_001",
+                    "menu_name": "볶음밥"
+                },
+                {
+                    "slot": 2,
+                    "meal_id": "M_002",
+                    "menu_name": "콩나물국"
+                },
+                {
+                    "slot": 3,
+                    "meal_id": "M_003",
+                    "menu_name": "제철 나물 비빔밥"
+                }
+            ]
+        },
+        {
+            "date": "2026-05-02",
+            "calories_per_day": 1850,
+            "price_per_day": 10000,
+            "meals": [
+                {
+                    "slot": 1,
+                    "meal_id": "M_001",
+                    "menu_name": "볶음밥"
+                },
+                {
+                    "slot": 2,
+                    "meal_id": "M_002",
+                    "menu_name": "콩나물국"
+                },
+                {
+                    "slot": 3,
+                    "meal_id": "M_003",
+                    "menu_name": "제철 나물 비빔밥"
+                }
+            ]
+        },
+        {
+            "date": "2026-05-03",
+            "calories_per_day": 1850,
+            "price_per_day": 10000,
+            "meals": [
+                {
+                    "slot": 1,
+                    "meal_id": "M_001",
+                    "menu_name": "볶음밥"
+                },
+                {
+                    "slot": 2,
+                    "meal_id": "M_002",
+                    "menu_name": "콩나물국"
+                },
+                {
+                    "slot": 3,
+                    "meal_id": "M_003",
+                    "menu_name": "제철 나물 비빔밥"
+                }
+            ]
+        },
+        {
+            "date": "2026-05-04",
+            "calories_per_day": 1850,
+            "price_per_day": 10000,
+            "meals": [
+                {
+                    "slot": 1,
+                    "meal_id": "M_001",
+                    "menu_name": "볶음밥"
+                },
+                {
+                    "slot": 2,
+                    "meal_id": "M_002",
+                    "menu_name": "콩나물국"
+                },
+                {
+                    "slot": 3,
+                    "meal_id": "M_003",
+                    "menu_name": "제철 나물 비빔밥"
+                }
+            ]
+        },
+        {
+            "date": "2026-05-05",
+            "calories_per_day": 1850,
+            "price_per_day": 10000,
+            "meals": [
+                {
+                    "slot": 1,
+                    "meal_id": "M_001",
+                    "menu_name": "볶음밥"
+                },
+                {
+                    "slot": 2,
+                    "meal_id": "M_002",
+                    "menu_name": "콩나물국"
+                },
+                {
+                    "slot": 3,
+                    "meal_id": "M_003",
+                    "menu_name": "제철 나물 비빔밥"
+                }
+            ]
+        },
+        {
+            "date": "2026-05-06",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-07",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-08",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-09",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-10",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-11",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-12",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-13",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-14",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-15",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-16",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-17",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-18",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-19",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-20",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-21",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-22",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-23",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-24",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-25",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-26",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-27",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-28",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-29",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-30",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        },
+        {
+            "date": "2026-05-31",
+            "calories_per_day": null,
+            "price_per_day": null,
+            "meals": []
+        }
+    ]
+}
