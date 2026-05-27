@@ -320,7 +320,7 @@ async def update_item_checks(
         item = (
             db.query(ShoppingItem)
             .filter(
-                ShoppingItem.id == int(update.item_id),
+                ShoppingItem.id == update.item_id, # 이 부분 변경 푸쉬 필요(int(update.item_id) -> update.item_id)
                 ShoppingItem.list_id == shopping_list.id,
             )
             .first()
@@ -359,7 +359,7 @@ async def batch_delete_items(
     deleted_count = (
         db.query(ShoppingItem)
         .filter(
-            ShoppingItem.id.in_(request.item_ids),
+            ShoppingItem.ingredient_id.in_(request.item_ids), # 이 부분 변경 푸쉬 필요(id -> ingredient_id)
             ShoppingItem.list_id == shopping_list.id,
         )
         .delete(synchronize_session=False)
