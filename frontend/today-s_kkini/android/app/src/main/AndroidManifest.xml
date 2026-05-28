@@ -76,5 +76,10 @@
         </intent>
         <!-- 카카오톡 앱 설치 여부 확인용 (추가) -->
         <package android:name="com.kakao.talk" />
+        <!-- url_launcher: https 링크 열기 -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
     </queries>
 </manifest>
