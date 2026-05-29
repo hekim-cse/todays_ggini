@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import Request
 from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -10,6 +11,9 @@ from app.core import security
 from app.core.config import settings
 from app.api.deps import get_db
 from app.core.redis import get_redis
+from app.api.deps import get_current_user
+from app.core.redis import redis_client
+from app.models.user import User
 from app.schemas.user import SocialLoginResponse, SocialLoginRequest, TokenRefreshRequest, TokenRefreshResponse
 from app.crud import crud_user
 
@@ -324,10 +328,13 @@ security_scheme = HTTPBearer()
 @router.post("/logout")
 async def logout(
     credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
-    redis: Redis = Depends(get_redis)
+    redis: Redis = Depends(get_redis),
+    db: Session = Depends(get_db)
 ):
     """
-    [로그아웃] 현재 Access Token의 남은 시간만큼 블랙리스트에 등록하고, Refresh Token을 파기합니다.
+    [로그아웃] 
+    - 공통: 현재 Access Token의 남은 시간만큼 블랙리스트에 등록하고, Refresh Token을 파기합니다.
+    - 게스트 유저 분기: 로그아웃 즉시 DB에서 계정 정보를 완전히 삭제(Hard Delete)합니다.
     """
     access_token = credentials.credentials
     
@@ -353,6 +360,13 @@ async def logout(
         # 4. 해당 유저의 Refresh Token 저장소에서 삭제 (세션 파기)
         redis_refresh_key = f"refresh_token:{user_id}"
         await redis.delete(redis_refresh_key)
+
+        # 디코딩한 user_id로 DB에서 유저 정보를 조회합니다.
+        db_user = db.query(User).filter(User.id == int(user_id)).first()
+        if db_user and (getattr(db_user, "is_guest", False) or db_user.provider == "guest"):
+            # 게스트 유저가 확실하다면 DB에서 영구 삭제
+            crud_user.delete_user(db, user_id=db_user.id)
+            return {"detail": "게스트 로그아웃 완료: 임시 계정 데이터가 완전 파기되었습니다."}
         
         return {"detail": "성공적으로 로그아웃 되었습니다."}
         
@@ -361,3 +375,44 @@ async def logout(
         return {"detail": "이미 만료된 세션입니다."}
     except jwt.JWTError:
         raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다.")
+    
+# ----------------- 회원 탈퇴 API (소셜/게스트 공통 완전 삭제) -----------------
+@router.delete("/unregister", status_code=status.HTTP_200_OK)
+async def unregister_user(
+    request: Request,                  
+    db: Session = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    [회원 탈퇴] DB 완전 삭제 + Refresh 토큰 파기 + Access 토큰 블랙리스트 등록
+    """
+    user_id = current_user.id
+    
+    # Access Token 블랙리스트 추가
+    # Authorization 헤더에서 "Bearer <token>" 추출
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        access_token = auth_header.split(" ")[1]
+        try:
+            # 토큰 디코딩하여 만료 시간 추출
+            payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            exp_time = payload.get("exp")
+            if exp_time:
+                current_time = int(datetime.now(timezone.utc).timestamp())
+                remaining_seconds = exp_time - current_time
+                # 토큰 수명이 남아있다면 로그아웃과 동일하게 Redis 블랙리스트 등록
+                if remaining_seconds > 0:
+                    await redis.setex(name=f"blacklist:{access_token}", time=remaining_seconds, value="true")
+        except jwt.JWTError:
+            pass # 탈퇴 처리가 우선이므로 토큰 파싱 에러는 부드럽게 넘깁니다.
+
+    # Redis에서 Refresh Token 세션 삭제 (자동 로그인 차단)
+    await redis.delete(f"refresh_token:{user_id}")
+    
+    # DB에서 유저 데이터 완전 삭제 (Hard Delete)
+    success = crud_user.delete_user(db, user_id=user_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
+        
+    return {"detail": "회원 탈퇴가 성공적으로 완료되어 모든 데이터가 삭제되었습니다."}
