@@ -19,6 +19,9 @@ from services.plan.plan_validation_service import (
     enrich_style_validation,
 )
 from services.plan.plan_payload_service import build_modeling_to_back_monthly_response
+from services.optimizer.optimizer_input_builder import build_optimizer_input
+from services.optimizer.ortools_monthly_optimizer import solve_monthly_plan_with_ortools
+from services.optimizer.optimizer_result_mapper import build_ortools_monthly_plan
 
 
 def get_required_user_id(request_data: dict) -> str:
@@ -590,12 +593,34 @@ def create_monthly_plan(request_data: dict) -> dict:
         top_n=len(candidate_menus),
     )
 
-    monthly_plan = build_period_meal_plan(
-        recommendations=recommendations,
-        profile=monthly_profile,
-        period_days=period_days,
-        meal_count_per_day=meal_count_per_day,
-    )
+    use_ortools = request_data.get("use_ortools", False)
+
+    if use_ortools:
+        optimizer_input = build_optimizer_input(
+            recommendations=recommendations,
+            profile=monthly_profile,
+            period_days=period_days,
+            meal_count_per_day=meal_count_per_day,
+        )
+
+        optimizer_result = solve_monthly_plan_with_ortools(
+            optimizer_input=optimizer_input,
+        )
+
+        monthly_plan = build_ortools_monthly_plan(
+            optimizer_result=optimizer_result,
+            optimizer_input=optimizer_input,
+            recommendations=recommendations,
+            profile=monthly_profile,
+        )
+
+    else:
+        monthly_plan = build_period_meal_plan(
+            recommendations=recommendations,
+            profile=monthly_profile,
+            period_days=period_days,
+            meal_count_per_day=meal_count_per_day,
+        )
 
     summary = monthly_plan.get("summary", {})
 
