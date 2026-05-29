@@ -1,53 +1,46 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import Request
 from sqlalchemy.orm import Session
-from datetime import timedelta
+from datetime import datetime, timezone
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from redis.asyncio.client import Redis
 import httpx
+from jose import jwt, JWTError
 
 from app.core import security
 from app.core.config import settings
 from app.api.deps import get_db
-from app.schemas.user import LoginRequest, SocialLoginResponse, SocialLoginRequest
+from app.core.redis import get_redis
+from app.api.deps import get_current_user
+from app.core.redis import redis_client
+from app.models.user import User
+from app.schemas.user import SocialLoginResponse, SocialLoginRequest, TokenRefreshRequest, TokenRefreshResponse
 from app.crud import crud_user
 
 router = APIRouter()
 
-@router.post("/login", response_model=SocialLoginResponse) 
-def login(login_data: LoginRequest, db: Session = Depends(get_db)):
+# -------------------- 공통 토큰 발급 및 Redis 저장 로직 --------------------
+async def generate_and_save_tokens(user_id: int, redis: Redis) -> tuple[str, str]:
     """
-    [토큰 재발급/일반 로그인] 인증된 소셜 ID 또는 게스트 ID를 바탕으로 자체 JWT 토큰을 발급합니다.
-    (소셜/게스트 로그인과 동일한 규격의 응답을 반환합니다.)
+    Access/Refresh 토큰을 생성하고, Refresh 토큰을 Redis에 저장합니다.
     """
-    # 1. 유저가 존재하는지 확인
-    user = crud_user.get_user_by_social_id(db, social_id=login_data.social_id, provider=login_data.provider)
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="등록되지 않은 사용자입니다. 먼저 로그인을 진행해주세요.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    elif not user.is_active:
-        raise HTTPException(status_code=400, detail="비활성화된 계정입니다.")
+    # 1. 토큰 이원화 발급
+    access_token = security.create_access_token(subject=user_id)
+    refresh_token = security.create_refresh_token(subject=user_id)
     
-    # 2. 자체 JWT 발급
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = security.create_access_token(user.id, expires_delta=access_token_expires)
+    # 2. Redis에 Refresh 토큰 저장 (Key: refresh_token:유저ID, 만료시간 설정)
+    redis_key = f"refresh_token:{user_id}"
+    await redis.setex(
+        name=redis_key,
+        time=settings.REFRESH_TOKEN_EXPIRE_MINUTES * 60,  # 분 단위를 초 단위로 변환
+        value=refresh_token
+    )
     
-    # 공통 응답 규격에 맞춰 JSON 반환
-    return {
-        "accessToken": access_token,
-        "refreshToken": "dummy_refresh_token_for_mvp",
-        "user": {
-            "id": user.id,
-            # DB에 닉네임 컬럼이 없다면 가입 경로(provider)를 활용해 기본 닉네임 부여
-            "nickname": f"{user.provider}유저", 
-            "email": user.email,
-            "is_onboarded": user.is_onboarded
-        }
-    }
+    return access_token, refresh_token
 
+# ------------------- 게스트 로그인 --------------------------
 @router.post("/guest/init", response_model=SocialLoginResponse)
-def initialize_guest_session(db: Session = Depends(get_db)):
+async def initialize_guest_session(db: Session = Depends(get_db),redis: Redis = Depends(get_redis)):
     """
     [게스트 초기화] 새로운 게스트 ID를 생성하고 즉시 토큰을 발급합니다.
     (소셜 로그인과 동일한 규격의 응답을 반환합니다.)
@@ -62,16 +55,12 @@ def initialize_guest_session(db: Session = Depends(get_db)):
         social_id=guest_uuid
     )
     
-    # 자체 JWT 발급
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = security.create_access_token(
-        user.id, expires_delta=access_token_expires
-    )
+    access_token, refresh_token = await generate_and_save_tokens(user.id, redis)
     
     # 소셜 로그인과 동일한 JSON 구조로 응답 구성
     return {
         "accessToken": access_token,
-        "refreshToken": "dummy_refresh_token_for_mvp",
+        "refreshToken": refresh_token,
         "user": {
             "id": user.id,
             "nickname": "게스트", # 게스트용 기본 닉네임
@@ -106,7 +95,7 @@ async def verify_google_token(access_token: str) -> dict:
         )
     
 @router.post("/google", response_model=SocialLoginResponse)
-async def google_login(request: SocialLoginRequest, db: Session = Depends(get_db)):
+async def google_login(request: SocialLoginRequest, db: Session = Depends(get_db),redis: Redis = Depends(get_redis)):
     """
     [소셜 로그인] 구글 액세스 토큰을 검증하고 가입/로그인을 동시에 처리합니다.
     """
@@ -134,13 +123,8 @@ async def google_login(request: SocialLoginRequest, db: Session = Depends(get_db
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="비활성화된 계정입니다.")
 
-    # 3. 백엔드 자체 JWT 발급
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = security.create_access_token(user.id, expires_delta=access_token_expires)
-    
-    # MVP 단계: Refresh Token 로직이 아직 없다면 더미 값으로 뚫어둡니다.
-    # 추후 security.create_refresh_token() 등으로 교체해야 합니다.
-    refresh_token = "dummy_refresh_token_for_mvp"
+    # 3. 토큰 생성 및 Redis 저장
+    access_token, refresh_token = await generate_and_save_tokens(user.id, redis)
 
     # 4. 프론트엔드가 요구한 JSON 구조로 응답
     return {
@@ -161,7 +145,7 @@ async def verify_kakao_token(access_token: str) -> dict:
     try:
         # timeout(5초)을 설정하여 카카오 서버 장애 시 무한 대기 방지
         async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get("https://kapi.kakao.com/v2/user/me", headers=headers)
+            response = await client.get(settings.KAKAO_USER_INFO_URL, headers=headers)
             
         if response.status_code != 200:
             raise HTTPException(
@@ -177,7 +161,7 @@ async def verify_kakao_token(access_token: str) -> dict:
         )
 
 @router.post("/kakao", response_model=SocialLoginResponse)
-async def kakao_login(request: SocialLoginRequest, db: Session = Depends(get_db)):
+async def kakao_login(request: SocialLoginRequest, db: Session = Depends(get_db),redis: Redis = Depends(get_redis)):
     """ [소셜 로그인] 카카오 토큰을 검증하고 로그인/가입을 처리합니다. """
     kakao_info = await verify_kakao_token(request.accessToken)
     
@@ -203,13 +187,12 @@ async def kakao_login(request: SocialLoginRequest, db: Session = Depends(get_db)
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="비활성화된 계정입니다.")
 
-    # 자체 JWT 발급
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = security.create_access_token(user.id, expires_delta=access_token_expires)
+    # 토큰 생성 및 Redis 저장
+    access_token, refresh_token = await generate_and_save_tokens(user.id, redis)
     
     return {
         "accessToken": access_token,
-        "refreshToken": "dummy_refresh_token_for_mvp",
+        "refreshToken": refresh_token,
         "user": {
             "id": user.id,
             "nickname": nickname,
@@ -225,7 +208,7 @@ async def verify_naver_token(access_token: str) -> dict:
     try:
         # timeout(5초) 방어 로직 동일 적용
         async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get("https://openapi.naver.com/v1/nid/me", headers=headers)
+            response = await client.get(settings.NAVER_USER_INFO_URL, headers=headers)
             
         if response.status_code != 200:
             raise HTTPException(
@@ -241,7 +224,7 @@ async def verify_naver_token(access_token: str) -> dict:
         )
 
 @router.post("/naver", response_model=SocialLoginResponse)
-async def naver_login(request: SocialLoginRequest, db: Session = Depends(get_db)):
+async def naver_login(request: SocialLoginRequest, db: Session = Depends(get_db), redis: Redis = Depends(get_redis)):
     """ [소셜 로그인] 네이버 토큰을 검증하고 로그인/가입을 처리합니다. """
     naver_data = await verify_naver_token(request.accessToken)
 
@@ -271,13 +254,12 @@ async def naver_login(request: SocialLoginRequest, db: Session = Depends(get_db)
     elif not user.is_active:
         raise HTTPException(status_code=400, detail="비활성화된 계정입니다.")
 
-    # 자체 JWT 발급
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = security.create_access_token(user.id, expires_delta=access_token_expires)
+    # 토큰 생성 및 Redis 저장
+    access_token, refresh_token = await generate_and_save_tokens(user.id, redis)
     
     return {
         "accessToken": access_token,
-        "refreshToken": "dummy_refresh_token_for_mvp",
+        "refreshToken": refresh_token,
         "user": {
             "id": user.id,
             "nickname": nickname,
@@ -285,3 +267,152 @@ async def naver_login(request: SocialLoginRequest, db: Session = Depends(get_db)
             "is_onboarded": user.is_onboarded
         }
     }
+
+# ------------------------- 토큰 재발급 API -----------------------------
+@router.post("/refresh", response_model=TokenRefreshResponse)
+async def refresh_access_token(
+    request: TokenRefreshRequest,
+    redis: Redis = Depends(get_redis)
+):
+    """
+    [토큰 재발급] 만료되지 않은 유효한 Refresh Token을 검증하여 새로운 Access Token을 발급합니다.
+    """
+    refresh_token = request.refreshToken
+
+    try:
+        # 1. JWT 토큰 구조 및 서명 검증
+        payload = jwt.decode(
+            refresh_token, 
+            settings.SECRET_KEY, 
+            algorithms=[settings.ALGORITHM]
+        )
+        user_id: str = payload.get("sub")
+        token_type: str = payload.get("type")
+
+        # 방어 로직: sub가 없거나 토큰 타입이 refresh가 아닌 경우 차단
+        if user_id is None or token_type != "refresh":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="유효하지 않은 토큰 형식입니다."
+            )
+
+    except JWTError:
+        # 토큰 자체가 변조되었거나 완전히 만료된 경우
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="만료되었거나 유효하지 않은 Refresh Token입니다. 다시 로그인 해주세요."
+        )
+
+    # 2. Redis에 저장된 해당 유저의 Refresh Token과 일치하는지 검증
+    redis_key = f"refresh_token:{user_id}"
+    saved_refresh_token = await redis.get(redis_key)
+
+    if not saved_refresh_token or saved_refresh_token != refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="토큰 정보가 일치하지 않거나 세션이 만료되었습니다. 다시 로그인 해주세요."
+        )
+
+    # 3. 검증 완료: 새로운 Access Token 발급
+    new_access_token = security.create_access_token(subject=user_id)
+
+    return {
+        "accessToken": new_access_token,
+        "tokenType": "bearer"
+    }
+
+
+# ---------------------- 로그아웃 API (토큰 블랙리스트 등록) --------------------------
+security_scheme = HTTPBearer()
+
+@router.post("/logout")
+async def logout(
+    credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
+    redis: Redis = Depends(get_redis),
+    db: Session = Depends(get_db)
+):
+    """
+    [로그아웃] 
+    - 공통: 현재 Access Token의 남은 시간만큼 블랙리스트에 등록하고, Refresh Token을 파기합니다.
+    - 게스트 유저 분기: 로그아웃 즉시 DB에서 계정 정보를 완전히 삭제(Hard Delete)합니다.
+    """
+    access_token = credentials.credentials
+    
+    try:
+        # 1. 토큰 디코딩하여 만료 시간(exp)과 유저 ID(sub) 추출
+        payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id: str = payload.get("sub")
+        exp_time: int = payload.get("exp")
+        
+        if not user_id or not exp_time:
+            raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다.")
+            
+        # 2. 토큰의 남은 수명(초 단위) 계산
+        current_time = int(datetime.now(timezone.utc).timestamp())
+        remaining_seconds = exp_time - current_time
+        
+        # 3. 토큰이 아직 살아있다면 남은 시간만큼 Redis 블랙리스트에 등록
+        if remaining_seconds > 0:
+            blacklist_key = f"blacklist:{access_token}"
+            # 값은 아무거나 채워도 무방합니다 ("logouted")
+            await redis.setex(name=blacklist_key, time=remaining_seconds, value="true")
+            
+        # 4. 해당 유저의 Refresh Token 저장소에서 삭제 (세션 파기)
+        redis_refresh_key = f"refresh_token:{user_id}"
+        await redis.delete(redis_refresh_key)
+
+        # 디코딩한 user_id로 DB에서 유저 정보를 조회합니다.
+        db_user = db.query(User).filter(User.id == int(user_id)).first()
+        if db_user and (getattr(db_user, "is_guest", False) or db_user.provider == "guest"):
+            # 게스트 유저가 확실하다면 DB에서 영구 삭제
+            crud_user.delete_user(db, user_id=db_user.id)
+            return {"detail": "게스트 로그아웃 완료: 임시 계정 데이터가 완전 파기되었습니다."}
+        
+        return {"detail": "성공적으로 로그아웃 되었습니다."}
+        
+    except jwt.ExpiredSignatureError:
+        # 이미 만료된 토큰으로 로그아웃을 요청한 경우 처리
+        return {"detail": "이미 만료된 세션입니다."}
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="유효하지 않은 토큰입니다.")
+    
+# ----------------- 회원 탈퇴 API (소셜/게스트 공통 완전 삭제) -----------------
+@router.delete("/unregister", status_code=status.HTTP_200_OK)
+async def unregister_user(
+    request: Request,                  
+    db: Session = Depends(get_db),
+    redis: Redis = Depends(get_redis),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    [회원 탈퇴] DB 완전 삭제 + Refresh 토큰 파기 + Access 토큰 블랙리스트 등록
+    """
+    user_id = current_user.id
+    
+    # Access Token 블랙리스트 추가
+    # Authorization 헤더에서 "Bearer <token>" 추출
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        access_token = auth_header.split(" ")[1]
+        try:
+            # 토큰 디코딩하여 만료 시간 추출
+            payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            exp_time = payload.get("exp")
+            if exp_time:
+                current_time = int(datetime.now(timezone.utc).timestamp())
+                remaining_seconds = exp_time - current_time
+                # 토큰 수명이 남아있다면 로그아웃과 동일하게 Redis 블랙리스트 등록
+                if remaining_seconds > 0:
+                    await redis.setex(name=f"blacklist:{access_token}", time=remaining_seconds, value="true")
+        except jwt.JWTError:
+            pass # 탈퇴 처리가 우선이므로 토큰 파싱 에러는 부드럽게 넘깁니다.
+
+    # Redis에서 Refresh Token 세션 삭제 (자동 로그인 차단)
+    await redis.delete(f"refresh_token:{user_id}")
+    
+    # DB에서 유저 데이터 완전 삭제 (Hard Delete)
+    success = crud_user.delete_user(db, user_id=user_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
+        
+    return {"detail": "회원 탈퇴가 성공적으로 완료되어 모든 데이터가 삭제되었습니다."}
