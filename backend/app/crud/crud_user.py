@@ -25,6 +25,19 @@ def create_user(db: Session, provider: str, social_id: str, email: str = None):
     db.refresh(db_user)
     return db_user
 
+def delete_user(db: Session, user_id: int) -> bool:
+    """
+    [Hard Delete] DB에서 유저 레코드를 완전히 삭제합니다.
+    (종속된 데이터가 있다면 테이블 설계에 따라 CASCADE 삭제되거나 함께 지워져야 합니다.)
+    """
+    db_user = db.query(User).filter(User.id == user_id).first()
+    if not db_user:
+        return False
+        
+    db.delete(db_user)
+    db.commit()
+    return True
+
 def update_user_onboarding(db: Session, user_id: int, obj_in: UserOnboardingUpdate):
     """개인화 설정 정보만 업데이트"""
     # DB에서 해당 유저 찾기
