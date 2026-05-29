@@ -1,3 +1,63 @@
+DIVERSITY_OPTIMIZER_CONFIG = {
+    "낮음": {
+        "repeat_penalty_weight": 500,
+        "max_repeat_per_menu": 3,
+    },
+    "보통": {
+        "repeat_penalty_weight": 800,
+        "max_repeat_per_menu": 2,
+    },
+    "높음": {
+        "repeat_penalty_weight": 1000,
+        "max_repeat_per_menu": 2,
+    },
+}
+
+
+DEFAULT_OPTIMIZER_CONFIG = {
+    "score_weight": 100,
+    "cost_penalty_weight": 3,
+    "cost_penalty_divisor": 100,
+    "solver_time_limit_seconds": 10,
+}
+
+
+def build_optimizer_config(profile: dict) -> dict:
+    """
+    사용자 profile과 실험용 override 값을 바탕으로
+    OR-Tools 최적화 설정을 만든다.
+
+    diversity_level은 메뉴 반복 제어 강도를 결정한다.
+    profile에 명시된 optimizer 값이 있으면 해당 값을 우선 적용한다.
+    """
+
+    diversity_level = profile.get("diversity_level", "보통")
+    diversity_config = DIVERSITY_OPTIMIZER_CONFIG.get(
+        diversity_level,
+        DIVERSITY_OPTIMIZER_CONFIG["보통"],
+    )
+
+    config = {
+        **DEFAULT_OPTIMIZER_CONFIG,
+        **diversity_config,
+    }
+
+    override_keys = [
+        "score_weight",
+        "cost_penalty_weight",
+        "cost_penalty_divisor",
+        "repeat_penalty_weight",
+        "max_repeat_per_menu",
+        "solver_time_limit_seconds",
+    ]
+
+    for key in override_keys:
+        if profile.get(key) is not None:
+            config[key] = profile[key]
+
+    return config
+
+
 def build_optimizer_input(
     recommendations: list[dict],
     profile: dict,
@@ -49,16 +109,19 @@ def build_optimizer_input(
             "raw_menu": menu,
         })
 
+    optimizer_config = build_optimizer_config(profile)
+
     return {
         "profile": profile,
         "period_days": period_days,
         "meal_count_per_day": meal_count_per_day,
         "slots": slots,
         "menus": menus,
-        "max_repeat_per_menu": profile.get("max_repeat_per_menu", 2),
-        "solver_time_limit_seconds": profile.get("solver_time_limit_seconds", 10),
-        "score_weight": profile.get("score_weight", 100),
-        "cost_penalty_weight": profile.get("cost_penalty_weight", 1),
-        "cost_penalty_divisor": profile.get("cost_penalty_divisor", 100),
-        "repeat_penalty_weight": profile.get("repeat_penalty_weight", 300),
+        "max_repeat_per_menu": optimizer_config["max_repeat_per_menu"],
+        "solver_time_limit_seconds": optimizer_config["solver_time_limit_seconds"],
+        "score_weight": optimizer_config["score_weight"],
+        "cost_penalty_weight": optimizer_config["cost_penalty_weight"],
+        "cost_penalty_divisor": optimizer_config["cost_penalty_divisor"],
+        "repeat_penalty_weight": optimizer_config["repeat_penalty_weight"],
+        "optimizer_config": optimizer_config,
     }
