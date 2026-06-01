@@ -2,10 +2,14 @@ DIVERSITY_OPTIMIZER_CONFIG = {
     "낮음": {
         "repeat_penalty_weight": 500,
         "max_repeat_per_menu": 3,
+        "optimizer_candidate_multiplier": 1.2,
+        "solver_time_limit_seconds": 3,
     },
     "보통": {
         "repeat_penalty_weight": 800,
         "max_repeat_per_menu": 2,
+        "optimizer_candidate_multiplier": 1.2,
+        "solver_time_limit_seconds": 3,
     },
     "높음": {
         "repeat_penalty_weight": 1000,
