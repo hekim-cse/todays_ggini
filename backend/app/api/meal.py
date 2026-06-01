@@ -50,9 +50,6 @@ from ai.modeling.services.modeling_service import (
 router = APIRouter()
 
 # ---------------------------  프론트엔드 호출용 API ---------------------------------
-JOB_STORE = {}
-
-
 # -------------------- 월간 식단 요청(비동기 실행) ----------------------------
 async def background_monthly_plan_task(
     job_id: str, user_id: int, selected_style_id: str, redis: Redis
@@ -60,8 +57,19 @@ async def background_monthly_plan_task(
     """
     API 응답이 나간 뒤 백그라운드에서 조용히 실행될 함수
     """
+    # [도우미 함수] 반복되는 Redis 상태 업데이트 코드를 깔끔하게 관리하기 위해 선언
+    async def update_status(job_status: str, progress: str, error: str = None):
+        data = {"status": job_status, "progress": progress}
+        if error:
+            data["error"] = error
+        await redis.setex(
+            name=f"job_status:{job_id}",
+            time=86400,  # 1일(24시간) TTL
+            value=json.dumps(data, ensure_ascii=False)
+        )
+
     # 작업 시작 기록
-    JOB_STORE[job_id] = {"status": "PROCESSING", "progress": "프로필 분석 중"}
+    await update_status("PROCESSING", "프로필 분석 중")
 
     # 💡 백그라운드 작업이므로 DB 세션을 새로 엽니다.
     db = SessionLocal()
@@ -98,7 +106,7 @@ async def background_monthly_plan_task(
         }
 
         # ----------------------- [AI 응답 결과 캐싱 구간 ] -----------------------
-        JOB_STORE[job_id]["progress"] = "기존 식단 캐시 확인 중"
+        await update_status("PROCESSING", "기존 식단 캐시 확인 중")
 
         # 딕셔너리 내부 순서가 달라도 같은 해시가 나오도록 고정 정렬 후 JSON 문자열 덤프
         # (user_id를 제외한 user_profile과 request_type, selected_style_id만 조합하여 공유 캐시 효율 극대화)
@@ -114,11 +122,11 @@ async def background_monthly_plan_task(
 
         if cached_response:
             # [Cache Hit] 동일한 조건의 캐시 발견 시, 외부 AI 호출을 스킵하고 즉시 파싱
-            JOB_STORE[job_id]["progress"] = "식단 캐시 매칭 성공 (AI 연산 스킵)"
+            await update_status("PROCESSING", "식단 캐시 매칭 성공 (AI 연산 스킵)")
             ai_response = json.loads(cached_response)
         else:
             # [Cache Miss] 일치하는 캐시가 없으므로 실제 AI 호출 진행
-            JOB_STORE[job_id]["progress"] = "새로운 식단 생성 중 (AI 연산)"
+            await update_status("PROCESSING", "새로운 식단 생성 중 (AI 연산)")
             
             # AI 호출 (블로킹 오버헤드 방지를 위해 스레드 풀에서 비동기 실행)
             ai_response = await asyncio.to_thread(create_monthly_plan, modeling_payload)
@@ -133,18 +141,18 @@ async def background_monthly_plan_task(
 
         days_data = ai_response.get("monthly_plan", {}).get("days", [])
 
-        JOB_STORE[job_id]["progress"] = "DB에 결과 저장 중"
+        await update_status("PROCESSING", "DB에 결과 저장 중")
         # 💡 DB 저장
         crud_meal.save_monthly_plan(
             db=db, user_id=current_user.id, ai_days_list=days_data
         )
 
         # 모든 작업 완료 기록
-        JOB_STORE[job_id] = {"status": "COMPLETED", "progress": "완료"}
+        await update_status("COMPLETED", "완료")
 
     except Exception as e:
         print(f"Background Task Error: {str(e)}")
-        JOB_STORE[job_id] = {"status": "FAILED", "error": str(e)}
+        await update_status("FAILED", "오류 발생", error=str(e))
     finally:
         db.close()  # 필수: 작업이 끝나면 DB 세션 닫기
 
@@ -165,6 +173,14 @@ async def generate_meal_plans_trigger(
     # 1. 고유한 작업 ID 생성
     job_id = f"job_{uuid.uuid4().hex[:8]}"
 
+    # 백그라운드 태스크가 돌기 전에 상태를 먼저 PENDING으로 등록
+    # 프론트가 0.1초 만에 너무 빨리 상태 조회를(Polling) 요청해서 404가 뜨는 Race Condition 방지용
+    await redis.setex(
+        name=f"job_status:{job_id}",
+        time=86400,
+        value=json.dumps({"status": "PENDING", "progress": "작업 대기 중"}, ensure_ascii=False)
+    )
+
     # 2. 백그라운드에 일거리 던지기 (함수 이름과 인자들을 넘김)
     background_tasks.add_task(
         background_monthly_plan_task,
@@ -183,17 +199,17 @@ async def generate_meal_plans_trigger(
 
 
 @router.get("/generate/status/{job_id}")
-async def check_generation_status(job_id: str):
+async def check_generation_status(job_id: str, redis: Redis = Depends(get_redis)):
     """
     프론트엔드가 지속적으로 호출하여 작업 완료 여부를 확인하는 API입니다.
     """
-    job_info = JOB_STORE.get(job_id)
+    job_info = await redis.get(f"job_status:{job_id}")
     if not job_info:
         raise HTTPException(
             status_code=404, detail="존재하지 않거나 만료된 작업입니다."
         )
 
-    return job_info
+    return json.loads(job_info)
 
 
 # --------------------- 생성된 30일 식단 최종 확정 및 요약 정보 반환 API -----------------------
