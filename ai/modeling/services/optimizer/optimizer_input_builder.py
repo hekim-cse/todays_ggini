@@ -10,6 +10,8 @@ DIVERSITY_OPTIMIZER_CONFIG = {
     "높음": {
         "repeat_penalty_weight": 1000,
         "max_repeat_per_menu": 2,
+        "optimizer_candidate_multiplier": 1.5,
+        "solver_time_limit_seconds": 5,
     },
 }
 
@@ -18,8 +20,8 @@ DEFAULT_OPTIMIZER_CONFIG = {
     "score_weight": 100,
     "cost_penalty_weight": 3,
     "cost_penalty_divisor": 100,
-    "solver_time_limit_seconds": 10,
-    "optimizer_candidate_multiplier": None,
+    "solver_time_limit_seconds": 3,
+    "optimizer_candidate_multiplier": 1.2,
 }
 
 
