@@ -190,6 +190,7 @@ def format_monthly_plan_for_back(
         "recent_day_window": monthly_plan.get("recent_day_window"),
         "warnings": monthly_plan.get("warnings", []),
         "optimizer": monthly_plan.get("optimizer"),
+        "profiling": monthly_plan.get("profiling", {}),
         "summary": monthly_plan.get("summary", {}),
         "style_validation": monthly_plan.get("style_validation", {}),
         "days": formatted_days,

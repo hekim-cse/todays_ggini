@@ -19,6 +19,7 @@ DEFAULT_OPTIMIZER_CONFIG = {
     "cost_penalty_weight": 3,
     "cost_penalty_divisor": 100,
     "solver_time_limit_seconds": 10,
+    "optimizer_candidate_multiplier": None,
 }
 
 
@@ -49,6 +50,7 @@ def build_optimizer_config(profile: dict) -> dict:
         "repeat_penalty_weight",
         "max_repeat_per_menu",
         "solver_time_limit_seconds",
+        "optimizer_candidate_multiplier",
     ]
 
     for key in override_keys:
@@ -90,9 +92,37 @@ def build_optimizer_input(
                 "meal_order": meal_order,
             })
 
+    optimizer_config = build_optimizer_config(profile)
+
+    required_meal_count = period_days * meal_count_per_day
+    optimizer_candidate_multiplier = optimizer_config.get(
+        "optimizer_candidate_multiplier"
+    )
+
+    if optimizer_candidate_multiplier and optimizer_candidate_multiplier > 0:
+        optimizer_candidate_limit = int(
+            required_meal_count * optimizer_candidate_multiplier
+        )
+
+        # 너무 적은 후보만 남으면 품질이 급격히 떨어질 수 있으므로
+        # 최소한 월간 식단 슬롯 수만큼은 후보를 유지한다.
+        optimizer_candidate_limit = max(
+            optimizer_candidate_limit,
+            required_meal_count,
+        )
+
+        optimizer_recommendations = sorted(
+            recommendations,
+            key=lambda menu: float(menu.get("final_score", 0) or 0),
+            reverse=True,
+        )[:optimizer_candidate_limit]
+    else:
+        optimizer_candidate_limit = None
+        optimizer_recommendations = recommendations
+
     menus = []
 
-    for index, menu in enumerate(recommendations):
+    for index, menu in enumerate(optimizer_recommendations):
         menus.append({
             "index": index,
             "menu_id": menu.get("menu_id"),
@@ -109,8 +139,6 @@ def build_optimizer_input(
             "raw_menu": menu,
         })
 
-    optimizer_config = build_optimizer_config(profile)
-
     return {
         "profile": profile,
         "period_days": period_days,
@@ -118,6 +146,11 @@ def build_optimizer_input(
         "slots": slots,
         "menus": menus,
         "monthly_budget": profile.get("monthly_budget"),
+        "required_meal_count": required_meal_count,
+        "original_recommendation_count": len(recommendations),
+        "used_optimizer_candidate_count": len(optimizer_recommendations),
+        "optimizer_candidate_multiplier": optimizer_candidate_multiplier,
+        "optimizer_candidate_limit": optimizer_candidate_limit,
         "max_repeat_per_menu": optimizer_config["max_repeat_per_menu"],
         "solver_time_limit_seconds": optimizer_config["solver_time_limit_seconds"],
         "score_weight": optimizer_config["score_weight"],

@@ -50,6 +50,11 @@ def solve_monthly_plan_with_ortools(optimizer_input: dict) -> dict:
     cost_penalty_divisor = optimizer_input.get("cost_penalty_divisor", 100)
     repeat_penalty_weight = optimizer_input.get("repeat_penalty_weight", 300)
     monthly_budget = int(optimizer_input.get("monthly_budget") or 0)
+    required_meal_count = optimizer_input.get("required_meal_count")
+    original_recommendation_count = optimizer_input.get("original_recommendation_count")
+    used_optimizer_candidate_count = optimizer_input.get("used_optimizer_candidate_count")
+    optimizer_candidate_multiplier = optimizer_input.get("optimizer_candidate_multiplier")
+    optimizer_candidate_limit = optimizer_input.get("optimizer_candidate_limit")
 
     if not slots:
         return {
@@ -184,6 +189,11 @@ def solve_monthly_plan_with_ortools(optimizer_input: dict) -> dict:
                 "max_repeat_per_menu": max_repeat_per_menu,
                 "solver_time_limit_seconds": time_limit,
                 "monthly_budget": monthly_budget,
+                "required_meal_count": required_meal_count,
+                "original_recommendation_count": original_recommendation_count,
+                "used_optimizer_candidate_count": used_optimizer_candidate_count,
+                "optimizer_candidate_multiplier": optimizer_candidate_multiplier,
+                "optimizer_candidate_limit": optimizer_candidate_limit,
             },
         }
 
@@ -218,5 +228,10 @@ def solve_monthly_plan_with_ortools(optimizer_input: dict) -> dict:
             "max_repeat_per_menu": max_repeat_per_menu,
             "solver_time_limit_seconds": time_limit,
             "monthly_budget": monthly_budget,
+            "required_meal_count": required_meal_count,
+            "original_recommendation_count": original_recommendation_count,
+            "used_optimizer_candidate_count": used_optimizer_candidate_count,
+            "optimizer_candidate_multiplier": optimizer_candidate_multiplier,
+            "optimizer_candidate_limit": optimizer_candidate_limit,
         },
     }

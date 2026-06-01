@@ -1,4 +1,5 @@
 from copy import deepcopy
+import time
 from services.profile.profile_service import build_user_profile_response
 
 from services.rag.rag_request_service import build_rag_request
@@ -670,6 +671,11 @@ def build_optimizer_infeasible_monthly_response(
                     "cost_penalty_weight": optimizer_input.get("cost_penalty_weight"),
                     "cost_penalty_divisor": optimizer_input.get("cost_penalty_divisor"),
                     "repeat_penalty_weight": optimizer_input.get("repeat_penalty_weight"),
+                    "required_meal_count": optimizer_input.get("required_meal_count"),
+                    "original_recommendation_count": optimizer_input.get("original_recommendation_count"),
+                    "used_optimizer_candidate_count": optimizer_input.get("used_optimizer_candidate_count"),
+                    "optimizer_candidate_multiplier": optimizer_input.get("optimizer_candidate_multiplier"),
+                    "optimizer_candidate_limit": optimizer_input.get("optimizer_candidate_limit"),
                 },
             },
             "summary": {
@@ -698,6 +704,9 @@ def create_monthly_plan(request_data: dict) -> dict:
     7. 스타일 반영 검증과 Back 응답 payload를 생성한다.
     """
 
+    profiling_started_at = time.perf_counter()
+    profiling = {}
+
     user_id = get_required_user_id(request_data)
 
     selected_style = request_data.get("selected_style", {})
@@ -723,14 +732,26 @@ def create_monthly_plan(request_data: dict) -> dict:
     period_days = monthly_profile.get("period_days", 30)
     meal_count_per_day = monthly_profile.get("meal_count_per_day", 1)
 
+    profiling["profile_time_ms"] = round(
+        (time.perf_counter() - profiling_started_at) * 1000,
+        2,
+    )
+
     candidate_count = calculate_monthly_candidate_count(
         profile=monthly_profile,
     )
+
+    rag_started_at = time.perf_counter()
 
     candidate_menus, fallback_info = request_monthly_candidate_menus_with_fallback(
         request_data=request_data,
         profile=monthly_profile,
         candidate_count=candidate_count,
+    )
+
+    profiling["rag_request_total_time_ms"] = round(
+        (time.perf_counter() - rag_started_at) * 1000,
+        2,
     )
 
     if not candidate_menus:
@@ -744,10 +765,17 @@ def create_monthly_plan(request_data: dict) -> dict:
             fallback_info=fallback_info,
         )
 
+    recommendation_started_at = time.perf_counter()
+
     recommendations = recommend_menus(
         menus=candidate_menus,
         profile=monthly_profile,
         top_n=len(candidate_menus),
+    )
+
+    profiling["recommendation_time_ms"] = round(
+        (time.perf_counter() - recommendation_started_at) * 1000,
+        2,
     )
 
     use_ortools = request_data.get("use_ortools", False)
@@ -759,11 +787,18 @@ def create_monthly_plan(request_data: dict) -> dict:
             **optimizer_config,
         }
 
+        optimizer_input_started_at = time.perf_counter()
+
         optimizer_input = build_optimizer_input(
             recommendations=recommendations,
             profile=optimizer_profile,
             period_days=period_days,
             meal_count_per_day=meal_count_per_day,
+        )
+
+        profiling["optimizer_input_build_time_ms"] = round(
+            (time.perf_counter() - optimizer_input_started_at) * 1000,
+            2,
         )
 
         required_meal_count = period_days * meal_count_per_day
@@ -786,8 +821,15 @@ def create_monthly_plan(request_data: dict) -> dict:
                 fallback_info=fallback_info,
             )
 
+        ortools_solver_started_at = time.perf_counter()
+
         optimizer_result = solve_monthly_plan_with_ortools(
             optimizer_input=optimizer_input,
+        )
+
+        profiling["ortools_solver_time_ms"] = round(
+            (time.perf_counter() - ortools_solver_started_at) * 1000,
+            2,
         )
 
         if optimizer_result.get("solver_status") not in ["OPTIMAL", "FEASIBLE"]:
@@ -804,11 +846,18 @@ def create_monthly_plan(request_data: dict) -> dict:
                 fallback_info=fallback_info,
             )
 
+        plan_mapping_started_at = time.perf_counter()
+
         monthly_plan = build_ortools_monthly_plan(
             optimizer_result=optimizer_result,
             optimizer_input=optimizer_input,
             recommendations=recommendations,
             profile=optimizer_profile,
+        )
+
+        profiling["plan_mapping_time_ms"] = round(
+            (time.perf_counter() - plan_mapping_started_at) * 1000,
+            2,
         )
 
     else:
@@ -842,6 +891,13 @@ def create_monthly_plan(request_data: dict) -> dict:
         )
 
     monthly_plan["fallback"] = fallback_info
+
+    profiling["total_modeling_time_ms"] = round(
+        (time.perf_counter() - profiling_started_at) * 1000,
+        2,
+    )
+
+    monthly_plan["profiling"] = profiling
 
     return build_modeling_to_back_monthly_response(
         user_id=user_id,
