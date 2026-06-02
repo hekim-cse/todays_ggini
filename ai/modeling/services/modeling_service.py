@@ -70,22 +70,67 @@ def calculate_style_candidate_count(profile: dict) -> int:
     return sample_period_days * meal_count_per_day * 3
 
 
+def calculate_monthly_rag_candidate_multiplier(profile: dict) -> float:
+    """
+    월간 식단 생성을 위한 RAG 후보 요청 배수를 계산한다.
+
+    rag_candidate_multiplier가 명시적으로 전달되면 해당 값을 우선 사용한다.
+    값이 없으면 사용자 조건의 복잡도를 기준으로 기본 배수를 동적으로 결정한다.
+    """
+    explicit_multiplier = profile.get("rag_candidate_multiplier")
+
+    if explicit_multiplier is not None:
+        return float(explicit_multiplier)
+
+    monthly_budget = int(profile.get("monthly_budget", 0) or 0)
+    preferred_categories = profile.get("preferred_categories", []) or []
+    ingredient_preferences = profile.get("ingredient_preferences", []) or []
+    allergy_ingredients = profile.get("allergy_ingredients", []) or []
+    diversity_level = profile.get("diversity_level")
+
+    risk_score = 0
+
+    # 예산이 낮으면 가능한 조합이 줄어들 수 있다.
+    if monthly_budget and monthly_budget <= 250000:
+        risk_score += 1
+
+    # 알레르기 조건이 있으면 제외되는 후보가 늘어날 수 있다.
+    if allergy_ingredients:
+        risk_score += 1
+
+    # 선호 카테고리가 좁으면 후보 풀이 부족해질 수 있다.
+    if len(preferred_categories) <= 1:
+        risk_score += 1
+
+    # 선호 재료군이 좁으면 후보 풀이 부족해질 수 있다.
+    if len(ingredient_preferences) <= 1:
+        risk_score += 1
+
+    # 다양성을 높게 요구하면 더 넓은 후보 풀이 필요하다.
+    if diversity_level == "높음":
+        risk_score += 1
+
+    # 복합 제약 조건이 강한 경우에만 안정성 우선 배수를 사용한다.
+    if risk_score >= 3:
+        return 2.8
+
+    # 일반 사용자는 속도를 우선해 요청 후보 수를 줄인다.
+    return 2.4
+
+
 def calculate_monthly_candidate_count(profile: dict) -> int:
     """
     월간 식단 생성을 위한 RAG 후보 메뉴 요청 개수를 계산한다.
 
-    기본값은 required_meal_count x 3이다.
+    기본값은 사용자 조건에 따라 required_meal_count x 2.4 또는 x 2.8이다.
     실험 또는 성능 최적화를 위해 rag_candidate_multiplier를 전달하면
     해당 배율을 우선 적용한다.
     """
-
-    period_days = profile.get("period_days", 30)
-    meal_count_per_day = profile.get("meal_count_per_day", 1)
+    period_days = int(profile.get("period_days", 30) or 30)
+    meal_count_per_day = int(profile.get("meal_count_per_day", 1) or 1)
 
     required_meal_count = period_days * meal_count_per_day
-    rag_candidate_multiplier = float(
-        profile.get("rag_candidate_multiplier", 3) or 3
-    )
+    rag_candidate_multiplier = calculate_monthly_rag_candidate_multiplier(profile)
 
     candidate_count = int(round(required_meal_count * rag_candidate_multiplier))
 
@@ -757,9 +802,8 @@ def create_monthly_plan(request_data: dict) -> dict:
         profile=monthly_profile,
     )
 
-    profiling["rag_candidate_multiplier"] = monthly_profile.get(
-        "rag_candidate_multiplier",
-        3,
+    profiling["rag_candidate_multiplier"] = calculate_monthly_rag_candidate_multiplier(
+        monthly_profile
     )
     profiling["rag_candidate_request_count"] = candidate_count
 
