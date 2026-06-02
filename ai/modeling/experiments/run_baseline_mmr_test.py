@@ -67,12 +67,7 @@ def build_monthly_request(scenario: dict) -> dict:
         "request_type": "monthly_plan",
         "profile": profile,
         "selected_style": selected_style,
-        "use_ortools": scenario.get("use_ortools", False),
-        "optimizer_config": scenario.get("optimizer_config", {}),
     }
-
-    if "rag_candidate_multiplier" in scenario:
-        request_data["rag_candidate_multiplier"] = scenario["rag_candidate_multiplier"]
 
     return request_data
 
@@ -90,17 +85,11 @@ def run_one_scenario(scenario: dict) -> dict:
 
         runtime_ms = round((time.perf_counter() - started_at) * 1000, 2)
 
-        planner_name = (
-            "ortools_cp_sat"
-            if request_data.get("use_ortools")
-            else "baseline_mmr_reranking"
-        )
-
         return {
             "scenario_id": scenario_id,
             "description": scenario.get("description"),
             "purpose": scenario.get("purpose"),
-            "planner": planner_name,
+            "planner": "baseline_mmr_reranking",
             "success": True,
             "runtime_ms": runtime_ms,
             "error": None,
@@ -112,17 +101,11 @@ def run_one_scenario(scenario: dict) -> dict:
     except Exception as error:
         runtime_ms = round((time.perf_counter() - started_at) * 1000, 2)
 
-        planner_name = (
-            "ortools_cp_sat"
-            if scenario.get("use_ortools")
-            else "baseline_mmr_reranking"
-        )
-
         return {
             "scenario_id": scenario_id,
             "description": scenario.get("description"),
             "purpose": scenario.get("purpose"),
-            "planner": planner_name,
+            "planner": "baseline_mmr_reranking",
             "success": False,
             "runtime_ms": runtime_ms,
             "error": {
@@ -207,18 +190,12 @@ def main() -> None:
                 f"error={result['error']}"
             )
 
-    planner_name = (
-        "ortools_cp_sat"
-        if any(scenario.get("use_ortools") for scenario in scenarios)
-        else "baseline_mmr_reranking"
-    )
-
     output_data = {
         "experiment_name": scenario_data.get(
             "experiment_name",
             "baseline_mmr_experiment",
         ),
-        "planner": planner_name,
+        "planner": "baseline_mmr_reranking",
         "created_at": datetime.now(timezone.utc).isoformat(),
         "summary": summarize_results(results),
         "results": results,
