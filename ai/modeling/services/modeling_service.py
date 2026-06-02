@@ -4,6 +4,7 @@ from services.profile.profile_service import build_user_profile_response
 
 from services.rag.rag_request_service import build_rag_request
 from services.rag.rag_client import request_candidate_menus_from_rag
+from services.rag.rag_candidate_diagnostics import diagnose_monthly_candidate_pool
 from services.rag.rag_response_mapper import map_rag_response_to_candidate_menus
 
 from services.style.meal_style_service import build_meal_style_candidates
@@ -405,6 +406,7 @@ def request_monthly_candidate_menus_with_fallback(
         "fallback_steps": [],
         "warnings": [],
         "final_candidate_count": 0,
+        "candidate_diagnostics": None,
     }
 
     rag_request = build_rag_request(
@@ -426,7 +428,19 @@ def request_monthly_candidate_menus_with_fallback(
     )
 
     if candidate_menus:
+        period_days = int(profile.get("period_days", 30) or 30)
+        meal_count_per_day = int(profile.get("meal_count_per_day", 1) or 1)
+        required_meal_count = period_days * meal_count_per_day
+        optimizer_candidate_limit = int(round(required_meal_count * 1.2))
+
+        fallback_info["candidate_diagnostics"] = diagnose_monthly_candidate_pool(
+            candidate_menus=candidate_menus,
+            profile=profile,
+            required_meal_count=required_meal_count,
+            optimizer_candidate_limit=optimizer_candidate_limit,
+        )
         fallback_info["final_candidate_count"] = len(candidate_menus)
+
         return candidate_menus, fallback_info
 
     for fallback_reason, fallback_profile, candidate_count_multiplier in (
@@ -465,6 +479,17 @@ def request_monthly_candidate_menus_with_fallback(
         )
 
         if fallback_candidate_menus:
+            period_days = int(fallback_profile.get("period_days", 30) or 30)
+            meal_count_per_day = int(fallback_profile.get("meal_count_per_day", 1) or 1)
+            required_meal_count = period_days * meal_count_per_day
+            optimizer_candidate_limit = int(round(required_meal_count * 1.2))
+
+            fallback_info["candidate_diagnostics"] = diagnose_monthly_candidate_pool(
+                candidate_menus=fallback_candidate_menus,
+                profile=fallback_profile,
+                required_meal_count=required_meal_count,
+                optimizer_candidate_limit=optimizer_candidate_limit,
+            )
             fallback_info["final_candidate_count"] = len(fallback_candidate_menus)
             fallback_info["warnings"].append(
                 "선호 조건에 맞는 후보 메뉴가 부족하여 일부 조건을 완화해 월간 식단을 생성했습니다."
