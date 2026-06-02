@@ -72,14 +72,25 @@ def calculate_style_candidate_count(profile: dict) -> int:
 
 def calculate_monthly_candidate_count(profile: dict) -> int:
     """
-    월간 식단 생성을 위한 후보 메뉴 개수를 계산한다.
+    월간 식단 생성을 위한 RAG 후보 메뉴 요청 개수를 계산한다.
+
+    기본값은 required_meal_count x 3이다.
+    실험 또는 성능 최적화를 위해 rag_candidate_multiplier를 전달하면
+    해당 배율을 우선 적용한다.
     """
 
     period_days = profile.get("period_days", 30)
     meal_count_per_day = profile.get("meal_count_per_day", 1)
 
-    # 월간 식단은 대체 메뉴까지 필요하므로 3배 후보를 요청한다.
-    return period_days * meal_count_per_day * 3
+    required_meal_count = period_days * meal_count_per_day
+    rag_candidate_multiplier = float(
+        profile.get("rag_candidate_multiplier", 3) or 3
+    )
+
+    candidate_count = int(round(required_meal_count * rag_candidate_multiplier))
+
+    # 최소한 월간 식단 슬롯 수만큼은 후보를 요청한다.
+    return max(required_meal_count, candidate_count)
 
 
 def copy_profile_with_relaxed_conditions(
@@ -729,6 +740,11 @@ def create_monthly_plan(request_data: dict) -> dict:
         selected_style=selected_style_summary,
     )
 
+    rag_candidate_multiplier = request_data.get("rag_candidate_multiplier")
+
+    if rag_candidate_multiplier is not None:
+        monthly_profile["rag_candidate_multiplier"] = rag_candidate_multiplier
+
     period_days = monthly_profile.get("period_days", 30)
     meal_count_per_day = monthly_profile.get("meal_count_per_day", 1)
 
@@ -740,6 +756,12 @@ def create_monthly_plan(request_data: dict) -> dict:
     candidate_count = calculate_monthly_candidate_count(
         profile=monthly_profile,
     )
+
+    profiling["rag_candidate_multiplier"] = monthly_profile.get(
+        "rag_candidate_multiplier",
+        3,
+    )
+    profiling["rag_candidate_request_count"] = candidate_count
 
     rag_started_at = time.perf_counter()
 

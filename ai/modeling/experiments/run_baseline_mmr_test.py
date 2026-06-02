@@ -69,6 +69,7 @@ def build_monthly_request(scenario: dict) -> dict:
         "selected_style": selected_style,
         "use_ortools": scenario.get("use_ortools", False),
         "optimizer_config": scenario.get("optimizer_config", {}),
+        "rag_candidate_multiplier": scenario.get("rag_candidate_multiplier", 3),
     }
 
     return request_data
