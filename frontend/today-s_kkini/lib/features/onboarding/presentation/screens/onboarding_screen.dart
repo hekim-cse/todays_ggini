@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/popup.dart';
 import '../../../../core/widgets/mascot_speech.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../providers/onboarding_providers.dart';
@@ -14,6 +15,7 @@ import '../widgets/allergy_input.dart';
 import '../widgets/diversity_slider.dart';
 import '../widgets/labeled_slider.dart';
 import '../widgets/budget_slider.dart';
+
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -31,6 +33,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final List<String> _selectedIngredient = [];
   final List<String> _allergies = [];
   bool _initialized = false;
+
+  static const Map<String, List<String>> _categoryIngredients = {
+    '육류': ['소고기', '돼지고기', '닭고기', '양고기', '오리고기', '양갈비', '베이컨', '햄', '소시지'],
+    '해산물류': ['새우', '연어', '참치', '오징어', '조개', '게', '굴', '문어', '가리비', '홍합'],
+    '채소류': ['양파', '마늘', '당근', '브로콜리', '시금치', '버섯', '감자', '토마토', '양배추', '양상추'],
+    '식물성 단백질류': ['두부', '콩', '템페', '병아리콩', '렌틸콩', '에다마메', '검은콩', '두유', '청국장', '낫토'],
+    '계란 및 유제품류': ['계란', '우유', '치즈', '버터', '요거트', '크림', '생크림'],
+  };
+
+  String? _conflictingCategory() {
+    for (final entry in _categoryIngredients.entries) {
+      // 카테고리명으로 선호 여부 확인 (기존: 개별 재료명 비교)
+      final isCategorySelected = _selectedIngredient.contains(entry.key);
+
+      final allergiesInCategory = _allergies
+          .where((a) => entry.value.contains(a))
+          .toSet();
+
+      if (isCategorySelected && allergiesInCategory.length >= 2) {
+        return entry.key;
+      }
+    }
+    return null;
+  }
 
   @override
   void dispose() {
@@ -148,28 +174,29 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ),
           ),
         ),
-        // Padding(
-        //   padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-        //   child: Center(
-        //     child: Text(
-        //       '상세 설정은 나중에 마이페이지에서 변경 가능해요',
-        //       style: Theme.of(context).textTheme.bodySmall,
-        //     ),
-        //   ),
-        // ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
           child: SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: _selectedGoals.isEmpty || _selectedFoods.isEmpty || _selectedIngredient.isEmpty
-                  ? null
-                  : () {
-                      _pageController.nextPage(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
+                ? null
+                : () {
+                    final conflict = _conflictingCategory();
+                    if (conflict != null) {
+                      showAppPopupSingle(
+                        context: context,
+                        content: '[$conflict]\n선호 재료와 제외 재료가 많이 겹쳐 식단 생성이 어렵습니다. 설정을 조정해 주세요.',
                       );
-                    },
+                      return;
+                    }
+                    _pageController.nextPage(
+                      duration: const Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                    );
+                  },
+
+
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 disabledBackgroundColor: AppColors.buttonGray,
