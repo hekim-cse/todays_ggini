@@ -1,5 +1,3 @@
-
-
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 
@@ -7,28 +5,35 @@ class AppPopup extends StatelessWidget {
   final String? content;
   final Widget? contentWidget;
   final String? title;
-  final String leftButtonText;
-  final String rightButtonText;
-  final VoidCallback onLeftTap;
-  final VoidCallback onRightTap;
+  final String? leftButtonText;
+  final String? rightButtonText;
+  final VoidCallback? onLeftTap;
+  final VoidCallback? onRightTap;
   final Color? leftButtonColor;
   final Color? rightButtonColor;
+  // 단일 버튼용
+  final String? singleButtonText;
+  final VoidCallback? onSingleTap;
 
   const AppPopup({
     super.key,
     this.content,
     this.contentWidget,
     this.title,
-    required this.leftButtonText,
-    required this.rightButtonText,
-    required this.onLeftTap,
-    required this.onRightTap,
+    this.leftButtonText,
+    this.rightButtonText,
+    this.onLeftTap,
+    this.onRightTap,
     this.leftButtonColor,
     this.rightButtonColor,
+    this.singleButtonText,
+    this.onSingleTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isSingle = singleButtonText != null;
+
     return AlertDialog(
       backgroundColor: AppColors.background,
       scrollable: true,
@@ -61,33 +66,53 @@ class AppPopup extends StatelessWidget {
         Column(
           children: [
             Divider(height: 1, color: AppColors.border),
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: onLeftTap,
-                    child: Text(
-                      leftButtonText,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: leftButtonColor ?? AppColors.primary,
+            if (isSingle)
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: TextButton(
+                        onPressed: onSingleTap,
+                        child: Text(
+                          singleButtonText!,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppColors.primary,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                Container(width: 1, height: 48, color: AppColors.border),
-                Expanded(
-                  child: TextButton(
-                    onPressed: onRightTap,
-                    child: Text(
-                      rightButtonText,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: rightButtonColor ?? AppColors.border,
+                ],
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: onLeftTap,
+                      child: Text(
+                        leftButtonText ?? '',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: leftButtonColor ?? AppColors.primary,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
+                  Container(width: 1, height: 48, color: AppColors.border),
+                  Expanded(
+                    child: TextButton(
+                      onPressed: onRightTap,
+                      child: Text(
+                        rightButtonText ?? '',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: rightButtonColor ?? AppColors.border,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ],
@@ -108,20 +133,36 @@ void showAppPopup({
 }) {
   showDialog(
     context: context,
-    builder:
-        (dialogContext) => AppPopup(
-          content: content,
-          leftButtonText: leftButtonText,
-          rightButtonText: rightButtonText,
-          onLeftTap: onLeftTap,
-          onRightTap: onRightTap,
-          leftButtonColor: leftButtonColor,
-          rightButtonColor: rightButtonColor,
-        ),
+    builder: (dialogContext) => AppPopup(
+      content: content,
+      leftButtonText: leftButtonText,
+      rightButtonText: rightButtonText,
+      onLeftTap: onLeftTap,
+      onRightTap: onRightTap,
+      leftButtonColor: leftButtonColor,
+      rightButtonColor: rightButtonColor,
+    ),
   );
 }
 
-// 위젯 content용 함수 (새로 추가)
+// 단일 버튼용 함수 (새로 추가)
+void showAppPopupSingle({
+  required BuildContext context,
+  required String content,
+  String buttonText = '확인',
+  VoidCallback? onTap,
+}) {
+  showDialog(
+    context: context,
+    builder: (dialogContext) => AppPopup(
+      content: content,
+      singleButtonText: buttonText,
+      onSingleTap: onTap ?? () => Navigator.of(dialogContext).pop(),
+    ),
+  );
+}
+
+// 위젯 content용 함수 (기존 그대로)
 void showAppPopupWidget({
   required BuildContext context,
   String? title,
