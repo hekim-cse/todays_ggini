@@ -1,0 +1,107 @@
+[
+  {
+  "user_id": "user_001",
+  "profile": {
+    "goals": ["식비 절약", "고단백", "간편식"],
+    "sample_period_days": 3,
+    "monthly_budget": 300000,
+    "period_days": 30,
+    "meal_count_per_day": 2,
+    "cooking_skill": 2,
+    "preferred_categories": ["한식", "분식"],
+    "diversity_level": "낮음",
+    "ingredient_preferences": ["식물성 단백질류", "채소류"],
+    "allergy_ingredients": ["계란"]
+  }
+},
+  {
+    "user_id": "user_002",
+    "profile": {
+      "goals": ["다이어트", "영양 균형"],
+      "sample_period_days": 3,
+      "monthly_budget": 400000,
+      "period_days": 31,
+      "meal_count_per_day": 3,
+      "cooking_skill": 3,
+      "preferred_categories": ["샐러드/건강식", "한식"],
+      "diversity_level": "높음",
+      "ingredient_preferences": ["식물성 단백질류", "채소류"],
+      "allergy_ingredients": []
+    }
+  },
+  {
+    "user_id": "user_003",
+    "profile": {
+      "goals": ["식비 절약", "영양 균형"],
+      "sample_period_days": 3,
+      "monthly_budget": 250000,
+      "period_days": 30,
+      "meal_count_per_day": 2,
+      "cooking_skill": 1,
+      "preferred_categories": ["한식", "일식"],
+      "diversity_level": "보통",
+      "ingredient_preferences": ["해산물류", "채소류"],
+      "allergy_ingredients": ["새우"]
+    }
+  },
+  {
+    "user_id": "user_004",
+    "profile": {
+      "goals": ["고단백", "간편식"],
+      "sample_period_days": 3,
+      "monthly_budget": 500000,
+      "period_days": 29,
+      "meal_count_per_day": 3,
+      "cooking_skill": 2,
+      "preferred_categories": ["샐러드/건강식", "양식", "한식"],
+      "diversity_level": "보통",
+      "ingredient_preferences": ["육류", "식물성 단백질류"],
+      "allergy_ingredients": ["우유"]
+    }
+  },
+  {
+    "user_id": "user_005",
+    "profile": {
+      "goals": ["맛 중심", "간편식"],
+      "sample_period_days": 3,
+      "monthly_budget": 350000,
+      "period_days": 30,
+      "meal_count_per_day": 2,
+      "cooking_skill": 1,
+      "preferred_categories": ["분식", "양식", "일식"],
+      "diversity_level": "낮음",
+      "ingredient_preferences": ["육류", "계란·유제품류"],
+      "allergy_ingredients": []
+    }
+  },
+  {
+    "user_id": "user_006",
+    "profile": {
+      "goals": ["식비 절약"],
+      "sample_period_days": 3,
+      "monthly_budget": 180000,
+      "period_days": 30,
+      "meal_count_per_day": 1,
+      "cooking_skill": 2,
+      "preferred_categories": ["한식", "분식"],
+      "diversity_level": "낮음",
+      "ingredient_preferences": ["식물성 단백질류", "채소류"],
+      "allergy_ingredients": ["계란"]
+    }
+  },
+  {
+    "user_id": "user_007",
+    "profile": {
+      "goals": ["영양 균형", "고단백", "다이어트"],
+      "sample_period_days": 3,
+      "monthly_budget": 600000,
+      "period_days": 28,
+      "meal_count_per_day": 3,
+      "cooking_skill": 4,
+      "preferred_categories": ["한식", "샐러드/건강식", "일식"],
+      "diversity_level": "높음",
+      "ingredient_preferences": ["육류", "해산물류", "채소류"],
+      "allergy_ingredients": ["오이"]
+    }
+  }
+]

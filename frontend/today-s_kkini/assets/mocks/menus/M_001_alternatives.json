@@ -1,0 +1,48 @@
+{
+    "current_meal": {
+        "meal_id": "M_001",
+        "menu_name": "볶음밥",
+        "calories": 650,
+        "price": 3600,
+        "image_url": null,
+        "date": "2026-04-01",
+        "slot": 1
+    },
+    "alternatives": [
+        {
+            "meal_id": "M_101",
+            "menu_name": "두부 김치덮밥",
+            "calories": 620,
+            "price": 6500,
+            "image_url": null
+        },
+        {
+            "meal_id": "M_102",
+            "menu_name": "야채 볶음밥",
+            "calories": 580,
+            "price": 5800,
+            "image_url": null
+        },
+        {
+            "meal_id": "M_103",
+            "menu_name": "닭가슴살 샐러드",
+            "calories": 450,
+            "price": 9200,
+            "image_url": null
+        },
+        {
+            "meal_id": "M_104",
+            "menu_name": "참치 김밥",
+            "calories": 550,
+            "price": 4500,
+            "image_url": null
+        },
+        {
+            "meal_id": "M_001",
+            "menu_name": "볶음밥",
+            "calories": 650,
+            "price": 3600,
+            "image_url": null
+        }
+    ]
+}
