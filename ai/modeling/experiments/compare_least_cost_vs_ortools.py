@@ -185,6 +185,33 @@ def pct_diff(ortools_value, least_cost_value):
     return round((ortools_number - least_cost_number) / least_cost_number * 100, 2)
 
 
+
+def divide_value(numerator, denominator):
+    """
+    0으로 나누는 상황을 피하면서 비율/단가 지표를 계산한다.
+    """
+
+    numerator_number = safe_number(numerator)
+    denominator_number = safe_number(denominator)
+
+    if numerator_number is None or denominator_number is None:
+        return None
+
+    if denominator_number == 0:
+        return None
+
+    return round(numerator_number / denominator_number, 2)
+
+
+def rate_value(part, total):
+    """
+    비율 지표를 계산한다.
+    예: unique_menu_count / selected_menu_count
+    """
+
+    return divide_value(part, total)
+
+
 def build_row(ortools_result: dict, least_cost_result: dict) -> dict:
     scenario_id = ortools_result.get("scenario_id")
 
@@ -203,6 +230,35 @@ def build_row(ortools_result: dict, least_cost_result: dict) -> dict:
     ortools_total_cost = ortools_summary.get("total_estimated_cost")
     least_cost_total_cost = least_cost_summary.get("total_estimated_cost")
 
+    cost_diff = diff_value(
+        ortools_total_cost,
+        least_cost_total_cost,
+    )
+
+    ortools_selected_count = ortools_summary.get("selected_menu_count")
+    least_cost_selected_count = least_cost_summary.get("selected_menu_count")
+
+    ortools_unique_count = ortools_summary.get("unique_menu_count")
+    least_cost_unique_count = least_cost_summary.get("unique_menu_count")
+
+    ortools_duplicate_count = ortools_summary.get("duplicate_menu_count")
+    least_cost_duplicate_count = least_cost_summary.get("duplicate_menu_count")
+
+    additional_unique_menu_count = diff_value(
+        ortools_unique_count,
+        least_cost_unique_count,
+    )
+
+    reduced_duplicate_menu_count = diff_value(
+        least_cost_duplicate_count,
+        ortools_duplicate_count,
+    )
+
+    cost_per_additional_unique_menu = divide_value(
+        cost_diff,
+        additional_unique_menu_count,
+    )
+
     return {
         "scenario_id": scenario_id,
 
@@ -220,10 +276,7 @@ def build_row(ortools_result: dict, least_cost_result: dict) -> dict:
 
         "ortools_total_cost": ortools_total_cost,
         "least_cost_total_cost": least_cost_total_cost,
-        "cost_diff_ortools_minus_least_cost": diff_value(
-            ortools_total_cost,
-            least_cost_total_cost,
-        ),
+        "cost_diff_ortools_minus_least_cost": cost_diff,
         "cost_diff_pct": pct_diff(
             ortools_total_cost,
             least_cost_total_cost,
@@ -232,22 +285,59 @@ def build_row(ortools_result: dict, least_cost_result: dict) -> dict:
         "ortools_average_daily_cost": ortools_summary.get("average_daily_cost"),
         "least_cost_average_daily_cost": least_cost_summary.get("average_daily_cost"),
 
-        "ortools_selected_menu_count": ortools_summary.get("selected_menu_count"),
-        "least_cost_selected_menu_count": least_cost_summary.get("selected_menu_count"),
+        "ortools_selected_menu_count": ortools_selected_count,
+        "least_cost_selected_menu_count": least_cost_selected_count,
 
-        "ortools_unique_menu_count": ortools_summary.get("unique_menu_count"),
-        "least_cost_unique_menu_count": least_cost_summary.get("unique_menu_count"),
-        "unique_diff_ortools_minus_least_cost": diff_value(
-            ortools_summary.get("unique_menu_count"),
-            least_cost_summary.get("unique_menu_count"),
-        ),
+        "ortools_unique_menu_count": ortools_unique_count,
+        "least_cost_unique_menu_count": least_cost_unique_count,
+        "unique_diff_ortools_minus_least_cost": additional_unique_menu_count,
 
-        "ortools_duplicate_menu_count": ortools_summary.get("duplicate_menu_count"),
-        "least_cost_duplicate_menu_count": least_cost_summary.get("duplicate_menu_count"),
+        "ortools_duplicate_menu_count": ortools_duplicate_count,
+        "least_cost_duplicate_menu_count": least_cost_duplicate_count,
         "duplicate_diff_ortools_minus_least_cost": diff_value(
-            ortools_summary.get("duplicate_menu_count"),
-            least_cost_summary.get("duplicate_menu_count"),
+            ortools_duplicate_count,
+            least_cost_duplicate_count,
         ),
+
+        "ortools_unique_rate": rate_value(
+            ortools_unique_count,
+            ortools_selected_count,
+        ),
+        "least_cost_unique_rate": rate_value(
+            least_cost_unique_count,
+            least_cost_selected_count,
+        ),
+        "unique_rate_diff_ortools_minus_least_cost": diff_value(
+            rate_value(ortools_unique_count, ortools_selected_count),
+            rate_value(least_cost_unique_count, least_cost_selected_count),
+        ),
+
+        "ortools_duplicate_rate": rate_value(
+            ortools_duplicate_count,
+            ortools_selected_count,
+        ),
+        "least_cost_duplicate_rate": rate_value(
+            least_cost_duplicate_count,
+            least_cost_selected_count,
+        ),
+        "duplicate_rate_diff_ortools_minus_least_cost": diff_value(
+            rate_value(ortools_duplicate_count, ortools_selected_count),
+            rate_value(least_cost_duplicate_count, least_cost_selected_count),
+        ),
+
+        "ortools_cost_per_unique_menu": divide_value(
+            ortools_total_cost,
+            ortools_unique_count,
+        ),
+        "least_cost_cost_per_unique_menu": divide_value(
+            least_cost_total_cost,
+            least_cost_unique_count,
+        ),
+
+        "additional_unique_menu_count": additional_unique_menu_count,
+        "reduced_duplicate_menu_count": reduced_duplicate_menu_count,
+        "additional_cost": cost_diff,
+        "cost_per_additional_unique_menu": cost_per_additional_unique_menu,
 
         "least_cost_max_menu_repeat_count": least_cost_summary.get(
             "max_menu_repeat_count"
@@ -435,6 +525,58 @@ def summarize_metric_rows(rows: list[dict]) -> dict:
         "avg_least_cost_duplicate_menu_count": average(
             rows,
             "least_cost_duplicate_menu_count",
+        ),
+
+        "avg_ortools_unique_rate": average(
+            rows,
+            "ortools_unique_rate",
+        ),
+        "avg_least_cost_unique_rate": average(
+            rows,
+            "least_cost_unique_rate",
+        ),
+        "avg_unique_rate_diff_ortools_minus_least_cost": average(
+            rows,
+            "unique_rate_diff_ortools_minus_least_cost",
+        ),
+
+        "avg_ortools_duplicate_rate": average(
+            rows,
+            "ortools_duplicate_rate",
+        ),
+        "avg_least_cost_duplicate_rate": average(
+            rows,
+            "least_cost_duplicate_rate",
+        ),
+        "avg_duplicate_rate_diff_ortools_minus_least_cost": average(
+            rows,
+            "duplicate_rate_diff_ortools_minus_least_cost",
+        ),
+
+        "avg_ortools_cost_per_unique_menu": average(
+            rows,
+            "ortools_cost_per_unique_menu",
+        ),
+        "avg_least_cost_cost_per_unique_menu": average(
+            rows,
+            "least_cost_cost_per_unique_menu",
+        ),
+
+        "avg_additional_unique_menu_count": average(
+            rows,
+            "additional_unique_menu_count",
+        ),
+        "avg_reduced_duplicate_menu_count": average(
+            rows,
+            "reduced_duplicate_menu_count",
+        ),
+        "avg_additional_cost": average(
+            rows,
+            "additional_cost",
+        ),
+        "avg_cost_per_additional_unique_menu": average(
+            rows,
+            "cost_per_additional_unique_menu",
         ),
 
         "avg_ortools_preference_score": average(
