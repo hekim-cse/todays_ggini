@@ -377,23 +377,30 @@ async def get_daily_meal_detail(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"{date}에 해당하는 식단 데이터가 없습니다.",
         )
-
-    # 2. DB의 content(JSON) 데이터 정제 및 타입 변환
-    detail_meals = []
+    
+    # 병렬 처리를 위해 이미지 태스크 목록을 빌드
+    img_tasks = []
     for item in plan.content:
         selected_menu = item.get("selected_menu") or {}
-        menu_name = selected_menu.get("name")
-        category = selected_menu.get("category")
-        img_url = await get_food_image_url(menu_name, category)
+        menu_name = selected_menu.get("name", "")
+        category = selected_menu.get("category", "food")
+        img_tasks.append(get_food_image_url(menu_name, category))
 
+    # 아침, 점심, 저녁 이미지 매핑 파이프라인을 한방에 병렬 실행
+    all_img_urls = await asyncio.gather(*img_tasks)
+
+    # 결과를 매핑하여 최종 응답 스키마 조립
+    detail_meals = []
+    for item, img_url in zip(plan.content, all_img_urls):
+        selected_menu = item.get("selected_menu") or {}
         detail_meals.append(
             {
                 "slot": item.get("meal_order"),
                 "meal_id": str(selected_menu.get("menu_id")),
-                "menu_name": menu_name,
+                "menu_name": selected_menu.get("name"),
                 "calories": int(selected_menu.get("calories") or 0),
                 "price": int(selected_menu.get("estimated_cost") or 0),
-                "image_url": img_url,  # Pixabay API를 호출하여 이미지를 가져옴
+                "image_url": img_url,
             }
         )
 
