@@ -1115,6 +1115,45 @@ def analyze_nutrition_outlier(menu: dict) -> dict:
         penalty += 50
         is_extreme = True
 
+    # 영양값 내부 정합성 기준
+    #
+    # calories는 RAG가 내려준 총 열량이고,
+    # macro_calories는 탄수화물/단백질/지방으로부터 계산한 예상 열량이다.
+    # 두 값은 반올림, 식이섬유, 조리 단위 차이 등으로 완전히 같을 필요는 없다.
+    # 다만 macro_calories가 calories보다 지나치게 크면
+    # RAG 영양값의 단위 또는 환산 오류 가능성이 높다.
+    macro_calories = (carbohydrate * 4) + (protein * 4) + (fat * 9)
+
+    if calories > 0 and macro_calories > 0:
+        macro_calorie_ratio = macro_calories / calories
+
+        if macro_calorie_ratio >= 1.5:
+            issues.append("nutrient_calorie_mismatch")
+            penalty += 20
+
+        if macro_calorie_ratio >= 2.0:
+            issues.append("nutrient_calorie_extreme_mismatch")
+            penalty += 40
+            is_extreme = True
+
+        single_macro_calories = {
+            "carbohydrate": carbohydrate * 4,
+            "protein": protein * 4,
+            "fat": fat * 9,
+        }
+
+        for nutrient_name, nutrient_calories in single_macro_calories.items():
+            single_macro_ratio = nutrient_calories / calories
+
+            if single_macro_ratio >= 1.25:
+                issues.append(f"{nutrient_name}_calories_exceed_total")
+                penalty += 25
+
+            if single_macro_ratio >= 1.5:
+                issues.append(f"{nutrient_name}_calories_extreme_exceed_total")
+                penalty += 40
+                is_extreme = True
+
     return {
         "nutrition_outlier_issues": issues,
         "nutrition_outlier_penalty": penalty,
