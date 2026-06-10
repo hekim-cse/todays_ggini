@@ -20,6 +20,75 @@ def calculate_budget_score(menu_cost: int | None, meal_budget: int) -> float:
     return max(0, score)
 
 
+def get_effective_difficulty(menu: dict) -> int:
+    """
+    menu.difficulty가 있으면 그대로 사용하고,
+    비어 있으면 recipe 정보를 바탕으로 조리 난이도를 보조 추론한다.
+
+    RAG 응답에서는 difficulty가 비어 있는 경우가 많다.
+    이때 기본값 3으로 처리하면 간편식/낮은 조리 실력 사용자에게
+    과도한 감점이 발생할 수 있으므로 cooking_time과 재료 수를 함께 본다.
+    """
+
+    raw_difficulty = menu.get("difficulty")
+
+    try:
+        if raw_difficulty is not None:
+            difficulty = int(raw_difficulty)
+
+            if difficulty < 1:
+                return 1
+
+            if difficulty > 5:
+                return 5
+
+            return difficulty
+    except (TypeError, ValueError):
+        pass
+
+    recipe = menu.get("recipe", {}) or {}
+
+    cooking_time = recipe.get("cooking_time")
+    required_ingredients = recipe.get("required_ingredients", []) or []
+    steps = recipe.get("steps", []) or []
+
+    try:
+        cooking_time = int(cooking_time or 0)
+    except (TypeError, ValueError):
+        cooking_time = 0
+
+    ingredient_count = len(required_ingredients)
+    step_count = len(steps)
+
+    # 조리 정보가 거의 없으면 중립 난이도 2로 처리한다.
+    # 기존 기본값 3보다 간편식 사용자에게 덜 가혹하게 반영한다.
+    if cooking_time <= 0 and ingredient_count == 0 and step_count == 0:
+        return 2
+
+    if cooking_time > 0 and cooking_time <= 10 and ingredient_count <= 6:
+        return 1
+
+    if cooking_time > 0 and cooking_time <= 20 and ingredient_count <= 9:
+        return 2
+
+    if cooking_time > 0 and cooking_time <= 20 and ingredient_count <= 12:
+        return 2
+
+    # RAG 응답은 steps가 비어 있는 경우가 많다.
+    # 조리 시간이 20분 이내이고 단계 정보가 없으면,
+    # 재료 수가 조금 많아도 간편식 후보로 볼 수 있게 난이도 2로 완화한다.
+    if cooking_time > 0 and cooking_time <= 20 and step_count == 0 and ingredient_count <= 14:
+        return 2
+
+    if cooking_time > 0 and cooking_time <= 20:
+        return 3
+
+    if cooking_time > 0 and cooking_time <= 30 and ingredient_count <= 12:
+        return 3
+
+    return 4
+
+
 def calculate_difficulty_score(menu_difficulty: int, cooking_skill: int) -> float:
     """
     메뉴 난이도가 사용자 요리 실력보다 낮거나 같으면 100점이다.

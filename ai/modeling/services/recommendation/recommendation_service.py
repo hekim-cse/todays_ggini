@@ -4,6 +4,7 @@ from services.recommendation.scoring_service import (
     calculate_preference_score,
     calculate_nutrition_score,
     calculate_diversity_score,
+    get_effective_difficulty,
     get_effective_ingredient_groups,
 )
 
@@ -586,27 +587,29 @@ def calculate_easy_cooking_soft_constraint_score(scores: dict) -> float:
 
     difficulty_score가 높다는 것은 사용자 조리 실력 대비 부담이 낮다는 뜻이다.
     간편식 스타일에서는 조리 부담이 낮은 메뉴가 더 우선되도록 보정한다.
+
+    특히 cooking_skill이 낮은 사용자에게는 난이도 부담이 사용자 경험에 직접 영향을 주므로,
+    difficulty_score가 낮은 메뉴는 더 강하게 감점한다.
     """
 
     difficulty_score = scores.get("difficulty", 0)
 
     if difficulty_score >= 90:
-        return 8
+        return 10
 
     if difficulty_score >= 80:
-        return 6
+        return 8
 
     if difficulty_score >= 70:
-        return 4
+        return 6
 
     if difficulty_score >= 60:
         return 0
 
     if difficulty_score >= 40:
-        return -6
+        return -12
 
-    return -10
-
+    return -16
 
 def build_recommendation_reasons(
     menu: dict,
@@ -763,8 +766,10 @@ def calculate_final_score(
         profile
     )
 
+    effective_difficulty = get_effective_difficulty(menu)
+
     difficulty_score = calculate_difficulty_score(
-        menu.get("difficulty", 3),
+        effective_difficulty,
         profile["max_difficulty"]
     )
 
@@ -848,7 +853,8 @@ def calculate_final_score(
         "carbohydrate": menu.get("carbohydrate", nutrient_summary.get("carbohydrate", 0)),
         "protein": menu.get("protein", nutrient_summary.get("protein", 0)),
         "fat": menu.get("fat", nutrient_summary.get("fat", 0)),
-        "difficulty": menu.get("difficulty", 3),
+        "difficulty": menu.get("difficulty"),
+        "effective_difficulty": effective_difficulty,
         "difficulty_detail": menu.get("difficulty_detail", {}),
         "ingredients": menu.get("ingredients", []),
         "ingredient_groups": menu.get("ingredient_groups", []),

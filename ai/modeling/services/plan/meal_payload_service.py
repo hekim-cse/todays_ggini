@@ -42,6 +42,8 @@ def build_menu_payload(menu: dict) -> dict:
         "ingredients": menu.get("ingredients", []),
         "ingredient_groups": menu.get("ingredient_groups", []),
         "recipe": menu.get("recipe", {}),
+        "difficulty": menu.get("difficulty"),
+        "effective_difficulty": menu.get("effective_difficulty"),
         "scores": menu["scores"],
         "reasons": menu.get("reasons", []),
         "rag_data_quality_score": menu.get("rag_data_quality_score"),

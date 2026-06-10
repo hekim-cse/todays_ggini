@@ -125,6 +125,7 @@ def format_menu_for_back(
         "ingredient_costs": menu.get("ingredient_costs", []),
 
         "difficulty": menu.get("difficulty"),
+        "effective_difficulty": menu.get("effective_difficulty"),
         "difficulty_detail": menu.get("difficulty_detail", {}),
 
         "recipe": menu.get("recipe", {}),

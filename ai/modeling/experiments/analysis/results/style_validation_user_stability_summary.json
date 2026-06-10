@@ -4,9 +4,8 @@
   "summary": {
     "scenario_count": 7,
     "status_count": {
-      "warning": 4,
-      "pass": 1,
-      "fail": 2
+      "warning": 6,
+      "pass": 1
     },
     "focus_key_count": {
       "nutrition": 4,
@@ -25,18 +24,17 @@
     "secondary_warning_type_count": {
       "duplicate_menu": 7,
       "preference": 1,
-      "difficulty": 2
+      "difficulty": 1
     },
     "status_by_focus_key": {
       "nutrition": {
-        "warning": 3,
-        "fail": 1
+        "warning": 4
       },
       "preference": {
         "pass": 1
       },
       "difficulty": {
-        "fail": 1
+        "warning": 1
       },
       "budget": {
         "warning": 1
@@ -46,10 +44,10 @@
     "base_final_score_present_count": 570,
     "style_soft_constraint_present_count": 570,
     "style_soft_constraint_non_null_count": 570,
-    "style_soft_constraint_nonzero_count": 546,
+    "style_soft_constraint_nonzero_count": 542,
     "style_soft_constraint_non_null_rate": 1.0,
-    "style_soft_constraint_nonzero_rate": 0.9579,
-    "average_style_soft_constraint_score": 0.8175
+    "style_soft_constraint_nonzero_rate": 0.9509,
+    "average_style_soft_constraint_score": 1.1702
   },
   "rows": [
     {
@@ -150,19 +148,19 @@
       "style_name": "간편 조리식",
       "source_goal": "간편식",
       "focus_key": "difficulty",
-      "validation_status": "fail",
-      "validation_message": "간편식 스타일에 비해 조리 난이도 부담이 있어 보완이 필요합니다.",
-      "secondary_warning_count": 2,
-      "secondary_warning_types": "difficulty|duplicate_menu",
+      "validation_status": "warning",
+      "validation_message": "간편식 스타일이 어느 정도 반영되었지만, 더 쉬운 메뉴를 늘릴 수 있습니다.",
+      "secondary_warning_count": 1,
+      "secondary_warning_types": "duplicate_menu",
       "recommendation_hint": "간편식 스타일에서는 조리 시간, 재료 수, 조리 단계 수를 함께 반영해 난이도 점수를 더 세분화할 수 있습니다.",
       "selected_menu_count": 60,
       "base_final_score_present_count": 60,
       "style_soft_constraint_present_count": 60,
       "style_soft_constraint_non_null_count": 60,
       "style_soft_constraint_nonzero_count": 60,
-      "average_style_soft_constraint_score": -0.1667,
-      "metric_average_difficulty_score": 57.5,
-      "metric_recommended_minimum_difficulty_score": 75
+      "average_style_soft_constraint_score": 1.8,
+      "metric_average_difficulty_score": 63.0,
+      "metric_recommended_minimum_difficulty_score": 70
     },
     {
       "scenario_id": "US06_budget_low",
@@ -194,8 +192,8 @@
       "style_name": "고단백 관리식",
       "source_goal": "고단백",
       "focus_key": "nutrition",
-      "validation_status": "fail",
-      "validation_message": "고단백 스타일에 비해 평균 단백질이 낮아 보완이 필요합니다.",
+      "validation_status": "warning",
+      "validation_message": "고단백 스타일이 어느 정도 반영되었지만, 평균 단백질을 조금 더 높일 여지가 있습니다.",
       "secondary_warning_count": 2,
       "secondary_warning_types": "difficulty|duplicate_menu",
       "recommendation_hint": "고단백 스타일에서는 단백질 25g 이상 메뉴를 우선 배치하거나, protein 기준 soft constraint를 강화할 수 있습니다.",
@@ -203,9 +201,9 @@
       "base_final_score_present_count": 90,
       "style_soft_constraint_present_count": 90,
       "style_soft_constraint_non_null_count": 90,
-      "style_soft_constraint_nonzero_count": 81,
-      "average_style_soft_constraint_score": -1.3111,
-      "metric_average_protein": 21.84,
+      "style_soft_constraint_nonzero_count": 77,
+      "average_style_soft_constraint_score": -0.3889,
+      "metric_average_protein": 26.46,
       "metric_recommended_minimum_protein": 28
     }
   ]
