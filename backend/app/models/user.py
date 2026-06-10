@@ -88,7 +88,7 @@ class UserPersonaSetting(Base):
     purpose = Column(JSONB, default=list)               # 요리 목적 (식비 절약 등)
 
     # 모델링 파트의 응답을 토대로 유저가 최종 고른 페르소나 ID 결과물
-    persona_id = Column(Integer, nullable=True) 
+    persona_name = Column(String, nullable=True) 
 
     user = relationship("User", back_populates="persona_setting")
 

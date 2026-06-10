@@ -31,6 +31,28 @@ class UserBase(BaseModel):
     social_id: str
     email: Optional[EmailStr] = None
 
+# ------- 로그인 전용 스키마 --------
+class SocialLoginRequest(BaseModel):
+    accessToken: str
+
+class UserInformation(BaseModel):
+    id: int
+    nickname: Optional[str] = None
+    email: str
+    is_onboarded: bool
+
+class SocialLoginResponse(BaseModel):
+    accessToken: str
+    refreshToken: str
+    user: UserInformation
+
+# ------ API 응답 시 유저 정보를 돌려주는 스키마 --------
+class UserResponse(BaseModel):
+    id: int
+    is_onboarded: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
 # ----------- 가구원 정보 스키마 ----------------
 class FamilyMemberInfo(BaseModel):
     nickname: Optional[str] = Field("가구원1", description="가구원 식별용 별칭")
@@ -47,7 +69,7 @@ class UserPersonaSettingInfo(BaseModel):
     monthly_budget: int = Field(300000, ge=0, description="한 달 목표 식비")
     meals_per_day: int = Field(3, ge=1, le=5, description="하루 식사 수")
     purpose: List[str] = Field(default_factory=list, description="이용 목적 리스트")
-    persona_id: Optional[int] = Field(None, description="최종 선택한 페르소나 ID")
+    persona_name: Optional[str] = Field(None, description="최종 선택한 페르소나 이름")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -89,7 +111,7 @@ class UserPersonaSettingUpdate(BaseModel):
     monthly_budget: int = Field(None, ge=0, description="한 달 목표 식비")
     meals_per_day: int = Field(None, ge=1, le=5, description="하루 식사 수")
     purpose: List[MealPurpose] = Field(None, description="이용 목적 리스트")
-    persona_id: Optional[int] = Field(None, description="최종 선택/변경한 페르소나 ID")
+    persona_name: Optional[str] = Field(None, description="최종 선택/변경한 페르소나 이름")
     
     # 💡 다인 가구 스펙 변경 시 동적으로 들어올 가구원 리스트
     family_members: List[FamilyMemberInfo] = Field(None, description="가구원 신체 스펙 리스트")
@@ -108,27 +130,13 @@ class UserOnboardingSettingUpdate(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-# ------ API 응답 시 유저 정보를 돌려주는 스키마 --------
-class UserResponse(BaseModel):
-    id: int
-    is_onboarded: bool
-
-    model_config = ConfigDict(from_attributes=True)
-
-# ------- 로그인 전용 스키마 --------
-class SocialLoginRequest(BaseModel):
-    accessToken: str
-
-class UserInformation(BaseModel):
-    id: int
-    nickname: Optional[str] = None
-    email: str
-    is_onboarded: bool
-
-class SocialLoginResponse(BaseModel):
-    accessToken: str
-    refreshToken: str
-    user: UserInformation
+# ------------------ 페르소나 추천 요청 스키마 ----------------------
+class PersonaRecommendRequest(BaseModel):
+    household_type: str
+    monthly_budget: int
+    meals_per_day: int
+    purpose: List[MealPurpose]
+    family_members: List[FamilyMemberInfo] = Field(..., description="추천 연산에 사용할 가구원 스펙 배열")
 
 # ------ 닉네임 변경 전용 스키마 --------
 class NicknameUpdateRequest(BaseModel):

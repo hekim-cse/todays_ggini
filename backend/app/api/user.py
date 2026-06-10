@@ -9,7 +9,7 @@ from app.schemas.user import (
 UserOnboardingSettingUpdate, 
 UserInfo, 
 NicknameUpdateRequest, 
-UserPersonaSettingInfo
+PersonaRecommendRequest,
 )
 from app.crud import crud_user
 from app.models.user import User
@@ -36,13 +36,13 @@ router = APIRouter()
 #         mock_response = {
 #             "recommended_personas": [
 #                 {
-#                     "persona_id": 1,
+#                     "persona_name": "내 몸이 곧 재산",
 #                     "title": "알뜰살뜰 식비 절약가",
 #                     "tags": ["#식비절약", f"#다인가구"],
 #                     "description": f"한 달 500000원 예산에 맞춰 가성비 위주의 식재료로 영양소를 알차게 채우는 알뜰 식단 스타일입니다.",
 #                 },
 #                 {
-#                     "persona_id": 2,
+#                     "persona_name": "가성비 자취생",
 #                     "title": "영양 만점 밸런서",
 #                     "tags": ["#영양균형", "#단백질업"],
 #                     "description": "기초대사량과 활동량을 고려하여 탄단지 비율을 황금 밸런스로 유지해 주는 정석 건강 건강식 스타일입니다.",

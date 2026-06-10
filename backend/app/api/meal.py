@@ -1035,11 +1035,18 @@ async def generate_initial_meal_plan(
     백엔드의 current_user.id를 기준으로 생성합니다.
     """
 
+    # 분리된 연관 테이블 데이터를 joinedload로 한방에 가져옵니다.
+    full_user = db.query(User).options(
+        joinedload(User.family_members),
+        joinedload(User.persona_setting),
+        joinedload(User.onboarding_setting)
+    ).filter(User.id == current_user.id).first()
+
     ai_payload = {
         "user_id": get_modeling_user_id(current_user),
         "request_type": "meal_style_candidates",
         "profile": build_modeling_profile_from_user(
-            current_user=current_user,
+            current_user=full_user,
             sample_period_days=sample_period_days,
         ),
     }
@@ -1098,8 +1105,6 @@ async def generate_initial_meal_plan(
 
     return {
         "message": "3일치 식단 스타일 후보 생성이 완료되었습니다.",
-        "request body": ai_payload,
-        "ai_response": ai_response,
         "candidates": frontend_candidates,
     }
 
