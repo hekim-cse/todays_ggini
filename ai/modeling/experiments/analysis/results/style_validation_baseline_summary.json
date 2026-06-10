@@ -5,7 +5,8 @@
     "scenario_count": 10,
     "status_count": {
       "warning": 7,
-      "fail": 3
+      "fail": 2,
+      "pass": 1
     },
     "focus_key_count": {
       "nutrition": 7,
@@ -23,8 +24,8 @@
     },
     "secondary_warning_type_count": {
       "duplicate_menu": 10,
-      "difficulty": 2,
-      "preference": 3
+      "difficulty": 1,
+      "preference": 1
     },
     "status_by_focus_key": {
       "nutrition": {
@@ -38,17 +39,17 @@
         "fail": 1
       },
       "preference": {
-        "fail": 1
+        "pass": 1
       }
     },
     "selected_menu_count": 840,
     "base_final_score_present_count": 840,
     "style_soft_constraint_present_count": 840,
     "style_soft_constraint_non_null_count": 840,
-    "style_soft_constraint_nonzero_count": 800,
+    "style_soft_constraint_nonzero_count": 807,
     "style_soft_constraint_non_null_rate": 1.0,
-    "style_soft_constraint_nonzero_rate": 0.9524,
-    "average_style_soft_constraint_score": 0.3738
+    "style_soft_constraint_nonzero_rate": 0.9607,
+    "average_style_soft_constraint_score": 0.5381
   },
   "rows": [
     {
@@ -68,13 +69,13 @@
       "style_soft_constraint_present_count": 90,
       "style_soft_constraint_non_null_count": 90,
       "style_soft_constraint_nonzero_count": 90,
-      "average_style_soft_constraint_score": 0.0,
-      "metric_carbohydrate_ratio": 0.4957,
-      "metric_protein_ratio": 0.2872,
-      "metric_fat_ratio": 0.2171,
-      "metric_average_carbohydrate": 36.88,
-      "metric_average_protein": 21.37,
-      "metric_average_fat": 16.15
+      "average_style_soft_constraint_score": -0.0444,
+      "metric_carbohydrate_ratio": 0.4892,
+      "metric_protein_ratio": 0.284,
+      "metric_fat_ratio": 0.2268,
+      "metric_average_carbohydrate": 37.3,
+      "metric_average_protein": 21.65,
+      "metric_average_fat": 17.29
     },
     {
       "scenario_id": "S02_low_budget_saving",
@@ -116,8 +117,8 @@
       "style_soft_constraint_present_count": 90,
       "style_soft_constraint_non_null_count": 90,
       "style_soft_constraint_nonzero_count": 75,
-      "average_style_soft_constraint_score": 0.3778,
-      "metric_average_protein": 31.73,
+      "average_style_soft_constraint_score": 0.3556,
+      "metric_average_protein": 30.82,
       "metric_recommended_minimum_protein": 28
     },
     {
@@ -137,9 +138,9 @@
       "style_soft_constraint_present_count": 90,
       "style_soft_constraint_non_null_count": 90,
       "style_soft_constraint_nonzero_count": 90,
-      "average_style_soft_constraint_score": 3.9,
-      "metric_average_calories": 166.54,
-      "metric_average_fat": 6.86,
+      "average_style_soft_constraint_score": 3.8778,
+      "metric_average_calories": 169.98,
+      "metric_average_fat": 7.05,
       "metric_recommended_max_calories": 650,
       "metric_recommended_max_fat": 23
     },
@@ -181,13 +182,13 @@
       "style_soft_constraint_present_count": 90,
       "style_soft_constraint_non_null_count": 90,
       "style_soft_constraint_nonzero_count": 90,
-      "average_style_soft_constraint_score": -0.1778,
-      "metric_carbohydrate_ratio": 0.4895,
-      "metric_protein_ratio": 0.2937,
-      "metric_fat_ratio": 0.2168,
-      "metric_average_carbohydrate": 33.68,
-      "metric_average_protein": 20.21,
-      "metric_average_fat": 14.92
+      "average_style_soft_constraint_score": -0.1111,
+      "metric_carbohydrate_ratio": 0.4924,
+      "metric_protein_ratio": 0.2879,
+      "metric_fat_ratio": 0.2197,
+      "metric_average_carbohydrate": 35.13,
+      "metric_average_protein": 20.54,
+      "metric_average_fat": 15.67
     },
     {
       "scenario_id": "S07_high_diversity",
@@ -206,13 +207,13 @@
       "style_soft_constraint_present_count": 90,
       "style_soft_constraint_non_null_count": 90,
       "style_soft_constraint_nonzero_count": 90,
-      "average_style_soft_constraint_score": -0.2444,
-      "metric_carbohydrate_ratio": 0.5002,
-      "metric_protein_ratio": 0.2721,
-      "metric_fat_ratio": 0.2277,
-      "metric_average_carbohydrate": 39.83,
-      "metric_average_protein": 21.67,
-      "metric_average_fat": 18.13
+      "average_style_soft_constraint_score": -0.1333,
+      "metric_carbohydrate_ratio": 0.4997,
+      "metric_protein_ratio": 0.2769,
+      "metric_fat_ratio": 0.2234,
+      "metric_average_carbohydrate": 38.97,
+      "metric_average_protein": 21.59,
+      "metric_average_fat": 17.42
     },
     {
       "scenario_id": "S08_narrow_preference",
@@ -230,30 +231,30 @@
       "base_final_score_present_count": 90,
       "style_soft_constraint_present_count": 90,
       "style_soft_constraint_non_null_count": 90,
-      "style_soft_constraint_nonzero_count": 80,
-      "average_style_soft_constraint_score": -0.2889,
-      "metric_average_protein": 28.66,
+      "style_soft_constraint_nonzero_count": 79,
+      "average_style_soft_constraint_score": -0.1889,
+      "metric_average_protein": 29.59,
       "metric_recommended_minimum_protein": 28
     },
     {
-      "scenario_id": "S09_taste_fastfood_dairy",
-      "description": "맛 중심 + 패스트푸드 + 계란 및 유제품류 사용자",
+      "scenario_id": "S09_taste_dessert_dairy",
+      "description": "맛 중심 + 디저트 + 계란 및 유제품류 사용자",
       "runner_success": true,
       "style_name": "취향 맞춤식",
       "source_goal": "맛 중심",
       "focus_key": "preference",
-      "validation_status": "fail",
-      "validation_message": "취향 맞춤식에 비해 선호도 점수가 낮아 보완이 필요합니다.",
-      "secondary_warning_count": 2,
-      "secondary_warning_types": "preference|duplicate_menu",
-      "recommendation_hint": "취향 맞춤식에서는 선호 카테고리와 선호 재료군 일치도를 더 강하게 반영할 수 있습니다.",
+      "validation_status": "pass",
+      "validation_message": "선호도 점수가 높아 취향 맞춤식 스타일이 잘 반영되었습니다.",
+      "secondary_warning_count": 1,
+      "secondary_warning_types": "duplicate_menu",
+      "recommendation_hint": "현재 선택한 스타일이 월간 식단에 안정적으로 반영되었습니다.",
       "selected_menu_count": 60,
       "base_final_score_present_count": 60,
       "style_soft_constraint_present_count": 60,
       "style_soft_constraint_non_null_count": 60,
       "style_soft_constraint_nonzero_count": 60,
-      "average_style_soft_constraint_score": -2.0,
-      "metric_average_preference_score": 45.0,
+      "average_style_soft_constraint_score": 3.0,
+      "metric_average_preference_score": 100.0,
       "metric_applied_focus_key": "preference",
       "metric_recommended_minimum_preference_score": 85
     },
@@ -266,16 +267,16 @@
       "focus_key": "nutrition",
       "validation_status": "fail",
       "validation_message": "고단백 스타일에 비해 평균 단백질이 낮아 보완이 필요합니다.",
-      "secondary_warning_count": 3,
-      "secondary_warning_types": "difficulty|preference|duplicate_menu",
+      "secondary_warning_count": 1,
+      "secondary_warning_types": "duplicate_menu",
       "recommendation_hint": "고단백 스타일에서는 단백질 25g 이상 메뉴를 우선 배치하거나, protein 기준 soft constraint를 강화할 수 있습니다.",
       "selected_menu_count": 90,
       "base_final_score_present_count": 90,
       "style_soft_constraint_present_count": 90,
       "style_soft_constraint_non_null_count": 90,
-      "style_soft_constraint_nonzero_count": 79,
-      "average_style_soft_constraint_score": -1.0333,
-      "metric_average_protein": 24.24,
+      "style_soft_constraint_nonzero_count": 87,
+      "average_style_soft_constraint_score": -3.0222,
+      "metric_average_protein": 12.0,
       "metric_recommended_minimum_protein": 28
     }
   ]
