@@ -34,6 +34,48 @@ def calculate_difficulty_score(menu_difficulty: int, cooking_skill: int) -> floa
     return max(0, score)
 
 
+CATEGORY_ALIASES = {
+    "샐러드/건강식": [
+        "샐러드/건강식",
+        "다이어트",
+    ],
+    "디저트": [
+        "디저트",
+    ],
+    "다 좋아요": [
+        "한식",
+        "양식",
+        "일식",
+        "중식",
+        "분식",
+        "다이어트",
+        "디저트",
+    ],
+}
+
+
+def expand_preferred_categories(preferred_categories: list[str]) -> list[str]:
+    """
+    사용자에게 보이는 UI 카테고리와 RAG가 실제 반환하는 category가 다를 수 있어,
+    preference score 계산 시 내부 매칭 카테고리를 확장한다.
+
+    예:
+    - UI: 샐러드/건강식 -> RAG: 다이어트
+    - UI: 디저트 -> RAG: 디저트
+    """
+
+    expanded_categories = []
+
+    for category in preferred_categories:
+        aliases = CATEGORY_ALIASES.get(category, [category])
+
+        for alias in aliases:
+            if alias not in expanded_categories:
+                expanded_categories.append(alias)
+
+    return expanded_categories
+
+
 def calculate_category_score(
     menu_category: str,
     preferred_categories: list[str]
@@ -44,13 +86,143 @@ def calculate_category_score(
     상관없음을 선택한 경우 카테고리 영향은 중립 점수로 처리한다.
     """
 
-    if "상관없음" in preferred_categories:
+    expanded_categories = expand_preferred_categories(preferred_categories)
+
+    if "상관없음" in preferred_categories or "다 좋아요" in preferred_categories:
         return 70
 
     if menu_category in preferred_categories:
         return 100
 
+    if menu_category in expanded_categories:
+        return 85
+
     return 40
+
+
+INGREDIENT_GROUP_KEYWORDS = {
+    "계란 및 유제품류": [
+        "계란",
+        "달걀",
+        "우유",
+        "치즈",
+        "버터",
+        "크림",
+        "요거트",
+        "요구르트",
+        "마요네즈",
+    ],
+    "육류": [
+        "소고기",
+        "쇠고기",
+        "돼지고기",
+        "닭고기",
+        "닭",
+        "오리",
+        "햄",
+        "소시지",
+        "스팸",
+        "베이컨",
+        "불고기",
+    ],
+    "해산물류": [
+        "새우",
+        "오징어",
+        "고등어",
+        "연어",
+        "참치",
+        "굴",
+        "바지락",
+        "홍합",
+        "멸치",
+        "어묵",
+        "게맛살",
+        "크래미",
+    ],
+    "식물성 단백질류": [
+        "두부",
+        "콩",
+        "병아리콩",
+        "렌틸",
+        "비지",
+        "템페",
+        "순두부",
+        "유부",
+    ],
+    "채소류": [
+        "양파",
+        "대파",
+        "파",
+        "마늘",
+        "당근",
+        "양배추",
+        "배추",
+        "시금치",
+        "상추",
+        "깻잎",
+        "가지",
+        "호박",
+        "애호박",
+        "콩나물",
+        "숙주",
+        "버섯",
+        "브로콜리",
+        "오이",
+        "토마토",
+        "고추",
+        "무",
+    ],
+}
+
+
+def normalize_ingredient_name(ingredient: object) -> str:
+    """
+    ingredient 값을 문자열로 변환하고 대체 표기 문구를 제거한다.
+    """
+
+    text = str(ingredient or "").strip()
+    text = text.replace("(대체)", "")
+    text = text.replace(" 대체", "")
+
+    return text
+
+
+def infer_ingredient_groups_from_ingredients(ingredients: list) -> list[str]:
+    """
+    RAG 응답의 ingredient_groups가 비어 있을 때 ingredients 이름을 기반으로
+    재료군을 보조 추론한다.
+
+    이 값은 hard constraint가 아니라 preference score 보조 계산에만 사용한다.
+    """
+
+    inferred_groups = []
+
+    ingredient_text = " ".join(
+        normalize_ingredient_name(ingredient)
+        for ingredient in ingredients
+    )
+
+    for group, keywords in INGREDIENT_GROUP_KEYWORDS.items():
+        if any(keyword in ingredient_text for keyword in keywords):
+            inferred_groups.append(group)
+
+    return inferred_groups
+
+
+def get_effective_ingredient_groups(menu: dict) -> list[str]:
+    """
+    menu.ingredient_groups가 있으면 그대로 사용하고,
+    비어 있으면 ingredients 기반으로 보조 재료군을 추론한다.
+    """
+
+    ingredient_groups = menu.get("ingredient_groups", []) or []
+
+    if ingredient_groups:
+        return ingredient_groups
+
+    return infer_ingredient_groups_from_ingredients(
+        ingredients=menu.get("ingredients", []) or []
+    )
 
 
 def calculate_ingredient_score(
@@ -95,7 +267,7 @@ def calculate_preference_score(menu: dict, profile: dict) -> float:
     ingredient_preferences = profile.get("ingredient_preferences", [])
 
     menu_category = menu.get("category", "")
-    menu_ingredient_groups = menu.get("ingredient_groups", [])
+    menu_ingredient_groups = get_effective_ingredient_groups(menu)
 
     category_score = calculate_category_score(
         menu_category=menu_category,

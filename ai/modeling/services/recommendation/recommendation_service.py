@@ -3,7 +3,8 @@ from services.recommendation.scoring_service import (
     calculate_difficulty_score,
     calculate_preference_score,
     calculate_nutrition_score,
-    calculate_diversity_score
+    calculate_diversity_score,
+    get_effective_ingredient_groups,
 )
 
 
@@ -231,7 +232,7 @@ def build_preference_reason(
     ingredient_preferences = profile.get("ingredient_preferences", [])
 
     menu_category = menu.get("category", "")
-    menu_ingredient_groups = menu.get("ingredient_groups", [])
+    menu_ingredient_groups = get_effective_ingredient_groups(menu)
 
     matched_ingredient_groups = [
         ingredient_group
