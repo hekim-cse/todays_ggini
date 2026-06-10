@@ -4,9 +4,8 @@
   "summary": {
     "scenario_count": 10,
     "status_count": {
-      "warning": 5,
-      "fail": 3,
-      "pass": 2
+      "warning": 7,
+      "fail": 3
     },
     "focus_key_count": {
       "nutrition": 7,
@@ -29,8 +28,7 @@
     },
     "status_by_focus_key": {
       "nutrition": {
-        "warning": 4,
-        "pass": 2,
+        "warning": 6,
         "fail": 1
       },
       "budget": {
@@ -47,10 +45,10 @@
     "base_final_score_present_count": 840,
     "style_soft_constraint_present_count": 840,
     "style_soft_constraint_non_null_count": 840,
-    "style_soft_constraint_nonzero_count": 294,
+    "style_soft_constraint_nonzero_count": 800,
     "style_soft_constraint_non_null_rate": 1.0,
-    "style_soft_constraint_nonzero_rate": 0.35,
-    "average_style_soft_constraint_score": -0.0298
+    "style_soft_constraint_nonzero_rate": 0.9524,
+    "average_style_soft_constraint_score": 0.3738
   },
   "rows": [
     {
@@ -69,14 +67,14 @@
       "base_final_score_present_count": 90,
       "style_soft_constraint_present_count": 90,
       "style_soft_constraint_non_null_count": 90,
-      "style_soft_constraint_nonzero_count": 0,
+      "style_soft_constraint_nonzero_count": 90,
       "average_style_soft_constraint_score": 0.0,
-      "metric_carbohydrate_ratio": 0.469,
-      "metric_protein_ratio": 0.2922,
-      "metric_fat_ratio": 0.2389,
-      "metric_average_carbohydrate": 36.1,
-      "metric_average_protein": 22.49,
-      "metric_average_fat": 18.39
+      "metric_carbohydrate_ratio": 0.4957,
+      "metric_protein_ratio": 0.2872,
+      "metric_fat_ratio": 0.2171,
+      "metric_average_carbohydrate": 36.88,
+      "metric_average_protein": 21.37,
+      "metric_average_fat": 16.15
     },
     {
       "scenario_id": "S02_low_budget_saving",
@@ -94,8 +92,8 @@
       "base_final_score_present_count": 90,
       "style_soft_constraint_present_count": 90,
       "style_soft_constraint_non_null_count": 90,
-      "style_soft_constraint_nonzero_count": 0,
-      "average_style_soft_constraint_score": 0.0,
+      "style_soft_constraint_nonzero_count": 86,
+      "average_style_soft_constraint_score": 1.6222,
       "metric_total_estimated_cost": 166574,
       "metric_monthly_budget": 250000,
       "metric_budget_usage_rate": 0.6663,
@@ -138,10 +136,10 @@
       "base_final_score_present_count": 90,
       "style_soft_constraint_present_count": 90,
       "style_soft_constraint_non_null_count": 90,
-      "style_soft_constraint_nonzero_count": 0,
-      "average_style_soft_constraint_score": 0.0,
-      "metric_average_calories": 184.65,
-      "metric_average_fat": 7.53,
+      "style_soft_constraint_nonzero_count": 90,
+      "average_style_soft_constraint_score": 3.9,
+      "metric_average_calories": 166.54,
+      "metric_average_fat": 6.86,
       "metric_recommended_max_calories": 650,
       "metric_recommended_max_fat": 23
     },
@@ -173,23 +171,23 @@
       "style_name": "영양 균형식",
       "source_goal": "영양 균형",
       "focus_key": "nutrition",
-      "validation_status": "pass",
-      "validation_message": "탄수화물, 단백질, 지방 비율이 안정적이어서 영양 균형 스타일이 잘 반영되었습니다.",
+      "validation_status": "warning",
+      "validation_message": "탄수화물, 단백질, 지방 비율이 안정적이어서 영양 균형 스타일이 잘 반영되었습니다. 다만 동일 메뉴 반복 비율이 높아 월간 식단 다양성 보완이 필요합니다.",
       "secondary_warning_count": 1,
       "secondary_warning_types": "duplicate_menu",
-      "recommendation_hint": "현재 선택한 스타일이 월간 식단에 안정적으로 반영되었습니다.",
+      "recommendation_hint": "영양 균형 스타일에서는 탄수화물, 단백질, 지방 비율이 안정적인 메뉴를 더 우선하도록 balance 점수 가중치를 조정할 수 있습니다.",
       "selected_menu_count": 90,
       "base_final_score_present_count": 90,
       "style_soft_constraint_present_count": 90,
       "style_soft_constraint_non_null_count": 90,
-      "style_soft_constraint_nonzero_count": 0,
-      "average_style_soft_constraint_score": 0.0,
-      "metric_carbohydrate_ratio": 0.4629,
-      "metric_protein_ratio": 0.2987,
-      "metric_fat_ratio": 0.2384,
-      "metric_average_carbohydrate": 33.78,
-      "metric_average_protein": 21.8,
-      "metric_average_fat": 17.4
+      "style_soft_constraint_nonzero_count": 90,
+      "average_style_soft_constraint_score": -0.1778,
+      "metric_carbohydrate_ratio": 0.4895,
+      "metric_protein_ratio": 0.2937,
+      "metric_fat_ratio": 0.2168,
+      "metric_average_carbohydrate": 33.68,
+      "metric_average_protein": 20.21,
+      "metric_average_fat": 14.92
     },
     {
       "scenario_id": "S07_high_diversity",
@@ -198,23 +196,23 @@
       "style_name": "영양 균형식",
       "source_goal": "영양 균형",
       "focus_key": "nutrition",
-      "validation_status": "pass",
-      "validation_message": "탄수화물, 단백질, 지방 비율이 안정적이어서 영양 균형 스타일이 잘 반영되었습니다.",
+      "validation_status": "warning",
+      "validation_message": "탄수화물, 단백질, 지방 비율이 안정적이어서 영양 균형 스타일이 잘 반영되었습니다. 다만 동일 메뉴 반복 비율이 높아 월간 식단 다양성 보완이 필요합니다.",
       "secondary_warning_count": 1,
       "secondary_warning_types": "duplicate_menu",
-      "recommendation_hint": "현재 선택한 스타일이 월간 식단에 안정적으로 반영되었습니다.",
+      "recommendation_hint": "영양 균형 스타일에서는 탄수화물, 단백질, 지방 비율이 안정적인 메뉴를 더 우선하도록 balance 점수 가중치를 조정할 수 있습니다.",
       "selected_menu_count": 90,
       "base_final_score_present_count": 90,
       "style_soft_constraint_present_count": 90,
       "style_soft_constraint_non_null_count": 90,
-      "style_soft_constraint_nonzero_count": 0,
-      "average_style_soft_constraint_score": 0.0,
-      "metric_carbohydrate_ratio": 0.4925,
-      "metric_protein_ratio": 0.2765,
-      "metric_fat_ratio": 0.2311,
-      "metric_average_carbohydrate": 39.79,
-      "metric_average_protein": 22.34,
-      "metric_average_fat": 18.67
+      "style_soft_constraint_nonzero_count": 90,
+      "average_style_soft_constraint_score": -0.2444,
+      "metric_carbohydrate_ratio": 0.5002,
+      "metric_protein_ratio": 0.2721,
+      "metric_fat_ratio": 0.2277,
+      "metric_average_carbohydrate": 39.83,
+      "metric_average_protein": 21.67,
+      "metric_average_fat": 18.13
     },
     {
       "scenario_id": "S08_narrow_preference",
@@ -253,8 +251,8 @@
       "base_final_score_present_count": 60,
       "style_soft_constraint_present_count": 60,
       "style_soft_constraint_non_null_count": 60,
-      "style_soft_constraint_nonzero_count": 0,
-      "average_style_soft_constraint_score": 0.0,
+      "style_soft_constraint_nonzero_count": 60,
+      "average_style_soft_constraint_score": -2.0,
       "metric_average_preference_score": 45.0,
       "metric_applied_focus_key": "preference",
       "metric_recommended_minimum_preference_score": 85

@@ -397,13 +397,158 @@ def calculate_style_soft_constraint_score(
     # 둘 중 하나라도 들어오면 사용할 수 있게 처리한다.
     style_goal = selected_style_goal or source_goal
 
+    if style_goal == "식비 절약":
+        return calculate_budget_first_soft_constraint_score(scores)
+
+    if style_goal == "영양 균형":
+        return calculate_nutrition_balance_soft_constraint_score(menu)
+
+    if style_goal == "다이어트":
+        return calculate_diet_soft_constraint_score(menu)
+
     if style_goal == "고단백":
         return calculate_high_protein_soft_constraint_score(menu)
 
     if style_goal == "간편식":
         return calculate_easy_cooking_soft_constraint_score(scores)
 
+    if style_goal == "맛 중심":
+        return calculate_taste_first_soft_constraint_score(scores)
+
     return 0
+
+
+def calculate_budget_first_soft_constraint_score(scores: dict) -> float:
+    """
+    식비 절약 스타일에서 budget score를 기준으로 추가 보정 점수를 계산한다.
+
+    이미 budget score에 예산 적합성이 반영되어 있으므로,
+    soft constraint에서는 과도한 재계산 없이 점수 구간만 작게 보정한다.
+    """
+
+    budget_score = scores.get("budget", 0)
+
+    if budget_score >= 90:
+        return 3
+
+    if budget_score >= 80:
+        return 2
+
+    if budget_score >= 70:
+        return 1
+
+    if budget_score >= 60:
+        return 0
+
+    if budget_score >= 40:
+        return -2
+
+    return -4
+
+
+def calculate_nutrition_balance_soft_constraint_score(menu: dict) -> float:
+    """
+    영양 균형 스타일에서 탄수화물, 단백질, 지방 비율 안정성을 기준으로
+    추가 보정 점수를 계산한다.
+    """
+
+    nutrient_summary = menu.get("nutrient_summary", {}) or {}
+
+    calories = float(menu.get("calories", 0) or 0)
+    carbohydrate = float(
+        menu.get("carbohydrate", nutrient_summary.get("carbohydrate", 0)) or 0
+    )
+    protein = float(
+        menu.get("protein", nutrient_summary.get("protein", 0)) or 0
+    )
+    fat = float(
+        menu.get("fat", nutrient_summary.get("fat", 0)) or 0
+    )
+
+    macro_calories = carbohydrate * 4 + protein * 4 + fat * 9
+
+    if calories <= 0 or macro_calories <= 0:
+        return -3
+
+    carbohydrate_ratio = carbohydrate * 4 / macro_calories
+    protein_ratio = protein * 4 / macro_calories
+    fat_ratio = fat * 9 / macro_calories
+
+    is_balanced = (
+        0.4 <= carbohydrate_ratio <= 0.6
+        and 0.15 <= protein_ratio <= 0.35
+        and 0.15 <= fat_ratio <= 0.35
+    )
+
+    is_acceptable = (
+        0.3 <= carbohydrate_ratio <= 0.7
+        and 0.1 <= protein_ratio <= 0.45
+        and 0.1 <= fat_ratio <= 0.45
+    )
+
+    if is_balanced:
+        return 3
+
+    if is_acceptable:
+        return 1
+
+    return -3
+
+
+def calculate_diet_soft_constraint_score(menu: dict) -> float:
+    """
+    다이어트 스타일에서 칼로리와 지방을 기준으로 추가 보정 점수를 계산한다.
+    """
+
+    calories = float(menu.get("calories", 0) or 0)
+    fat = float(menu.get("fat", 0) or 0)
+
+    score = 0
+
+    if calories <= 450:
+        score += 2
+    elif calories <= 650:
+        score += 1
+    elif calories <= 800:
+        score += 0
+    else:
+        score -= 3
+
+    if fat <= 15:
+        score += 2
+    elif fat <= 23:
+        score += 1
+    elif fat <= 30:
+        score += 0
+    else:
+        score -= 3
+
+    return max(min(score, 4), -6)
+
+
+def calculate_taste_first_soft_constraint_score(scores: dict) -> float:
+    """
+    맛 중심 스타일에서 preference score를 기준으로 추가 보정 점수를 계산한다.
+    """
+
+    preference_score = scores.get("preference", 0)
+
+    if preference_score >= 90:
+        return 3
+
+    if preference_score >= 80:
+        return 2
+
+    if preference_score >= 70:
+        return 1
+
+    if preference_score >= 60:
+        return 0
+
+    if preference_score >= 40:
+        return -2
+
+    return -4
 
 
 def calculate_high_protein_soft_constraint_score(menu: dict) -> float:
