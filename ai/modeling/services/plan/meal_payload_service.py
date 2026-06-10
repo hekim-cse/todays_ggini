@@ -24,6 +24,9 @@ def build_menu_payload(menu: dict) -> dict:
         "name": menu["name"],
         "category": menu.get("category"),
         "final_score": menu["final_score"],
+        "base_final_score": menu.get("base_final_score"),
+        "style_soft_constraint_score": menu.get("style_soft_constraint_score"),
+        "mmr_score": menu.get("mmr_score"),
         "estimated_cost": menu["estimated_cost"],
 
         "calories": calories,
