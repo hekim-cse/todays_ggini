@@ -82,10 +82,12 @@ class UserPersonaSetting(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
 
     # 모델링 파트 추천 요청 및 페르소나 결정을 위한 핵심 데이터
-    household_type = Column(String, default="1인 가구", nullable=False)   # 가구원 수
+    household_type = Column(String, default="1인 가구", nullable=False)   # 가구 유형
+    family_count = Column(Integer, default=1, nullable=False)   # 가구원 수
     monthly_budget = Column(Integer, default=300000)            # 한 달 예산
     meals_per_day = Column(Integer, default=3)                  # 하루 식사 수
     purpose = Column(JSONB, default=list)               # 요리 목적 (식비 절약 등)
+    activity_level = Column(String, nullable=False, default="가벼운 활동을 해요")   # 활동량
 
     # 모델링 파트의 응답을 토대로 유저가 최종 고른 페르소나 ID 결과물
     persona_name = Column(String, nullable=True) 
