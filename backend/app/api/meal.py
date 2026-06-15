@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.orm.attributes import flag_modified
 from datetime import date, datetime
 from redis.asyncio import Redis
@@ -85,7 +85,12 @@ def background_monthly_plan_task(
     db = SessionLocal()
 
     try:
-        current_user = db.query(User).filter(User.id == user_id).first()
+        current_user = db.query(User).options(
+            joinedload(User.family_members),
+            joinedload(User.persona_setting),
+            joinedload(User.onboarding_setting)
+        ).filter(User.id == user_id).first()
+
         if not current_user:
             raise ValueError("유저를 찾을 수 없습니다.")
 
@@ -780,7 +785,6 @@ async def get_meal_alternatives(
     alt_menus = target_meal_data.get("alternative_menus", [])
 
     current_menu_name = selected_menu.get("name", "")
-    current_menu_category = selected_menu.get("category", "")  # 카테고리 추출
 
     # 인덱스 0번은 항상 Current Meal의 이미지가 되도록 세팅
     img_tasks = [get_food_image_url(current_menu_name, "food")]
@@ -852,15 +856,20 @@ def build_modeling_profile_from_user(
     DB의 User 정보를 모델링 profile 형식으로 변환합니다.
     """
 
+    persona = current_user.persona_setting
+    taste = current_user.onboarding_setting
+    
     profile = {
-        "goals": current_user.purpose or [],
-        "monthly_budget": current_user.monthly_budget,
-        "meal_count_per_day": current_user.meals_per_day,
-        "cooking_skill": current_user.cooking_skill,
-        "preferred_categories": current_user.preferred_categories or [],
-        "diversity_level": current_user.diversity_level,
-        "ingredient_preferences": current_user.preferred_ingredients or [],
-        "allergy_ingredients": current_user.excluded_ingredients or [],
+        "goals": (persona.purpose if persona else []) or [], 
+        "monthly_budget": persona.monthly_budget if persona else 300000,
+        "meal_count_per_day": persona.meals_per_day if persona else 3,
+
+        # 2. UserOnboardingSetting (2단계 온보딩 취향 설정 테이블)에서 추출
+        "cooking_skill": taste.cooking_skill if taste else 3,
+        "preferred_categories": (taste.preferred_categories if taste else []) or [],
+        "diversity_level": taste.diversity_level if taste else "보통",
+        "ingredient_preferences": (taste.preferred_ingredients if taste else []) or [],
+        "allergy_ingredients": (taste.excluded_ingredients if taste else []) or [],
     }
 
     if sample_period_days is not None:
@@ -1026,11 +1035,18 @@ async def generate_initial_meal_plan(
     백엔드의 current_user.id를 기준으로 생성합니다.
     """
 
+    # 분리된 연관 테이블 데이터를 joinedload로 한방에 가져옵니다.
+    full_user = db.query(User).options(
+        joinedload(User.family_members),
+        joinedload(User.persona_setting),
+        joinedload(User.onboarding_setting)
+    ).filter(User.id == current_user.id).first()
+
     ai_payload = {
         "user_id": get_modeling_user_id(current_user),
         "request_type": "meal_style_candidates",
         "profile": build_modeling_profile_from_user(
-            current_user=current_user,
+            current_user=full_user,
             sample_period_days=sample_period_days,
         ),
     }
@@ -1089,8 +1105,6 @@ async def generate_initial_meal_plan(
 
     return {
         "message": "3일치 식단 스타일 후보 생성이 완료되었습니다.",
-        "request body": ai_payload,
-        "ai_response": ai_response,
         "candidates": frontend_candidates,
     }
 
