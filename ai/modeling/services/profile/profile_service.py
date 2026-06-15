@@ -36,11 +36,21 @@ def build_user_profile(user_input: UserProfileInput) -> dict:
 
     weights = get_weights_by_goals(user_input.goals)
 
+    daily_calorie_target = user_input.recommended_daily_calories
+    meal_calorie_target = None
+
+    if daily_calorie_target and user_input.meal_count_per_day:
+        meal_calorie_target = round(
+            daily_calorie_target / user_input.meal_count_per_day,
+            2
+        )
+
     return {
         # 원본 사용자 입력값 유지
         "goals": user_input.goals,
         "monthly_budget": user_input.monthly_budget,
         "meal_count_per_day": user_input.meal_count_per_day,
+        "recommended_daily_calories": user_input.recommended_daily_calories,
         "cooking_skill": user_input.cooking_skill,
         "preferred_categories": user_input.preferred_categories,
         "diversity_level": user_input.diversity_level,
@@ -52,6 +62,8 @@ def build_user_profile(user_input: UserProfileInput) -> dict:
         # Modeling 계산용 값 추가
         "budget_period_days": budget_period_days,
         "meal_budget": meal_budget,
+        "daily_calorie_target": daily_calorie_target,
+        "meal_calorie_target": meal_calorie_target,
         "weights": weights,
         "max_difficulty": user_input.cooking_skill,
         "diversity_penalty_strength": get_diversity_penalty_strength(

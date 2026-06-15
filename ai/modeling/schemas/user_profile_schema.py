@@ -22,6 +22,10 @@ class UserProfileInput(BaseModel):
 
     monthly_budget: int = Field(..., gt=0)
     meal_count_per_day: int = Field(..., ge=1, le=5)
+
+    # 1차 온보딩 profile_build 단계에서 계산된 하루 권장 칼로리
+    recommended_daily_calories: Optional[int] = Field(default=None, gt=0)
+
     cooking_skill: int = Field(..., ge=1, le=5)
 
     preferred_categories: List[str] = Field(..., min_length=1)
