@@ -36,6 +36,74 @@ def merge_counter_dicts(events: list[dict], key: str) -> dict:
     return merged
 
 
+def merge_quality_issue_examples(
+    events: list[dict],
+    max_examples_per_issue: int = 5,
+) -> dict:
+    """
+    diagnostics event에 저장된 quality issue 대표 샘플을 issue type별로 병합한다.
+    """
+
+    merged: dict[str, list[dict]] = {}
+
+    for event in events:
+        examples = event.get("quality_issue_examples") or {}
+
+        for issue_type, issue_examples in examples.items():
+            merged.setdefault(issue_type, [])
+
+            for example in issue_examples:
+                if len(merged[issue_type]) >= max_examples_per_issue:
+                    break
+
+                merged[issue_type].append(example)
+
+    return merged
+
+
+def build_quality_issue_example(
+    candidate_menu: dict,
+    issue_type: str,
+) -> dict:
+    """
+    품질 이슈 원인 확인을 위한 대표 샘플을 만든다.
+
+    이 값은 서비스 응답 payload가 아니라 experiment diagnostics artifact에만 저장된다.
+    """
+
+    nutrient_summary = candidate_menu.get("nutrient_summary") or {}
+    ingredients = candidate_menu.get("ingredients") or []
+    ingredient_groups = candidate_menu.get("ingredient_groups") or []
+    ingredient_usages = candidate_menu.get("ingredient_usages") or []
+
+    return {
+        "issue_type": issue_type,
+        "menu_id": candidate_menu.get("menu_id"),
+        "name": candidate_menu.get("name"),
+        "category": candidate_menu.get("category"),
+        "ingredients_count": len(ingredients),
+        "ingredient_groups_count": len(ingredient_groups),
+        "ingredient_usages_count": len(ingredient_usages),
+        "ingredients_preview": ingredients[:10],
+        "calories": candidate_menu.get("calories"),
+        "protein": (
+            candidate_menu.get("protein")
+            if candidate_menu.get("protein") is not None
+            else nutrient_summary.get("protein")
+        ),
+        "carbohydrate": (
+            candidate_menu.get("carbohydrate")
+            if candidate_menu.get("carbohydrate") is not None
+            else nutrient_summary.get("carbohydrate")
+        ),
+        "fat": (
+            candidate_menu.get("fat")
+            if candidate_menu.get("fat") is not None
+            else nutrient_summary.get("fat")
+        ),
+    }
+
+
 def get_rag_mapping_diagnostics() -> dict:
     """
     현재까지 수집된 RAG mapping diagnostics를 반환한다.
@@ -54,6 +122,7 @@ def get_rag_mapping_diagnostics() -> dict:
         events=events,
         key="quality_issue_type_count",
     )
+    quality_issue_examples = merge_quality_issue_examples(events)
 
     mapping_success_rate = (
         round(total_mapped_menus / total_raw_menus, 4)
@@ -74,6 +143,7 @@ def get_rag_mapping_diagnostics() -> dict:
         "excluded_menus": total_excluded_menus,
         "quality_issue_menus": total_quality_issue_menus,
         "quality_issue_type_count": quality_issue_type_count,
+        "quality_issue_examples": quality_issue_examples,
         "mapping_success_rate": mapping_success_rate,
         "quality_issue_rate": quality_issue_rate,
         "events": events,
@@ -86,6 +156,7 @@ def record_rag_mapping_diagnostics(
     excluded_menus: int,
     quality_issue_menus: int,
     quality_issue_type_count: dict | None = None,
+    quality_issue_examples: dict | None = None,
 ) -> None:
     """
     RAG mapper 호출 단위 diagnostics를 기록한다.
@@ -114,6 +185,7 @@ def record_rag_mapping_diagnostics(
         "excluded_menus": excluded_menus,
         "quality_issue_menus": quality_issue_menus,
         "quality_issue_type_count": quality_issue_type_count or {},
+        "quality_issue_examples": quality_issue_examples or {},
         "mapping_success_rate": mapping_success_rate,
         "quality_issue_rate": quality_issue_rate,
     })
@@ -1425,6 +1497,8 @@ def map_rag_response_to_candidate_menus(rag_response: dict) -> list[dict]:
     excluded_count = 0
     quality_issue_count = 0
     quality_issue_type_counter = Counter()
+    quality_issue_examples: dict[str, list[dict]] = {}
+    max_examples_per_issue = 5
 
     for menu in raw_menus:
         is_valid, issues = validate_rag_candidate_menu(menu)
@@ -1447,6 +1521,17 @@ def map_rag_response_to_candidate_menus(rag_response: dict) -> list[dict]:
             quality_issue_count += 1
             quality_issue_type_counter.update(issues)
 
+            for issue in issues:
+                quality_issue_examples.setdefault(issue, [])
+
+                if len(quality_issue_examples[issue]) < max_examples_per_issue:
+                    quality_issue_examples[issue].append(
+                        build_quality_issue_example(
+                            candidate_menu=menu,
+                            issue_type=issue,
+                        )
+                    )
+
         candidate_menus.append(mapped_menu)
 
     record_rag_mapping_diagnostics(
@@ -1455,6 +1540,7 @@ def map_rag_response_to_candidate_menus(rag_response: dict) -> list[dict]:
         excluded_menus=excluded_count,
         quality_issue_menus=quality_issue_count,
         quality_issue_type_count=dict(quality_issue_type_counter),
+        quality_issue_examples=quality_issue_examples,
     )
 
     logger.warning(

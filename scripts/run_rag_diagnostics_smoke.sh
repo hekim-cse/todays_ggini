@@ -57,6 +57,22 @@ for result in data.get("results", []):
     for issue, count in (rag_mapping.get("quality_issue_type_count") or {}).items():
         print(f"  - {issue}: {count}")
 
+    print("quality_issue_examples:")
+    for issue, examples in (rag_mapping.get("quality_issue_examples") or {}).items():
+        print(f"  - {issue}:")
+        for example in examples[:2]:
+            print(
+                "    *",
+                example.get("menu_id"),
+                example.get("name"),
+                {
+                    "ingredients_count": example.get("ingredients_count"),
+                    "ingredient_groups_count": example.get("ingredient_groups_count"),
+                    "ingredient_usages_count": example.get("ingredient_usages_count"),
+                    "protein": example.get("protein"),
+                },
+            )
+
 print()
 print("[INFO] RAG diagnostics smoke summary finished.")
 PY
