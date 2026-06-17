@@ -124,6 +124,9 @@ def collect_rag_mapping_info(result: dict) -> dict:
     diagnostics = result.get("diagnostics") or {}
     rag_mapping = diagnostics.get("rag_mapping") or {}
     quality_issue_type_count = rag_mapping.get("quality_issue_type_count") or {}
+    ingredient_group_mapping_status_count = (
+        rag_mapping.get("ingredient_group_mapping_status_count") or {}
+    )
 
     return {
         "rag_mapping_event_count": rag_mapping.get("event_count", 0),
@@ -132,6 +135,9 @@ def collect_rag_mapping_info(result: dict) -> dict:
         "rag_excluded_menus": rag_mapping.get("excluded_menus", 0),
         "rag_quality_issue_menus": rag_mapping.get("quality_issue_menus", 0),
         "rag_quality_issue_type_count": quality_issue_type_count,
+        "rag_ingredient_group_mapping_status_count": (
+            ingredient_group_mapping_status_count
+        ),
         "rag_mapping_success_rate": rag_mapping.get("mapping_success_rate", 0),
         "rag_quality_issue_rate": rag_mapping.get("quality_issue_rate", 0),
     }
@@ -241,6 +247,7 @@ def analyze_result_file(input_path: str) -> dict:
     candidate_shortage_reason_counter = Counter()
     recommended_next_step_counter = Counter()
     rag_quality_issue_type_counter = Counter()
+    rag_ingredient_group_mapping_status_counter = Counter()
 
     fallback_count = 0
     candidate_pool_enough_count = 0
@@ -400,6 +407,10 @@ def analyze_result_file(input_path: str) -> dict:
 
         rag_quality_issue_type_counter.update(
             rag_mapping_info.get("rag_quality_issue_type_count") or {}
+        )
+
+        rag_ingredient_group_mapping_status_counter.update(
+            rag_mapping_info.get("rag_ingredient_group_mapping_status_count") or {}
         )
 
         row = {
@@ -573,6 +584,9 @@ def analyze_result_file(input_path: str) -> dict:
         "rag_excluded_menus": total_rag_excluded_menus,
         "rag_quality_issue_menus": total_rag_quality_issue_menus,
         "rag_quality_issue_type_count": dict(rag_quality_issue_type_counter),
+        "rag_ingredient_group_mapping_status_count": dict(
+            rag_ingredient_group_mapping_status_counter
+        ),
         "rag_mapping_success_rate": safe_rate(
             total_rag_mapped_menus,
             total_rag_raw_menus,
