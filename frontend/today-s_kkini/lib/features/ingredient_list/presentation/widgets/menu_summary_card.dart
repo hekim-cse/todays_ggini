@@ -63,11 +63,6 @@ class MenuSummaryCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 if (sourceDate != null || sourceSlot != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    _formatSource(),
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
                 ],
               ],
             ),
@@ -75,16 +70,5 @@ class MenuSummaryCard extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _formatSource() {
-    final parts = <String>[];
-    if (sourceDate != null) {
-      parts.add('${sourceDate!.month}월 ${sourceDate!.day}일');
-    }
-    if (sourceSlot != null) {
-      parts.add('- 식단$sourceSlot');
-    }
-    return parts.join(' ');
   }
 }

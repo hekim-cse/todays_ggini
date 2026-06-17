@@ -51,8 +51,15 @@ flutter:
     - assets/mocks/ingredients/
     - assets/mocks/shopping-list/
     - assets/images/
+    - assets/images/onboarding/
   fonts:
-    - family: NanumSquareNeo
+    - family: Pretendard
       fonts:
-
-        - asset: assets/fonts/NanumSquareNeo-dEb.ttf
+        - asset: assets/fonts/Pretendard-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Pretendard-SemiBold.ttf
+          weight: 600
+    - family: MemomentKkukkukk
+      fonts:
+        - asset: assets/fonts/MemomentKkukkukk.ttf
+          weight: 400

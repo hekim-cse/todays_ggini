@@ -1,19 +1,28 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
 
-class MonthHeader extends StatelessWidget {
+class WeekHeader extends StatelessWidget {
   final int year;
   final int month;
-  final VoidCallback onPrevMonth;
-  final VoidCallback onNextMonth;
+  final int weekNumber;
+  final VoidCallback onPrevWeek;
+  final VoidCallback onNextWeek;
 
-  const MonthHeader({
+  const WeekHeader({
     super.key,
     required this.year,
     required this.month,
-    required this.onPrevMonth,
-    required this.onNextMonth,
+    required this.weekNumber,
+    required this.onPrevWeek,
+    required this.onNextWeek,
   });
+
+  static const _weekLabels = ['첫째', '둘째', '셋째', '넷째', '다섯째'];
+
+  String get _label {
+    final w = weekNumber.clamp(1, 5) - 1;
+    return '$year년 $month월 ${_weekLabels[w]} 주';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,19 +35,19 @@ class MonthHeader extends StatelessWidget {
             icon: const Icon(Icons.chevron_left),
             color: AppColors.textPrimary,
             iconSize: 32,
-            onPressed: onPrevMonth,
+            onPressed: onPrevWeek,
           ),
           const Spacer(),
           Text(
-            '$year년 $month월',
-            style: Theme.of(context).textTheme.headlineLarge
+            _label,
+            style: Theme.of(context).textTheme.headlineLarge,
           ),
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.chevron_right),
             color: AppColors.textPrimary,
             iconSize: 32,
-            onPressed: onNextMonth,
+            onPressed: onNextWeek,
           ),
         ],
       ),
