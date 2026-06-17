@@ -1,3 +1,43 @@
+import json
+import os
+
+def safe_float(value, default=0.0) -> float:
+    try:
+        return float(value or default)
+    except (TypeError, ValueError):
+        return default
+
+
+def calculate_fallback_difficulty_score(menu: dict, profile: dict) -> float:
+    """
+    scores.difficulty_score가 없는 경우 menu difficulty와 cooking_skill로 보조 계산한다.
+    """
+
+    menu_difficulty = safe_float(menu.get("difficulty"), 3)
+    cooking_skill = safe_float(profile.get("cooking_skill"), 3)
+
+    if menu_difficulty <= cooking_skill:
+        return 100
+
+    score = 100 - ((menu_difficulty - cooking_skill) * 30)
+    return max(0, score)
+
+
+def get_menu_difficulty_score(menu: dict, profile: dict) -> float:
+    scores = menu.get("scores") if isinstance(menu.get("scores"), dict) else {}
+
+    if scores.get("difficulty_score") is not None:
+        return safe_float(scores.get("difficulty_score"))
+
+    if menu.get("difficulty_score") is not None:
+        return safe_float(menu.get("difficulty_score"))
+
+    return calculate_fallback_difficulty_score(
+        menu=menu,
+        profile=profile,
+    )
+
+
 DIVERSITY_OPTIMIZER_CONFIG = {
     "낮음": {
         "repeat_penalty_weight": 1500,
@@ -34,7 +74,38 @@ DEFAULT_OPTIMIZER_CONFIG = {
     "enable_protein_bonus": False,
     "protein_bonus_weight": 0,
     "protein_bonus_cap_grams": 35,
+    "enable_difficulty_bonus": False,
+    "difficulty_bonus_weight": 0,
 }
+
+
+
+def load_optimizer_tuning_override() -> dict:
+    """
+    실험 자동화를 위해 환경변수 기반 optimizer override를 읽는다.
+
+    사용 이유:
+    - Grid Search / Optuna에서 코드 수정 없이 가중치 조합을 바꿔가며 검증하기 위함
+    - 서비스 기본 동작에는 영향을 주지 않고, 실험 실행 시에만 설정을 주입하기 위함
+
+    환경변수:
+    - OPTIMIZER_TUNING_OVERRIDE_JSON
+    """
+
+    raw_override = os.environ.get("OPTIMIZER_TUNING_OVERRIDE_JSON")
+
+    if not raw_override:
+        return {}
+
+    try:
+        override = json.loads(raw_override)
+    except json.JSONDecodeError:
+        return {}
+
+    if not isinstance(override, dict):
+        return {}
+
+    return override
 
 
 def build_optimizer_config(profile: dict) -> dict:
@@ -68,6 +139,22 @@ def build_optimizer_config(profile: dict) -> dict:
             4500,
         )
 
+    cooking_skill = safe_float(profile.get("cooking_skill"), 3)
+
+    if "간편식" in goals:
+        config["enable_difficulty_bonus"] = True
+        config["difficulty_bonus_weight"] = 120
+
+    elif cooking_skill <= 2:
+        config["enable_difficulty_bonus"] = True
+        config["difficulty_bonus_weight"] = 50
+
+    if "고단백" in goals and config.get("enable_difficulty_bonus"):
+        config["protein_bonus_weight"] = max(
+            int(config.get("protein_bonus_weight", 0) or 0),
+            220,
+        )
+
     override_keys = [
         "score_weight",
         "cost_penalty_weight",
@@ -82,11 +169,19 @@ def build_optimizer_config(profile: dict) -> dict:
         "enable_protein_bonus",
         "protein_bonus_weight",
         "protein_bonus_cap_grams",
+        "enable_difficulty_bonus",
+        "difficulty_bonus_weight",
     ]
 
     for key in override_keys:
         if profile.get(key) is not None:
             config[key] = profile[key]
+
+    tuning_override = load_optimizer_tuning_override()
+
+    for key in override_keys:
+        if tuning_override.get(key) is not None:
+            config[key] = tuning_override[key]
 
     return config
 
@@ -173,6 +268,10 @@ def build_optimizer_input(
                 if isinstance(menu.get("scores"), dict)
                 else 0
             ),
+            "difficulty_score": get_menu_difficulty_score(
+                menu=menu,
+                profile=profile,
+            ),
             "raw_menu": menu,
         })
 
@@ -204,5 +303,7 @@ def build_optimizer_input(
         "enable_protein_bonus": optimizer_config["enable_protein_bonus"],
         "protein_bonus_weight": optimizer_config["protein_bonus_weight"],
         "protein_bonus_cap_grams": optimizer_config["protein_bonus_cap_grams"],
+        "enable_difficulty_bonus": optimizer_config["enable_difficulty_bonus"],
+        "difficulty_bonus_weight": optimizer_config["difficulty_bonus_weight"],
         "optimizer_config": optimizer_config,
     }
