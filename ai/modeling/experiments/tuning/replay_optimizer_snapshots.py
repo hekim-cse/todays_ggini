@@ -54,6 +54,8 @@ def write_csv(path: Path, rows: list[dict]) -> None:
         "duplicate_warning_count",
         "avg_unique_menu_ratio",
         "avg_duplicate_rate",
+        "avg_allowed_duplicate_rate",
+        "avg_duplicate_excess_rate",
         "avg_runtime_ms",
         "repeat_penalty_weight",
         "protein_bonus_weight",
@@ -81,6 +83,8 @@ def write_csv(path: Path, rows: list[dict]) -> None:
                 "duplicate_warning_count": metrics.get("duplicate_warning_count"),
                 "avg_unique_menu_ratio": metrics.get("avg_unique_menu_ratio"),
                 "avg_duplicate_rate": metrics.get("avg_duplicate_rate"),
+                "avg_allowed_duplicate_rate": metrics.get("avg_allowed_duplicate_rate"),
+                "avg_duplicate_excess_rate": metrics.get("avg_duplicate_excess_rate"),
                 "avg_runtime_ms": metrics.get("avg_runtime_ms"),
                 "repeat_penalty_weight": config.get("repeat_penalty_weight"),
                 "protein_bonus_weight": config.get("protein_bonus_weight"),
@@ -125,6 +129,47 @@ def apply_config(optimizer_input: dict, config: dict) -> dict:
     updated["optimizer_config"] = optimizer_config
 
     return updated
+
+
+
+
+def calculate_allowed_duplicate_rate(
+    selected_menu_count: int,
+    available_recommendation_count: int,
+) -> float:
+    """
+    시나리오별 후보풀 여유도에 따라 허용 중복률을 다르게 계산한다.
+
+    후보 메뉴가 충분하면 중복을 더 엄격하게 보고,
+    후보 메뉴가 부족하면 현실적으로 중복을 더 허용한다.
+    """
+
+    if selected_menu_count <= 0:
+        return 0.3
+
+    candidate_ratio = available_recommendation_count / selected_menu_count
+
+    if candidate_ratio >= 3.0:
+        return 0.15
+
+    if candidate_ratio >= 2.0:
+        return 0.25
+
+    if candidate_ratio >= 1.5:
+        return 0.35
+
+    return 0.45
+
+
+def calculate_duplicate_excess_rate(
+    duplicate_rate: float,
+    allowed_duplicate_rate: float,
+) -> float:
+    """
+    실제 중복률이 허용 중복률을 초과한 정도만 패널티 대상으로 계산한다.
+    """
+
+    return max(0.0, duplicate_rate - allowed_duplicate_rate)
 
 
 def calculate_duplicate_warning(style_validation: dict) -> bool:
@@ -187,6 +232,13 @@ def evaluate_case(case_id: str, config: dict, snapshots: list[dict]) -> dict:
         unique_menu_count = int(summary.get("unique_menu_count", 0) or 0)
         duplicate_menu_count = int(summary.get("duplicate_menu_count", 0) or 0)
 
+        available_recommendation_count = int(
+            optimizer_input.get("original_recommendation_count")
+            or optimizer_input.get("used_optimizer_candidate_count")
+            or len(optimizer_input.get("menus", []))
+            or 0
+        )
+
         if selected_menu_count > 0:
             summary["unique_menu_ratio"] = round(
                 unique_menu_count / selected_menu_count,
@@ -196,6 +248,20 @@ def evaluate_case(case_id: str, config: dict, snapshots: list[dict]) -> dict:
                 duplicate_menu_count / selected_menu_count,
                 4,
             )
+
+        summary["available_recommendation_count"] = available_recommendation_count
+
+        allowed_duplicate_rate = calculate_allowed_duplicate_rate(
+            selected_menu_count=selected_menu_count,
+            available_recommendation_count=available_recommendation_count,
+        )
+        duplicate_excess_rate = calculate_duplicate_excess_rate(
+            duplicate_rate=float(summary.get("duplicate_rate") or 0),
+            allowed_duplicate_rate=allowed_duplicate_rate,
+        )
+
+        summary["allowed_duplicate_rate"] = round(allowed_duplicate_rate, 4)
+        summary["duplicate_excess_rate"] = round(duplicate_excess_rate, 4)
 
         selected_style = snapshot.get("selected_style") or {}
         profile = snapshot.get("profile") or {}
@@ -258,6 +324,8 @@ def summarize_records(records: list[dict], runtime_values: list[float]) -> dict:
 
     unique_ratios = []
     duplicate_rates = []
+    duplicate_excess_rates = []
+    allowed_duplicate_rates = []
 
     for row in records:
         summary = row.get("summary") or {}
@@ -272,6 +340,17 @@ def summarize_records(records: list[dict], runtime_values: list[float]) -> dict:
 
             unique_ratios.append(unique_ratio)
             duplicate_rates.append(duplicate_rate)
+
+            if summary.get("allowed_duplicate_rate") is not None:
+                allowed_duplicate_rates.append(
+                    float(summary.get("allowed_duplicate_rate") or 0)
+                )
+
+            if summary.get("duplicate_excess_rate") is not None:
+                duplicate_excess_rates.append(
+                    float(summary.get("duplicate_excess_rate") or 0)
+                )
+
             continue
 
         if summary.get("unique_menu_ratio") is not None:
@@ -300,6 +379,14 @@ def summarize_records(records: list[dict], runtime_values: list[float]) -> dict:
             sum(duplicate_rates) / len(duplicate_rates),
             4,
         ) if duplicate_rates else 0,
+        "avg_allowed_duplicate_rate": round(
+            sum(allowed_duplicate_rates) / len(allowed_duplicate_rates),
+            4,
+        ) if allowed_duplicate_rates else 0,
+        "avg_duplicate_excess_rate": round(
+            sum(duplicate_excess_rates) / len(duplicate_excess_rates),
+            4,
+        ) if duplicate_excess_rates else 0,
         "avg_runtime_ms": round(
             sum(runtime_values) / len(runtime_values),
             2,
@@ -316,7 +403,7 @@ def calculate_objective_score(metrics: dict) -> float:
     2. validation fail을 가장 강하게 줄임
     3. warning과 duplicate warning을 줄임
     4. unique menu ratio를 높임
-    5. duplicate rate를 낮춤
+    5. 시나리오별 허용 중복률을 초과한 중복만 감점
     """
 
     if metrics.get("solver_success_rate") < 1.0:
@@ -327,7 +414,7 @@ def calculate_objective_score(metrics: dict) -> float:
     score -= metrics.get("validation_warning_count", 0) * 35
     score -= metrics.get("duplicate_warning_count", 0) * 25
     score += metrics.get("avg_unique_menu_ratio", 0) * 200
-    score -= metrics.get("avg_duplicate_rate", 0) * 100
+    score -= metrics.get("avg_duplicate_excess_rate", 0) * 300
 
     return round(score, 4)
 
