@@ -926,7 +926,7 @@ async def create_or_update_meal_feedback(
                 detail=f"피드백 처리 중 서버 내부 에러 발생: {str(error)}"
             )
 
-
+            
 # ------------------------------- AI 모델 서버 호출용 API ----------------------------------
 
 
