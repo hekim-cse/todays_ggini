@@ -59,9 +59,37 @@ def read_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def build_grid_cases(max_cases: int | None = None) -> list[dict]:
-    keys = list(PARAM_GRID.keys())
-    values = [PARAM_GRID[key] for key in keys]
+def load_param_grid(
+    param_grid_file: str | None = None,
+    param_grid_json: str | None = None,
+) -> dict:
+    """
+    optimizer tuning search space를 로드한다.
+
+    기본값은 PARAM_GRID를 사용하고,
+    특정 시나리오 튜닝이 필요한 경우 JSON 파일 또는 JSON 문자열로
+    search space를 주입할 수 있다.
+    """
+
+    if param_grid_file and param_grid_json:
+        raise ValueError("param_grid_file and param_grid_json cannot be used together")
+
+    if param_grid_file:
+        return read_json(Path(param_grid_file))
+
+    if param_grid_json:
+        return json.loads(param_grid_json)
+
+    return PARAM_GRID
+
+
+def build_grid_cases(
+    param_grid: dict | None = None,
+    max_cases: int | None = None,
+) -> list[dict]:
+    grid = param_grid or PARAM_GRID
+    keys = list(grid.keys())
+    values = [grid[key] for key in keys]
 
     cases = []
 
@@ -403,13 +431,31 @@ def main() -> None:
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--max-cases", type=int, default=None)
     parser.add_argument("--top-k", type=int, default=10)
+    parser.add_argument(
+        "--param-grid-file",
+        default=None,
+        help="optimizer tuning parameter grid JSON file path",
+    )
+    parser.add_argument(
+        "--param-grid-json",
+        default=None,
+        help="optimizer tuning parameter grid JSON string",
+    )
     args = parser.parse_args()
 
     scenario_file = args.scenario_file
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    cases = build_grid_cases(max_cases=args.max_cases)
+    param_grid = load_param_grid(
+        param_grid_file=args.param_grid_file,
+        param_grid_json=args.param_grid_json,
+    )
+
+    cases = build_grid_cases(
+        param_grid=param_grid,
+        max_cases=args.max_cases,
+    )
 
     records = []
 
@@ -418,6 +464,7 @@ def main() -> None:
     print("=" * 100)
     print("scenario_file:", scenario_file)
     print("output_dir:", output_dir)
+    print("param_grid:", param_grid)
     print("case_count:", len(cases))
 
     for index, case in enumerate(cases, start=1):
