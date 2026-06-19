@@ -1,36 +1,55 @@
 {
-  "user_id": 1,
+  "id": 1,
   "request_type": "monthly_plan",
-  "monthly_plan": {
-    "days": [
-      {
-        "day": 1,
-        "meals": [
-          {
-            "meal_type": "breakfast",
-            "menu_id": "menu_001",
-            "menu_name": "닭가슴살 샐러드",
-            "price": 6500
-          }
-        ]
-      }
-    ]
+  "selected_style": {
+    "style_id": "high_protein_budget_easy",
+    "style_name": "고단백 절약형",
+    "source_goal": "고단백",
+    "focus_key": "nutrition"
   },
-  "summary": {
+  "meta": {
     "period_days": 30,
-    "selected_meal_count": 90,
-    "estimated_total_cost": 240000
+    "meal_count_per_day": 3,
+    "required_meal_count": 90,
+    "available_recommendation_count": 252,
+    "generated_at": "2026-06-19T20:36:47Z",
+    "warnings": [],
+    "fallback": {
+      "fallback_used": false,
+      "fallback_steps": [],
+      "warnings": [],
+      "final_candidate_count": 252
+    }
   },
-  "style_validation": {
-    "status": "pass",
-    "messages": []
+  "modeling_profile": {
+    "goals": ["고단백", "식비 절약", "간편식"],
+    "monthly_budget": 250000,
+    "period_days": 30,
+    "meal_count_per_day": 3,
+    "cooking_skill": 2,
+    "preferred_categories": ["한식"],
+    "diversity_level": "보통",
+    "ingredient_preferences": ["육류"],
+    "allergy_ingredients": []
   },
-  "warnings": [],
-  "fallback": {
-    "used": false,
-    "reasons": []
+  "applied_style_adjustment": {
+    "applied_style_focus_key": "nutrition",
+    "base_weights": {},
+    "applied_monthly_weights": {},
+    "applied_nutrition_detail_weights": {}
   },
-  "profiling": {
-    "total_ms": 0
+  "monthly_plan": {
+    "period_days": 30,
+    "meal_count_per_day": 3,
+    "required_meal_count": 90,
+    "available_recommendation_count": 252,
+    "warnings": [],
+    "optimizer": {
+      "enabled": true,
+      "solver": "OR-Tools CP-SAT",
+      "solver_status": "FEASIBLE",
+      "message": "OR-Tools 월간 식단 최적화가 완료되었습니다.",
+      "config": {}
+    }
   }
 }

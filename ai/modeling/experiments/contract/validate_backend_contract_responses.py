@@ -37,48 +37,72 @@ def require_fields(data: dict[str, Any], fields: list[str], label: str) -> None:
 def validate_style_candidates_response(response_data: dict[str, Any]) -> None:
     require_fields(
         response_data,
-        ["user_id", "request_type", "style_candidates", "warnings"],
+        ["id", "request_type", "meta", "meal_style_candidates"],
         "style candidates response",
     )
 
     if response_data["request_type"] != "meal_style_candidates":
         raise ValueError("style candidates response request_type이 올바르지 않습니다.")
 
-    style_candidates = response_data["style_candidates"]
+    meta = response_data["meta"]
 
-    if not isinstance(style_candidates, list) or not style_candidates:
-        raise ValueError("style_candidates는 비어 있지 않은 list여야 합니다.")
+    if not isinstance(meta, dict):
+        raise ValueError("meta는 dict여야 합니다.")
+
+    require_fields(meta, ["warnings"], "style candidates response meta")
+
+    meal_style_candidates = response_data["meal_style_candidates"]
+
+    if not isinstance(meal_style_candidates, list) or not meal_style_candidates:
+        raise ValueError("meal_style_candidates는 비어 있지 않은 list여야 합니다.")
 
     required_candidate_fields = [
         "style_id",
         "style_name",
         "source_goal",
         "focus_key",
+        "sample_plan",
     ]
 
-    for index, candidate in enumerate(style_candidates):
+    for index, candidate in enumerate(meal_style_candidates):
         if not isinstance(candidate, dict):
-            raise ValueError(f"style_candidates[{index}]는 dict여야 합니다.")
+            raise ValueError(f"meal_style_candidates[{index}]는 dict여야 합니다.")
 
         require_fields(
             candidate,
             required_candidate_fields,
-            f"style_candidates[{index}]",
+            f"meal_style_candidates[{index}]",
         )
 
+        sample_plan = candidate["sample_plan"]
+
+        if not isinstance(sample_plan, dict):
+            raise ValueError(f"meal_style_candidates[{index}].sample_plan은 dict여야 합니다.")
+
+        require_fields(
+            sample_plan,
+            ["period_days", "meal_count_per_day", "days"],
+            f"meal_style_candidates[{index}].sample_plan",
+        )
+
+        days = sample_plan["days"]
+
+        if not isinstance(days, list) or not days:
+            raise ValueError(
+                f"meal_style_candidates[{index}].sample_plan.days는 비어 있지 않은 list여야 합니다."
+            )
 
 def validate_monthly_success_response(response_data: dict[str, Any]) -> None:
     require_fields(
         response_data,
         [
-            "user_id",
+            "id",
             "request_type",
+            "selected_style",
+            "meta",
+            "modeling_profile",
+            "applied_style_adjustment",
             "monthly_plan",
-            "summary",
-            "style_validation",
-            "warnings",
-            "fallback",
-            "profiling",
         ],
         "monthly success response",
     )
@@ -86,29 +110,63 @@ def validate_monthly_success_response(response_data: dict[str, Any]) -> None:
     if response_data["request_type"] != "monthly_plan":
         raise ValueError("monthly success response request_type이 올바르지 않습니다.")
 
+    selected_style = response_data["selected_style"]
+
+    if not isinstance(selected_style, dict):
+        raise ValueError("selected_style은 dict여야 합니다.")
+
+    require_fields(
+        selected_style,
+        ["style_id", "style_name", "source_goal", "focus_key"],
+        "monthly success response selected_style",
+    )
+
+    meta = response_data["meta"]
+
+    if not isinstance(meta, dict):
+        raise ValueError("meta는 dict여야 합니다.")
+
+    require_fields(
+        meta,
+        [
+            "period_days",
+            "meal_count_per_day",
+            "required_meal_count",
+            "available_recommendation_count",
+            "warnings",
+            "fallback",
+        ],
+        "monthly success response meta",
+    )
+
     monthly_plan = response_data["monthly_plan"]
 
     if not isinstance(monthly_plan, dict):
         raise ValueError("monthly_plan은 dict여야 합니다.")
 
-    days = monthly_plan.get("days")
+    require_fields(
+        monthly_plan,
+        [
+            "period_days",
+            "meal_count_per_day",
+            "required_meal_count",
+            "available_recommendation_count",
+            "warnings",
+            "optimizer",
+        ],
+        "monthly success response monthly_plan",
+    )
 
-    if not isinstance(days, list) or not days:
-        raise ValueError("monthly_plan.days는 비어 있지 않은 list여야 합니다.")
+    optimizer = monthly_plan["optimizer"]
 
-    for index, day in enumerate(days):
-        if not isinstance(day, dict):
-            raise ValueError(f"monthly_plan.days[{index}]는 dict여야 합니다.")
+    if not isinstance(optimizer, dict):
+        raise ValueError("monthly_plan.optimizer는 dict여야 합니다.")
 
-        require_fields(day, ["day", "meals"], f"monthly_plan.days[{index}]")
-
-        meals = day["meals"]
-
-        if not isinstance(meals, list) or not meals:
-            raise ValueError(
-                f"monthly_plan.days[{index}].meals는 비어 있지 않은 list여야 합니다."
-            )
-
+    require_fields(
+        optimizer,
+        ["enabled", "solver", "solver_status", "message", "config"],
+        "monthly success response monthly_plan.optimizer",
+    )
 
 def validate_monthly_failure_response(response_data: dict[str, Any]) -> None:
     require_fields(
