@@ -563,6 +563,23 @@ def enrich_style_validation(
 
     adjusted_style_validation = dict(style_validation)
 
+    source_goal = selected_style.get("source_goal")
+    difficulty_feasibility_status = None
+
+    if difficulty_feasibility_diagnostics:
+        difficulty_feasibility_status = difficulty_feasibility_diagnostics.get("status")
+
+    if (
+        source_goal == "간편식"
+        and validation_status == "fail"
+        and difficulty_feasibility_status == "absolute_pass_unreachable"
+    ):
+        adjusted_style_validation["status"] = "warning"
+        adjusted_style_validation["message"] = (
+            "간편식 기준에는 부족하지만, 현재 후보풀에 충분히 쉬운 메뉴가 없어 "
+            "후보풀 확장 또는 난이도 산식 보완이 필요합니다."
+        )
+
     if validation_status == "pass" and duplicate_rate >= 0.30:
         adjusted_style_validation["status"] = "warning"
         adjusted_style_validation["message"] = (
