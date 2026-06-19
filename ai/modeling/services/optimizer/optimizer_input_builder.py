@@ -49,6 +49,96 @@ def get_menu_difficulty_score(menu: dict, profile: dict) -> float:
     )
 
 
+def get_menu_identity(menu: dict) -> str:
+    """
+    optimizer 후보 병합 시 같은 메뉴를 중복 선택하지 않기 위한 식별자를 만든다.
+    """
+
+    return str(menu.get("menu_id") or menu.get("name") or id(menu))
+
+
+def merge_unique_menus(menus: list[dict]) -> list[dict]:
+    """
+    score 후보와 constraint 보존 후보를 순서대로 병합하되 중복 메뉴를 제거한다.
+    """
+
+    seen = set()
+    unique_menus = []
+
+    for menu in menus:
+        identity = get_menu_identity(menu)
+
+        if identity in seen:
+            continue
+
+        seen.add(identity)
+        unique_menus.append(menu)
+
+    return unique_menus
+
+
+def select_optimizer_recommendations(
+    recommendations: list[dict],
+    required_meal_count: int,
+    optimizer_candidate_multiplier: float | int | None,
+    monthly_budget: int | float | None,
+) -> tuple[list[dict], int | None, int]:
+    """
+    optimizer에 전달할 후보 메뉴를 선택한다.
+
+    기본적으로 final_score 상위 후보를 사용하되,
+    월 예산이 있는 경우 estimated_cost가 낮은 후보를 추가로 보존한다.
+    이는 예산 hard constraint를 만족하는 데 필요한 저가 후보가
+    final_score top-N 컷에서 탈락하는 문제를 완화하기 위함이다.
+    """
+
+    if optimizer_candidate_multiplier and optimizer_candidate_multiplier > 0:
+        optimizer_candidate_limit = int(
+            required_meal_count * optimizer_candidate_multiplier
+        )
+
+        # 너무 적은 후보만 남으면 품질이 급격히 떨어질 수 있으므로
+        # 최소한 월간 식단 슬롯 수만큼은 후보를 유지한다.
+        optimizer_candidate_limit = max(
+            optimizer_candidate_limit,
+            required_meal_count,
+        )
+
+        score_candidates = sorted(
+            recommendations,
+            key=lambda menu: float(menu.get("final_score", 0) or 0),
+            reverse=True,
+        )[:optimizer_candidate_limit]
+    else:
+        optimizer_candidate_limit = None
+        score_candidates = recommendations
+
+    monthly_budget_value = safe_float(monthly_budget)
+
+    if monthly_budget_value <= 0:
+        return score_candidates, optimizer_candidate_limit, 0
+
+    low_cost_candidate_limit = max(
+        int(required_meal_count * 0.5),
+        30,
+    )
+
+    low_cost_candidates = sorted(
+        recommendations,
+        key=lambda menu: int(menu.get("estimated_cost", 0) or 0),
+    )[:low_cost_candidate_limit]
+
+    optimizer_recommendations = merge_unique_menus(
+        score_candidates + low_cost_candidates
+    )
+
+    return (
+        optimizer_recommendations,
+        optimizer_candidate_limit,
+        low_cost_candidate_limit,
+    )
+
+
 DIVERSITY_OPTIMIZER_CONFIG = {
     "낮음": {
         "repeat_penalty_weight": 1500,
@@ -236,26 +326,14 @@ def build_optimizer_input(
         "optimizer_candidate_multiplier"
     )
 
-    if optimizer_candidate_multiplier and optimizer_candidate_multiplier > 0:
-        optimizer_candidate_limit = int(
-            required_meal_count * optimizer_candidate_multiplier
-        )
-
-        # 너무 적은 후보만 남으면 품질이 급격히 떨어질 수 있으므로
-        # 최소한 월간 식단 슬롯 수만큼은 후보를 유지한다.
-        optimizer_candidate_limit = max(
-            optimizer_candidate_limit,
-            required_meal_count,
-        )
-
-        optimizer_recommendations = sorted(
-            recommendations,
-            key=lambda menu: float(menu.get("final_score", 0) or 0),
-            reverse=True,
-        )[:optimizer_candidate_limit]
-    else:
-        optimizer_candidate_limit = None
-        optimizer_recommendations = recommendations
+    optimizer_recommendations, optimizer_candidate_limit, (
+        low_cost_candidate_limit
+    ) = select_optimizer_recommendations(
+        recommendations=recommendations,
+        required_meal_count=required_meal_count,
+        optimizer_candidate_multiplier=optimizer_candidate_multiplier,
+        monthly_budget=profile.get("monthly_budget"),
+    )
 
     menus = []
 
@@ -298,6 +376,12 @@ def build_optimizer_input(
         "used_optimizer_candidate_count": len(optimizer_recommendations),
         "optimizer_candidate_multiplier": optimizer_candidate_multiplier,
         "optimizer_candidate_limit": optimizer_candidate_limit,
+        "low_cost_candidate_limit": low_cost_candidate_limit,
+        "additional_low_cost_candidate_count": max(
+            len(optimizer_recommendations)
+            - (optimizer_candidate_limit or len(optimizer_recommendations)),
+            0,
+        ),
         "max_repeat_per_menu": optimizer_config["max_repeat_per_menu"],
         "solver_time_limit_seconds": optimizer_config["solver_time_limit_seconds"],
         "score_weight": optimizer_config["score_weight"],

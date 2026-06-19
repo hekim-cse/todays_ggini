@@ -262,6 +262,12 @@ def build_optimizer_input_snapshot(optimizer_input: dict) -> dict:
         "optimizer_candidate_limit": optimizer_input.get(
             "optimizer_candidate_limit"
         ),
+        "low_cost_candidate_limit": optimizer_input.get(
+            "low_cost_candidate_limit"
+        ),
+        "additional_low_cost_candidate_count": optimizer_input.get(
+            "additional_low_cost_candidate_count"
+        ),
         "max_repeat_per_menu": optimizer_input.get("max_repeat_per_menu"),
         "solver_time_limit_seconds": optimizer_input.get(
             "solver_time_limit_seconds"
