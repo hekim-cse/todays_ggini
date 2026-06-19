@@ -74,23 +74,6 @@ services:
     networks:
       - kkini-network
 
-  # 4️⃣ 웹 서버 및 역방향 프록시 (Nginx)
-  nginx:
-    image: nginx:stable-alpine
-    container_name: kkini-nginx
-    ports:
-      - "80:80"                       # 일반 웹 통신 (HTTP)
-      - "443:443"                     # 웹앱/모바일 통신 필수 (HTTPS 보안망)
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro # Nginx 설정 파일 마운트
-      - /home/ubuntu/data/images:/app/static/images:ro # 백엔드가 저장한 정적 이미지 파일을 Nginx가 직접 고속 서빙
-      - /etc/letsencrypt:/etc/letsencrypt           # Certbot(SSL 인증서) 연동을 위한 볼륨 경로
-    restart: unless-stopped
-    depends_on:
-      - backend
-    networks:
-      - kkini-network
-
 # 데이터 유실 방지를 위한 네임드 볼륨 설정
 volumes:
   kkini-pgdata:
