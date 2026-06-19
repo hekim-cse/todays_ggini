@@ -60,3 +60,16 @@ python -m py_compile ai/modeling/experiments/contract/validate_backend_contract_
 - Celery/Redis 비동기 처리
 - DB 저장 처리
 - 프론트 응답 형태 가공
+
+## 통합 실행
+
+request contract와 response contract를 한 번에 검증하려면 아래 명령어를 실행한다.
+
+python ai/modeling/experiments/contract/run_backend_contract_validation.py
+
+이 스크립트는 내부적으로 다음 검증을 순서대로 실행한다.
+
+1. validate_backend_contract_requests.py
+2. validate_backend_contract_responses.py
+
+정상 실행 시 request fixture, response fixture, Modeling 진입점 검증이 모두 통과해야 한다.
