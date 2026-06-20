@@ -25,6 +25,10 @@ def analyze_monthly_plan_shopping_coverage(response: dict) -> dict:
 
     menu_pricing_status_count = Counter()
     ingredient_pricing_status_count = Counter()
+    issue_unit_count = Counter()
+    issue_ingredient_name_count = Counter()
+    issue_status_unit_count = Counter()
+    issue_status_ingredient_count = Counter()
 
     total_ingredient_costs = 0
     calculated_ingredient_costs = 0
@@ -74,22 +78,32 @@ def analyze_monthly_plan_shopping_coverage(response: dict) -> dict:
                 if ingredient_cost.get("lowest_price") is not None:
                     priced_ingredient_costs += 1
 
-                if ingredient_status != "calculated" and len(issue_examples) < 10:
-                    issue_examples.append(
-                        {
-                            "day": day.get("day"),
-                            "meal_order": meal.get("meal_order"),
-                            "menu_id": selected_menu.get("menu_id"),
-                            "menu_name": selected_menu.get("name"),
-                            "ingredient_id": ingredient_cost.get("ingredient_id"),
-                            "ingredient_name": ingredient_cost.get("ingredient_name"),
-                            "display_amount": ingredient_cost.get("display_amount"),
-                            "pricing_status": ingredient_status,
-                            "lowest_price": ingredient_cost.get("lowest_price"),
-                            "lowest_market": ingredient_cost.get("lowest_market"),
-                            "product_title": ingredient_cost.get("product_title"),
-                        }
-                    )
+                if ingredient_status != "calculated":
+                    unit = ingredient_cost.get("unit")
+                    ingredient_name = ingredient_cost.get("ingredient_name")
+
+                    issue_unit_count[unit] += 1
+                    issue_ingredient_name_count[ingredient_name] += 1
+                    issue_status_unit_count[(ingredient_status, unit)] += 1
+                    issue_status_ingredient_count[(ingredient_status, ingredient_name)] += 1
+
+                    if len(issue_examples) < 10:
+                        issue_examples.append(
+                            {
+                                "day": day.get("day"),
+                                "meal_order": meal.get("meal_order"),
+                                "menu_id": selected_menu.get("menu_id"),
+                                "menu_name": selected_menu.get("name"),
+                                "ingredient_id": ingredient_cost.get("ingredient_id"),
+                                "ingredient_name": ingredient_name,
+                                "display_amount": ingredient_cost.get("display_amount"),
+                                "unit": unit,
+                                "pricing_status": ingredient_status,
+                                "lowest_price": ingredient_cost.get("lowest_price"),
+                                "lowest_market": ingredient_cost.get("lowest_market"),
+                                "product_title": ingredient_cost.get("product_title"),
+                            }
+                        )
 
     return {
         "total_days": total_days,
@@ -121,6 +135,30 @@ def analyze_monthly_plan_shopping_coverage(response: dict) -> dict:
         else 0,
         "menu_pricing_status_count": dict(menu_pricing_status_count),
         "ingredient_pricing_status_count": dict(ingredient_pricing_status_count),
+        "top_issue_units": [
+            {"unit": unit, "count": count}
+            for unit, count in issue_unit_count.most_common(20)
+        ],
+        "top_issue_ingredient_names": [
+            {"ingredient_name": name, "count": count}
+            for name, count in issue_ingredient_name_count.most_common(20)
+        ],
+        "top_issue_status_units": [
+            {
+                "pricing_status": status,
+                "unit": unit,
+                "count": count,
+            }
+            for (status, unit), count in issue_status_unit_count.most_common(20)
+        ],
+        "top_issue_status_ingredients": [
+            {
+                "pricing_status": status,
+                "ingredient_name": name,
+                "count": count,
+            }
+            for (status, name), count in issue_status_ingredient_count.most_common(20)
+        ],
         "empty_cost_examples": empty_cost_examples,
         "issue_examples": issue_examples,
     }
