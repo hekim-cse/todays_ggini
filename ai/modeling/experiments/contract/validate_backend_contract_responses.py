@@ -168,6 +168,59 @@ def validate_monthly_success_response(response_data: dict[str, Any]) -> None:
         "monthly success response monthly_plan.optimizer",
     )
 
+    require_fields(
+        monthly_plan,
+        ["days"],
+        "monthly success response monthly_plan",
+    )
+
+    days = monthly_plan["days"]
+
+    if not isinstance(days, list) or not days:
+        raise ValueError("monthly_plan.days는 비어 있지 않은 list여야 합니다.")
+
+    for day_index, day in enumerate(days):
+        if not isinstance(day, dict):
+            raise ValueError(f"monthly_plan.days[{day_index}]는 dict여야 합니다.")
+
+        require_fields(
+            day,
+            ["day", "meals"],
+            f"monthly_plan.days[{day_index}]",
+        )
+
+        meals = day["meals"]
+
+        if not isinstance(meals, list) or not meals:
+            raise ValueError(
+                f"monthly_plan.days[{day_index}].meals는 비어 있지 않은 list여야 합니다."
+            )
+
+        for meal_index, meal in enumerate(meals):
+            if not isinstance(meal, dict):
+                raise ValueError(
+                    f"monthly_plan.days[{day_index}].meals[{meal_index}]는 dict여야 합니다."
+                )
+
+            require_fields(
+                meal,
+                ["meal_order", "selected_menu"],
+                f"monthly_plan.days[{day_index}].meals[{meal_index}]",
+            )
+
+            selected_menu = meal["selected_menu"]
+
+            if not isinstance(selected_menu, dict):
+                raise ValueError(
+                    f"monthly_plan.days[{day_index}].meals[{meal_index}].selected_menu은 dict여야 합니다."
+                )
+
+            require_fields(
+                selected_menu,
+                ["menu_id", "name", "estimated_cost", "calories"],
+                f"monthly_plan.days[{day_index}].meals[{meal_index}].selected_menu",
+            )
+
 def validate_monthly_failure_response(response_data: dict[str, Any]) -> None:
     require_fields(
         response_data,
