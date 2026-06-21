@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
@@ -160,10 +162,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // 네이버 콘솔 Callback URL 에도 이 주소를 등록해야 한다.
       final redirectUri =
           kIsWeb ? '${Uri.base.origin}/auth.html' : 'todaysggini://auth';
+      // 네이버 authorize 는 state(CSRF 방지)가 필수다. 빠지면 네이버가 에러/404를 띄운다.
+      final stateValue =
+          '${DateTime.now().microsecondsSinceEpoch}${Random().nextInt(0x7FFFFFFF)}';
       final authUrl = Uri.https('nid.naver.com', '/oauth2.0/authorize', {
         'client_id': Env.naverClientId,
         'response_type': 'code',
         'redirect_uri': redirectUri,
+        'state': stateValue,
       }).toString();
       final result = await FlutterWebAuth2.authenticate(
         url: authUrl,
@@ -171,7 +177,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
         // 처리), native 에선 todaysggini:// 스킴 매칭에 쓰인다.
         callbackUrlScheme: 'todaysggini',
       );
-      final code = Uri.parse(result).queryParameters['code'] ?? '';
+      final returned = Uri.parse(result).queryParameters;
+      if (returned['state'] != stateValue) {
+        throw Exception('네이버 인증 state 불일치(보안)');
+      }
+      final code = returned['code'] ?? '';
       final user = await _repository.loginWithNaver(code, redirectUri);
       await _saveTokens(user);
       if (!mounted) return;
