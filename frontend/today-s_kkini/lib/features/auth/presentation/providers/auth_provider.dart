@@ -165,11 +165,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // 네이버 authorize 는 state(CSRF 방지)가 필수다. 빠지면 네이버가 에러/404를 띄운다.
       final stateValue =
           '${DateTime.now().microsecondsSinceEpoch}${Random().nextInt(0x7FFFFFFF)}';
+      // auth_type=reauthenticate: 네이버 세션이 살아 있어도 항상 로그인 화면을
+      // 띄워 다른 네이버 계정으로 전환할 수 있게 한다(자동 SSO 고정 방지).
+      // 카카오의 prompts:[selectAccount] 와 같은 역할.
       final authUrl = Uri.https('nid.naver.com', '/oauth2.0/authorize', {
         'client_id': Env.naverClientId,
         'response_type': 'code',
         'redirect_uri': redirectUri,
         'state': stateValue,
+        'auth_type': 'reauthenticate',
       }).toString();
       final result = await FlutterWebAuth2.authenticate(
         url: authUrl,
