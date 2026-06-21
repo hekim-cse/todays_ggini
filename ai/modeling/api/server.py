@@ -1,9 +1,19 @@
 import logging
 import os
+from time import perf_counter
 from typing import Any, Literal
 
-from fastapi import FastAPI, Header, HTTPException, status
+from fastapi import FastAPI, Header, HTTPException, Request, Response, status
+from prometheus_client import CONTENT_TYPE_LATEST
 from pydantic import BaseModel, ConfigDict, Field
+
+from api.metrics import (
+    HTTP_REQUEST_DURATION_SECONDS,
+    HTTP_REQUESTS_IN_PROGRESS,
+    HTTP_REQUESTS_TOTAL,
+    normalize_metrics_path,
+    render_metrics,
+)
 
 from services.modeling_service import (
     create_meal_style_candidates,
@@ -34,6 +44,53 @@ app = FastAPI(
     redoc_url=redoc_url,
     openapi_url=openapi_url,
 )
+
+
+@app.middleware("http")
+async def observe_http_request(request: Request, call_next):
+    """
+    모델링 API의 요청 수, 처리 시간, 진행 중 요청 수를 기록한다.
+
+    경로 label은 metrics 모듈에서 제한된 값으로 정규화하여
+    임의 URL 요청에 따른 Prometheus 시계열 증가를 방지한다.
+    """
+
+    path_label = normalize_metrics_path(request.url.path)
+
+    if path_label is None:
+        return await call_next(request)
+
+    method = request.method
+    status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+    started_at = perf_counter()
+
+    HTTP_REQUESTS_IN_PROGRESS.labels(
+        method=method,
+        path=path_label,
+    ).inc()
+
+    try:
+        response = await call_next(request)
+        status_code = response.status_code
+        return response
+    finally:
+        duration_seconds = perf_counter() - started_at
+
+        HTTP_REQUESTS_IN_PROGRESS.labels(
+            method=method,
+            path=path_label,
+        ).dec()
+
+        HTTP_REQUESTS_TOTAL.labels(
+            method=method,
+            path=path_label,
+            status_code=str(status_code),
+        ).inc()
+
+        HTTP_REQUEST_DURATION_SECONDS.labels(
+            method=method,
+            path=path_label,
+        ).observe(duration_seconds)
 
 
 class MealStyleCandidatesRequest(UserProfileRequest):
@@ -149,6 +206,28 @@ def get_rag_error_status_code(error: RagRequestError) -> int:
         return status.HTTP_504_GATEWAY_TIMEOUT
 
     return status.HTTP_502_BAD_GATEWAY
+
+
+@app.get(
+    "/metrics",
+    include_in_schema=False,
+)
+def metrics(
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+) -> Response:
+    """
+    Prometheus가 수집할 모델링 API 운영 지표를 반환한다.
+
+    운영 환경에서는 기존 Modeling API Key 인증을 재사용하여
+    외부에 운영 지표가 무인증으로 노출되지 않도록 한다.
+    """
+
+    verify_api_key(x_api_key)
+
+    return Response(
+        content=render_metrics(),
+        media_type=CONTENT_TYPE_LATEST,
+    )
 
 
 @app.get("/health")
