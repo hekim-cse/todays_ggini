@@ -41,8 +41,9 @@ jobs:
 
       - name: Verify RAG error status mapping
         run: |
-          PYTHONPATH=ai/modeling \
-          python ai/modeling/experiments/contract/test_modeling_api_rag_error_status.py
+          docker run --rm \
+            todays-ggini-modeling:ci \
+            python ai/modeling/experiments/contract/test_modeling_api_rag_error_status.py
 
       - name: Run Modeling container
         run: |
