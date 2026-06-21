@@ -98,11 +98,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// 토큰 읽기 — 웹은 SharedPreferences, 모바일은 SecureStorage.
+  /// (auth_interceptor._readToken / _saveTokens 의 저장 소스와 동일하게 맞춘다.
+  ///  웹은 secure storage 가 새로고침 후 안 남으므로 반드시 prefs 에서 읽어야 함)
+  Future<String?> _readToken(String key) async {
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString(key);
+    }
+    return _storage.read(key: key);
+  }
+
   /// 백엔드에서 최신 user 상태를 가져와 authState 갱신.
   Future<void> refreshUser() async {
-    final accessToken = await _storage.read(key: 'accessToken');
+    final accessToken = await _readToken('accessToken');
     if (accessToken == null || accessToken.isEmpty) return;
-    final refreshToken = await _storage.read(key: 'refreshToken');
+    final refreshToken = await _readToken('refreshToken');
     try {
       final user = await _repository.getCurrentUser(
         accessToken: accessToken,
