@@ -123,7 +123,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (await kakao.isKakaoTalkInstalled()) {
         token = await kakao.UserApi.instance.loginWithKakaoTalk();
       } else {
-        token = await kakao.UserApi.instance.loginWithKakaoAccount();
+        // selectAccount: 카카오 세션이 살아 있어도 항상 계정 선택 화면을 띄워
+        // 다른 카카오 계정으로 전환할 수 있게 한다(자동 SSO 고정 방지).
+        token = await kakao.UserApi.instance.loginWithKakaoAccount(
+          prompts: [kakao.Prompt.selectAccount],
+        );
       }
       final user = await _repository.loginWithKakao(token.accessToken);
       await _saveTokens(user);
