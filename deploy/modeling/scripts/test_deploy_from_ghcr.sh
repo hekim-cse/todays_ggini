@@ -17,7 +17,7 @@ PROJECT_DIR="${TEST_ROOT}/project"
 FAKE_BIN_DIR="${TEST_ROOT}/fake-bin"
 STATE_DIR="${TEST_ROOT}/state"
 
-NEW_IMAGE="ghcr.io/hekim-cse/todays-ggini-modeling:main-new1234"
+NEW_IMAGE="ghcr.io/hekim-cse/todays-ggini-modeling:main-deadbee"
 PREVIOUS_IMAGE="todays-ggini-modeling:manual"
 
 cleanup() {
@@ -265,6 +265,47 @@ test_rollback_after_health_failure() {
 }
 
 test_successful_deployment
+
+
+test_rejects_mutable_latest_tag() {
+    local latest_image
+    local output_file
+    local exit_code
+
+    latest_image=\
+"ghcr.io/hekim-cse/todays-ggini-modeling:latest"
+
+    output_file="$(
+        mktemp
+    )"
+
+    exit_code=0
+
+    TEST_NEW_IMAGE="${latest_image}" \
+    bash "${DEPLOY_SCRIPT}" "${latest_image}" \
+        >"${output_file}" \
+        2>&1 \
+        || exit_code="$?"
+
+    if [ "${exit_code}" -eq 0 ]; then
+        cat "${output_file}"
+        rm -f "${output_file}"
+        fail \
+            "latest 이미지 태그가 거부되지 않았습니다."
+    fi
+
+    assert_contains \
+        "${output_file}" \
+        "불변 main SHA 이미지 태그만 배포할 수 있습니다." \
+        "latest 이미지 태그 거부 오류를 출력해야 합니다."
+
+    rm -f "${output_file}"
+
+    printf '%s\n' \
+        "latest 이미지 태그 거부 테스트를 통과했습니다."
+}
+
 test_rollback_after_health_failure
+test_rejects_mutable_latest_tag
 
 printf '\n모든 deploy_from_ghcr 회귀 테스트를 통과했습니다.\n'

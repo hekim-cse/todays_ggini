@@ -145,6 +145,12 @@ if [ -z "${NEW_IMAGE}" ]; then
         "사용법: $0 ghcr.io/<owner>/<image>:<tag>"
 fi
 
+if [[ ! "${NEW_IMAGE}" =~ :main-[0-9a-f]{7,40}$ ]]; then
+    fail \
+        "불변 main SHA 이미지 태그만 배포할 수 있습니다. " \
+        "입력값: ${NEW_IMAGE}"
+fi
+
 # Compose 파일은 ps, logs, config 등 모든 명령에서
 # MODELING_IMAGE 값이 있어야 해석할 수 있다.
 # 기본값은 새 배포 이미지로 설정하고,
