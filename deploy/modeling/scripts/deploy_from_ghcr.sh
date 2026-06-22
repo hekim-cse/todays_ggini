@@ -257,9 +257,11 @@ DEPLOYED_IMAGE="$(
 )"
 
 if [ "${DEPLOYED_IMAGE}" != "${NEW_IMAGE}" ]; then
-    fail \
-        "실행 이미지가 배포 대상과 다릅니다. " \
+    log \
+        "ERROR: 실행 이미지가 배포 대상과 다릅니다. " \
         "expected=${NEW_IMAGE}, actual=${DEPLOYED_IMAGE}"
+
+    false
 fi
 
 log "배포 성공"
