@@ -12,6 +12,7 @@ from api.metrics import (
     HTTP_REQUESTS_IN_PROGRESS,
     HTTP_REQUESTS_TOTAL,
     normalize_metrics_path,
+    record_api_error,
     render_metrics,
 )
 
@@ -72,6 +73,20 @@ async def observe_http_request(request: Request, call_next):
     try:
         response = await call_next(request)
         status_code = response.status_code
+
+        if status_code == status.HTTP_401_UNAUTHORIZED:
+            record_api_error(
+                path=path_label,
+                error_type="authentication",
+                status_code=status_code,
+            )
+        elif status_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
+            record_api_error(
+                path=path_label,
+                error_type="validation",
+                status_code=status_code,
+            )
+
         return response
     finally:
         duration_seconds = perf_counter() - started_at
@@ -265,12 +280,33 @@ def create_meal_style_candidates_endpoint(
         return create_meal_style_candidates(payload)
     except RagRequestError as error:
         logger.exception("RAG request failed while creating meal style candidates.")
+
+        status_code = get_rag_error_status_code(error)
+        error_type = (
+            "rag_timeout"
+            if status_code == status.HTTP_504_GATEWAY_TIMEOUT
+            else "rag_upstream"
+        )
+
+        record_api_error(
+            path="/meal-style-candidates",
+            error_type=error_type,
+            status_code=status_code,
+        )
+
         raise HTTPException(
-            status_code=get_rag_error_status_code(error),
+            status_code=status_code,
             detail=build_error_detail(error, "External recommendation service error."),
         ) from error
     except Exception as error:
         logger.exception("Unexpected error while creating meal style candidates.")
+
+        record_api_error(
+            path="/meal-style-candidates",
+            error_type="unexpected",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=build_error_detail(error, "Internal server error."),
@@ -293,12 +329,33 @@ def create_monthly_plan_endpoint(
         return create_monthly_plan(payload)
     except RagRequestError as error:
         logger.exception("RAG request failed while creating monthly plan.")
+
+        status_code = get_rag_error_status_code(error)
+        error_type = (
+            "rag_timeout"
+            if status_code == status.HTTP_504_GATEWAY_TIMEOUT
+            else "rag_upstream"
+        )
+
+        record_api_error(
+            path="/monthly-plan",
+            error_type=error_type,
+            status_code=status_code,
+        )
+
         raise HTTPException(
-            status_code=get_rag_error_status_code(error),
+            status_code=status_code,
             detail=build_error_detail(error, "External recommendation service error."),
         ) from error
     except Exception as error:
         logger.exception("Unexpected error while creating monthly plan.")
+
+        record_api_error(
+            path="/monthly-plan",
+            error_type="unexpected",
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=build_error_detail(error, "Internal server error."),

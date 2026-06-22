@@ -47,6 +47,14 @@ HTTP_REQUESTS_IN_PROGRESS = Gauge(
 )
 
 
+API_ERRORS_TOTAL = Counter(
+    "modeling_api_errors_total",
+    "Total number of modeling API errors by semantic error type.",
+    labelnames=("path", "error_type", "status_code"),
+    registry=METRICS_REGISTRY,
+)
+
+
 MONITORED_PATHS = {
     "/meal-style-candidates",
     "/monthly-plan",
@@ -74,6 +82,25 @@ def normalize_metrics_path(path: str) -> str | None:
         return path
 
     return "/unmatched"
+
+
+def record_api_error(
+    path: str,
+    error_type: str,
+    status_code: int,
+) -> None:
+    """
+    제한된 오류 유형과 상태 코드를 Prometheus Counter에 기록한다.
+
+    실제 예외 메시지나 사용자 식별자는 label로 사용하지 않아
+    시계열 수 증가와 내부 정보 노출을 방지한다.
+    """
+
+    API_ERRORS_TOTAL.labels(
+        path=path,
+        error_type=error_type,
+        status_code=str(status_code),
+    ).inc()
 
 
 def render_metrics() -> bytes:
