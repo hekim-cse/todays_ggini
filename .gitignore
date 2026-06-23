@@ -28,5 +28,5 @@ ai/modeling/experiments/snapshots/
 .env.modeling
 
 # Modeling monitoring local secrets
-deploy/modeling/monitoring/secrets/*
-!deploy/modeling/monitoring/secrets/.gitkeep
+ai/modeling/deploy/monitoring/secrets/*
+!ai/modeling/deploy/monitoring/secrets/.gitkeep
