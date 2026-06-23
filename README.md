@@ -293,7 +293,7 @@ todays_ggini/
 |---|---|---|
 | 📱 Frontend | [`frontend/today-s_kkini/README.md`](frontend/today-s_kkini/README.md) | 화면 구성, 상태 관리 및 API 연동 |
 | ⚙️ Backend | [`backend/README.md`](backend/README.md) | 인증, 데이터베이스, 비동기 처리 및 API |
-| 🧠 Modeling | `modeling/README.md` | 추천, 최적화, 검증 및 Modeling API |
+| 🧠 Modeling | [`modeling/README.md`](modeling/README.md) | 추천, 최적화, 검증 및 Modeling API |
 | 🕸️ RAG / Data | [`rag/readme.md`](rag/readme.md) | 데이터 수집, Neo4j, GraphRAG 및 후보 검색 |
 
 > 루트 README는 오늘의 끼니 서비스의 전체 구조와 사용자 흐름을 설명하며, 파트별 상세 구현은 각 디렉터리의 README에서 관리합니다.
