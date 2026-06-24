@@ -1,30 +1,39 @@
 # 📅 Monthly Meal Plan & Diversity Control
 
-Recommendation 또는 OR-Tools Optimizer가 제공한 메뉴 후보를 실제 기간별 식단표로 구성하는 모듈입니다.
+Recommendation 결과 또는 OR-Tools Optimizer 결과를 실제 기간별 식단표로 구성하고, 대표 메뉴와 대체 메뉴의 다양성을 관리하는 모듈입니다.
 
-Plan 모듈은 메뉴를 단순히 순서대로 배치하지 않습니다. MMR 기반 재랭킹, 최근 노출 메뉴 유사도, 사용 횟수, 선택 Style 우선순위와 대체 메뉴 다양성을 함께 고려합니다. 식단 구성 후에는 비용·영양·반복·추천 점수 요약을 계산하고, Style Validation과 Back/Front 전달용 Payload를 생성합니다.
+Plan 모듈은 실행 경로에 따라 서로 다른 역할을 수행합니다. 비-OR-Tools 경로에서는 MMR과 Style Priority를 사용해 대표 메뉴와 대체 메뉴를 선택합니다. OR-Tools 경로에서는 Solver가 확정한 대표 메뉴를 유지하면서 MMR 기반으로 대체 메뉴만 구성합니다.
+
+식단 구성 후에는 비용·영양·반복·추천 점수 요약을 계산하고, Style Validation과 Back/Front 전달용 Payload를 생성합니다.
 
 ```text
+비-OR-Tools 경로
+
 Recommendation 후보
-        ↓
-MMR 기반 재랭킹
-        ↓
-Style Priority 적용
-        ↓
-대표 메뉴 및 대체 메뉴 선택
-        ↓
-최근 노출 메뉴와 사용 횟수 갱신
-        ↓
-Day / Meal 구조 생성
-        ↓
-Plan Summary 계산
-        ↓
-Style Validation
-        ↓
-Back/Front Payload 경량화
+→ MMR 기반 재랭킹
+→ Style Priority 적용
+→ selected_menu 선택
+→ MMR 기반 alternative_menus 선택
+→ 최근 노출 메뉴와 사용 횟수 갱신
+→ Day / Meal 구조 생성
+→ Plan Summary 계산
+→ Style Validation
+→ Back/Front Payload 경량화
 ```
 
-OR-Tools 사용 경로에서는 Solver가 대표 메뉴를 먼저 확정하고, Plan 모듈은 Day 구조와 대체 메뉴를 후처리합니다.
+```text
+OR-Tools 경로
+
+Recommendation 후보
+→ OR-Tools가 selected_menu 확정
+→ selected_menu 유지
+→ MMR 기반 alternative_menus 선택
+→ 최근 노출 메뉴와 사용 횟수 갱신
+→ Day / Meal 구조 생성
+→ Plan Summary 계산
+→ Style Validation
+→ Back/Front Payload 경량화
+```
 
 <br>
 
@@ -71,9 +80,10 @@ Plan 모듈의 주요 역할은 다음과 같습니다.
 ### 메뉴 배치
 
 - 기간과 하루 식사 수에 따라 Day·Meal 구조 생성
-- MMR 점수 기반 후보 재정렬
-- 선택 Style에 적합한 메뉴 우선 배치
-- 최근 노출 메뉴와 유사한 메뉴 반복 억제
+- 비-OR-Tools 경로에서 MMR과 Style Priority를 이용해 대표 메뉴 선택
+- OR-Tools 경로에서는 Solver가 확정한 대표 메뉴 유지
+- 각 대표 메뉴에 대해 MMR 기반 대체 메뉴 구성
+- 최근 노출 메뉴와 유사한 메뉴의 반복 억제
 
 ### 대체 메뉴 제공
 
@@ -107,7 +117,7 @@ Plan 모듈의 주요 역할은 다음과 같습니다.
 
 ## 2. 전체 처리 흐름
 
-### 일반 Plan 경로
+### 비-OR-Tools Plan 경로
 
 ```text
 Recommendation 결과
@@ -122,9 +132,11 @@ MMR 재랭킹
         ↓
 Style Priority 필터·정렬
         ↓
-대표 메뉴 선택
+selected_menu 선택
         ↓
 select_alternative_menus()
+        ↓
+alternative_menus 선택
         ↓
 대표·대체 메뉴 사용 횟수 갱신
         ↓
@@ -140,13 +152,17 @@ Recommendation 결과
         ↓
 OR-Tools Optimizer
         ↓
-대표 메뉴 selected_items 확정
+식사 슬롯별 selected_menu 확정
         ↓
 build_ortools_monthly_plan()
         ↓
+selected_menu 유지
+        ↓
 Day·Meal 구조로 변환
         ↓
-대표 메뉴별 대체 메뉴 MMR 선택
+대표 메뉴별 MMR alternative_menus 선택
+        ↓
+대표·대체 메뉴 사용 횟수 갱신
         ↓
 일자별 비용·칼로리 계산
         ↓
@@ -197,15 +213,15 @@ build_ortools_monthly_plan(
 ) -> dict
 ```
 
-대표 메뉴는 OR-Tools가 이미 선택한 상태입니다.
+대표 메뉴인 `selected_menu`는 OR-Tools가 이미 선택한 상태입니다.
 
-Plan Mapper는 다음 작업만 수행합니다.
+Plan Mapper는 Solver의 대표 메뉴를 다시 선택하거나 변경하지 않고 다음 작업만 수행합니다.
 
 ```text
 selected_items를 날짜별로 그룹화
 → meal_order 기준 정렬
-→ 대표 메뉴 Payload 생성
-→ 대체 메뉴 후처리
+→ selected_menu Payload 생성
+→ MMR 기반 alternative_menus 구성
 → Summary 계산
 ```
 
@@ -272,6 +288,18 @@ mmr_score = (
     - use_count_penalty
 )
 ```
+
+### 경로별 MMR 역할
+
+```text
+비-OR-Tools 경로
+→ selected_menu와 alternative_menus 선택에 사용
+
+OR-Tools 경로
+→ alternative_menus 선택에만 사용
+```
+
+OR-Tools 경로에서 MMR 점수는 Solver의 입력 후보를 선별하거나 Objective를 계산하는 데 사용되지 않습니다.
 
 <br>
 
@@ -643,6 +671,8 @@ modeling/services/plan/meal_selector_service.py
 
 MMR 재랭킹 이후 일부 Style에 대해 조건부 후보 우선 정책을 적용합니다.
 
+이 정책은 비-OR-Tools 경로의 대표 메뉴 선택에 사용됩니다. OR-Tools 경로의 대표 메뉴는 Solver가 이미 확정하므로 Plan 단계에서 Style Priority를 사용해 다시 선택하지 않습니다.
+
 ### 고단백
 
 다음 순서로 충분한 후보가 있는지 확인합니다.
@@ -702,6 +732,10 @@ mmr_score
 
 ## 15. 대표 메뉴 선택
 
+대표 메뉴 직접 선택은 비-OR-Tools 기간별 Plan 생성 경로에서만 수행합니다.
+
+OR-Tools 경로에서는 Solver가 확정한 `selected_menu`를 유지하며, 아래 함수를 통해 대표 메뉴를 다시 선택하지 않습니다.
+
 관련 함수:
 
 ```python
@@ -714,7 +748,7 @@ select_menu_for_meal(
 ) -> dict
 ```
 
-선택 순서:
+비-OR-Tools 경로의 선택 순서:
 
 ```text
 1. 전체 후보 MMR 재랭킹
@@ -760,6 +794,16 @@ select_alternative_menus(
     diversity_penalty_strength: float,
     alternative_count: int = 2,
 ) -> list[dict]
+```
+
+대체 메뉴 선택은 비-OR-Tools와 OR-Tools 경로 모두에서 사용합니다.
+
+```text
+비-OR-Tools 경로
+→ MMR이 선택한 selected_menu를 기준으로 대체 메뉴 구성
+
+OR-Tools 경로
+→ Solver가 확정한 selected_menu를 기준으로 대체 메뉴 구성
 ```
 
 대체 메뉴는 사용자 다양성 설정이 낮더라도 최소 `0.8`의 다양성 강도를 사용합니다.
@@ -844,9 +888,9 @@ required_meal_count
     ↓
 각 Meal Order
     ↓
-대표 메뉴 선택
+MMR + Style Priority로 selected_menu 선택
     ↓
-대체 메뉴 최대 2개 선택
+MMR 기반 alternative_menus 최대 2개 선택
     ↓
 사용 횟수와 노출 목록 갱신
 ```
@@ -892,6 +936,14 @@ selected_items
 
 ```text
 item.selected_menu
+```
+
+Plan Mapper는 `selected_menu`를 다시 선택하거나 교체하지 않습니다.
+
+```text
+OR-Tools selected_menu
+→ 그대로 유지
+→ selected_menu별 MMR alternative_menus 구성
 ```
 
 각 대표 메뉴에 대해서만 Plan의 MMR 대체 메뉴 선택을 실행합니다.
@@ -967,6 +1019,8 @@ amount = 0.5
 `menu_id`가 `None`이면 사용 횟수를 기록하지 않습니다.
 
 사용 횟수는 전체 기간 동안 누적되며, 다음 MMR 계산의 `use_count_penalty`에 사용됩니다.
+
+OR-Tools 경로에서는 누적 사용 횟수가 이후 대표 메뉴 선택에는 영향을 주지 않고, 대체 메뉴 MMR 계산에만 사용됩니다.
 
 <br>
 
@@ -1671,12 +1725,14 @@ python -m pytest modeling/tests -q
 ### 현재 확인된 전용 테스트
 
 ```text
-OR-Tools 대표 메뉴 유지
-대체 메뉴 두 개 생성
-대표 메뉴 ID 제외
+OR-Tools가 확정한 selected_menu 유지
+selected_menu와 동일한 메뉴 ID 제외
+MMR 기반 alternative_menus 최대 두 개 생성
 대체 메뉴 ID 중복 방지
 대체 후보가 없으면 빈 배열 유지
 ```
+
+이 테스트는 OR-Tools의 대표 메뉴 선택 자체가 아니라, `result_mapper.py`가 대표 메뉴를 유지하면서 대체 메뉴를 구성하는 후처리를 검증합니다.
 
 현재 MMR 수식, 메뉴 유사도 경계값, 기간별 Plan과 Summary를 직접 검증하는 전용 단위 테스트는 별도로 확인되지 않았습니다.
 
@@ -1721,15 +1777,15 @@ modeling/
 
 | 파일 | 역할 |
 |---|---|
-| `mmr_service.py` | MMR 점수 계산과 후보 재정렬 |
-| `menu_similarity_service.py` | 메뉴명·재료·재료군·카테고리 기반 유사도 |
-| `meal_selector_service.py` | Style Priority, 대표 메뉴와 대체 메뉴 선택 |
-| `period_plan_service.py` | 비-OR-Tools 기간별 식단 생성 |
-| `plan_summary_service.py` | 비용·영양·중복·평균 점수 계산 |
+| `mmr_service.py` | Final Score, 메뉴 유사도와 사용 횟수를 결합한 MMR 점수 계산 및 후보 재정렬 |
+| `menu_similarity_service.py` | 메뉴명·재료·재료군·카테고리 기반 유사도 계산 |
+| `meal_selector_service.py` | 비-OR-Tools 대표 메뉴 선택과 공통 대체 메뉴 선택 |
+| `period_plan_service.py` | MMR과 Style Priority 기반 비-OR-Tools 기간별 식단 생성 |
+| `plan_summary_service.py` | 대표 메뉴 기준 비용·영양·중복·평균 점수 계산 |
 | `meal_payload_service.py` | 내부 Plan Menu 공통 구조 생성 |
 | `plan_payload_service.py` | Back/Front 전달용 경량 Payload 생성 |
-| `plan_validation_service.py` | Style Validation과 보조 경고 |
-| `optimizer/ortools/result_mapper.py` | OR-Tools 결과를 Plan 구조로 변환 |
+| `plan_validation_service.py` | Style Validation과 보조 경고 생성 |
+| `optimizer/ortools/result_mapper.py` | OR-Tools의 `selected_menu`를 유지하고 MMR 대체 메뉴를 추가해 Plan 구조로 변환 |
 
 <br>
 
@@ -1756,15 +1812,28 @@ Profile 값이 없으면 기본 3일
 Solver가 확정한 대표 메뉴는 그대로 유지합니다.
 
 ```text
-OR-Tools selected_menu
-→ Plan에서 교체하지 않음
+OR-Tools
+→ selected_menu 결정
+
+Plan Mapper
+→ selected_menu 유지
+
+MMR
+→ alternative_menus 구성
 ```
 
-MMR은 대체 메뉴 후처리에만 사용됩니다.
+MMR 점수는 OR-Tools 입력 후보 선별이나 Solver Objective 계산에 사용되지 않습니다.
 
 ### 비-OR-Tools 대표 메뉴는 MMR로 선택
 
 비-OR-Tools 경로에서는 모든 Meal Slot마다 MMR과 Style Priority를 다시 계산합니다.
+
+```text
+Recommendation 후보
+→ MMR 재랭킹
+→ Style Priority
+→ selected_menu 선택
+```
 
 두 경로의 대표 메뉴 다양성 제어 방식은 구조적으로 다릅니다.
 
@@ -1788,7 +1857,9 @@ MMR은 대체 메뉴 후처리에만 사용됩니다.
 
 대체 메뉴는 대표 메뉴의 절반인 `0.5` 사용량으로 누적됩니다.
 
-대체 후보에 자주 노출된 메뉴는 향후 대표 메뉴 MMR 점수도 낮아질 수 있습니다.
+비-OR-Tools 경로에서는 대체 후보에 자주 노출된 메뉴가 향후 대표 메뉴 MMR 점수에도 영향을 줄 수 있습니다.
+
+OR-Tools 경로에서는 대표 메뉴를 Solver가 이미 결정하므로, 누적 사용 횟수는 이후 대체 메뉴 MMR 계산에만 영향을 줍니다.
 
 ### 동일 메뉴명 Prefix 목록은 수동 관리
 
@@ -1850,7 +1921,7 @@ MMR Score 공식
 Jaccard 유사도
 유사도 0.6 경계
 Recent Day Window
-대표 메뉴 Fallback
+비-OR-Tools 대표 메뉴 Fallback
 대체 메뉴 2차 완화
 사용 횟수 1 / 0.5 반영
 Summary 중복 계산
