@@ -2,7 +2,7 @@
 
 오늘의 끼니 Modeling 영역의 서비스 계층과 전체 데이터 흐름을 설명하는 인덱스 문서입니다.
 
-각 하위 Service는 사용자 입력 가공, RAG 후보 수집, 추천 점수 계산, 식단 Style 적용, OR-Tools 최적화와 월간 Plan 생성처럼 하나의 책임을 담당합니다.
+각 하위 Service는 사용자 입력 가공, RAG 후보 수집, 추천 점수 계산, 식단 Style 적용, OR-Tools 기반 월간 대표 메뉴 최적화, MMR 기반 대체 메뉴 구성과 월간 Plan 생성처럼 하나의 책임을 담당합니다.
 
 `modeling_service.py`는 이 Service들을 요청 목적에 맞게 조합하는 Orchestrator 역할을 합니다.
 
@@ -17,11 +17,15 @@ RAG Candidate Retrieval
     ↓
 Recommendation Scoring
     ↓
-Style Selection
+Style Selection / Style Profile 적용
     ↓
-Optimizer
+Optimizer Candidate Builder
     ↓
-Plan / Validation / Payload
+OR-Tools selected_menu 최적화
+    ↓
+Plan Mapping / MMR alternative_menus 구성
+    ↓
+Validation / Payload
     ↓
 Backend Response
 ```
@@ -71,8 +75,9 @@ RAG 응답 Mapping 및 품질 검증
 메뉴 적합도 점수 계산
 식단 Style 후보 생성
 선택 Style의 가중치 적용
-OR-Tools 월간 조합 최적화
-MMR 기반 다양성 후처리
+Optimizer 후보 집합 구성
+OR-Tools 월간 selected_menu 조합 최적화
+MMR 기반 alternative_menus 다양성 후처리
 월간 Plan Summary 및 Validation
 Backend 전달용 Payload 생성
 ```
@@ -100,13 +105,15 @@ RAG Response Mapping
         ↓
 Recommendation Score 계산
         ↓
-Style 가중치 적용
+선택 Style 가중치 적용
         ↓
 Optimizer Input 생성
         ↓
 OR-Tools Solver
         ↓
-Plan Mapping 및 대체 메뉴
+식사 슬롯별 selected_menu 확정
+        ↓
+Plan Mapping 및 MMR alternative_menus 구성
         ↓
 Summary / Validation
         ↓
@@ -132,10 +139,10 @@ Style
 → 후보 Style 생성 및 선택 Style의 Weight 적용
 
 Optimizer
-→ 월간 Slot에 메뉴를 제약 기반으로 배치
+→ Recommendation 후보를 선별하고 월간 Slot의 selected_menu를 제약 기반으로 최적화
 
 Plan
-→ 식단 구조, 대체 메뉴, Summary와 응답 Payload 생성
+→ OR-Tools selected_menu를 유지하고 MMR alternative_menus, Summary와 응답 Payload 생성
 ```
 
 <br>
@@ -210,8 +217,8 @@ modeling/
 | `rag` | 후보 메뉴 요청, Mapping 및 품질 진단 |
 | `recommendation` | 메뉴 적합도 점수와 이유 생성 |
 | `style` | 식단 Style 후보 생성과 선택 Style 반영 |
-| `optimizer` | OR-Tools 기반 월간 조합 최적화 |
-| `plan` | MMR, 대체 메뉴, Summary, Validation, Payload |
+| `optimizer` | OR-Tools 기반 월간 `selected_menu` 조합 최적화 |
+| `plan` | MMR 대체 메뉴 구성, Summary, Validation 및 Payload 생성 |
 
 <br>
 
@@ -243,9 +250,12 @@ Profile 생성
 RAG 후보 요청
 후보 부족 진단 및 추가 요청
 Recommendation 실행
-Optimizer 실행
+선택 Style 적용
+Optimizer Input 생성
+OR-Tools Solver 실행
 Solver 재시도
-Plan 및 Validation 생성
+Plan Mapping 및 MMR 대체 메뉴 생성
+Validation 생성
 실패 응답 유형 결정
 최종 Payload 반환
 ```
@@ -520,6 +530,17 @@ Final Score 계산
 점수 순 정렬
 ```
 
+Recommendation은 이후 단계에서 사용할 메뉴별 `final_score`와 설명 정보를 생성합니다.
+
+```text
+월간 OR-Tools 경로
+→ OR-Tools가 final_score를 포함한 후보 정보를 사용해 selected_menu 최적화
+→ MMR이 final_score와 유사도 정보를 사용해 alternative_menus 구성
+
+비-OR-Tools 경로
+→ MMR과 Style Priority가 final_score를 사용해 selected_menu와 alternative_menus 구성
+```
+
 대표 함수:
 
 ```text
@@ -593,6 +614,16 @@ selected_style_goal 기록
 focus_key 반영
 ```
 
+선택 Style이 적용된 월간 경로는 다음과 같습니다.
+
+```text
+선택 Style을 Monthly Profile에 적용
+→ Recommendation Score 계산
+→ OR-Tools selected_menu 최적화
+→ MMR alternative_menus 구성
+→ Style Validation
+```
+
 상세 문서:
 
 ```text
@@ -613,11 +644,12 @@ modeling/services/optimizer/
 
 ```text
 Recommendation 후보
-→ Optimizer 후보 선택
+→ Final Score 상위 후보 선별
+→ 저비용 후보 보충
 → Optimizer Config 생성
 → Slot·Menu Input 생성
 → OR-Tools Solver 실행
-→ Solver 결과 Mapping
+→ 식사 슬롯별 selected_menu 확정
 ```
 
 ### Input Builder
@@ -632,12 +664,16 @@ build_optimizer_input(...)
 
 ```text
 고유 메뉴 병합
+Final Score 상위 후보 선별
+예산 충족에 필요한 저비용 후보 추가
 Optimizer 후보 수 제한
 난이도 Score 원천 통일
 환경 변수 Tuning Override
 월 예산과 반복 상한 설정
 Objective Weight 구성
 ```
+
+MMR 점수는 Optimizer 후보 선별이나 OR-Tools Objective 계산에 사용하지 않습니다.
 
 ### OR-Tools Solver
 
@@ -667,6 +703,8 @@ Recommendation Score
 + Difficulty Bonus
 - Nutrition Outlier Penalty
 ```
+
+OR-Tools는 전체 월간 식사 슬롯의 `selected_menu`를 확정합니다.
 
 ### 실패 Policy
 
@@ -705,14 +743,27 @@ modeling/services/plan/
 
 Plan Service는 선택된 메뉴들을 사용자가 사용할 수 있는 기간별 식단 구조로 변환합니다.
 
+Plan Service에는 두 가지 실행 경로가 있습니다.
+
+```text
+OR-Tools 경로
+→ Solver가 selected_menu를 먼저 확정
+→ Plan에서 selected_menu 유지
+→ MMR로 alternative_menus 구성
+
+비-OR-Tools 경로
+→ MMR과 Style Priority로 selected_menu 선택
+→ MMR로 alternative_menus 구성
+```
+
 주요 처리:
 
 ```text
 MMR 재랭킹
 메뉴 유사도 계산
 최근 노출 메뉴 관리
-대표 메뉴 선택
-대체 메뉴 선택
+비-OR-Tools 대표 메뉴 선택
+공통 대체 메뉴 선택
 Day / Meal 구조 생성
 비용·영양 Summary 계산
 Style Validation
@@ -735,12 +786,13 @@ build_modeling_to_back_monthly_response()
 
 ### OR-Tools 경로
 
-대표 메뉴는 Solver가 결정하고 Plan에서는 대체 메뉴와 응답 구조를 추가합니다.
+대표 메뉴는 Solver가 결정하고 Plan에서는 대표 메뉴를 유지하면서 대체 메뉴와 응답 구조를 추가합니다.
 
 ```text
 OR-Tools selected_items
 → build_ortools_monthly_plan()
-→ 대체 메뉴
+→ selected_menu 유지
+→ MMR alternative_menus 구성
 → Summary
 → Validation
 ```
@@ -751,8 +803,8 @@ OR-Tools selected_items
 Recommendation 후보
 → MMR
 → Style Priority
-→ 대표 메뉴
-→ 대체 메뉴
+→ selected_menu
+→ MMR alternative_menus
 → Period Plan
 ```
 
@@ -857,6 +909,8 @@ RAG 후보 요청
         ↓
 Recommendation 실행
         ↓
+Final Score 상위 후보와 저비용 후보 구성
+        ↓
 Optimizer Input 생성
         ↓
 예산·후보 실현 가능성 사전 진단
@@ -865,7 +919,11 @@ OR-Tools 실행
         ↓
 필요 시 후보 확장 및 Retry
         ↓
+식사 슬롯별 selected_menu 확정
+        ↓
 OR-Tools 결과를 Plan으로 Mapping
+        ↓
+MMR 기반 alternative_menus 구성
         ↓
 Plan Summary
         ↓
@@ -880,10 +938,23 @@ Backend Payload 변환
 
 ```text
 recommend_menus()
+build_optimizer_input()
 solve_monthly_plan_with_ortools()
 build_ortools_monthly_plan()
+select_alternative_menus()
 build_style_validation()
 build_modeling_to_back_monthly_response()
+```
+
+월간 OR-Tools 경로에서는 MMR이 대표 메뉴를 다시 선택하지 않습니다.
+
+```text
+OR-Tools
+→ selected_menu 확정
+
+MMR
+→ selected_menu 유지
+→ alternative_menus 구성
 ```
 
 <br>
@@ -1045,12 +1116,26 @@ Final Score
 
 ```text
 slots
-candidate_menus
+menus
 monthly_budget
 max_repeat_per_menu
 solver_time_limit_seconds
 objective weights
 ```
+
+Optimizer Input의 `menus`는 전체 Recommendation 후보가 아니라 Final Score 상위 후보와 저비용 후보를 병합해 구성할 수 있습니다.
+
+### Optimizer Result
+
+```text
+success
+solver_status
+selected_items
+objective_value
+optimizer_config
+```
+
+`selected_items`에는 OR-Tools가 확정한 식사 슬롯별 `selected_menu`가 포함됩니다.
 
 ### Monthly Plan
 
@@ -1063,6 +1148,13 @@ fallback
 summary
 style_validation
 days
+```
+
+각 Meal은 다음 구조를 가질 수 있습니다.
+
+```text
+selected_menu
+alternative_menus
 ```
 
 ### Backend Response
@@ -1105,13 +1197,18 @@ Recommendation
 → Profile Weight와 RAG Mapping 결과 사용
 
 Style
-→ Recommendation과 Plan Sample 생성 사용
+→ Recommendation과 비-OR-Tools Sample Plan 생성 사용
 
 Optimizer
-→ Recommendation 결과 사용
+→ Recommendation의 final_score와 메뉴 정보를 사용
 
 Plan
-→ Recommendation 또는 Optimizer 결과 사용
+→ 비-OR-Tools 경로에서는 Recommendation 결과 사용
+→ OR-Tools 경로에서는 Optimizer selected_items와 Recommendation 후보 사용
+
+MMR
+→ 비-OR-Tools 경로에서는 대표 메뉴와 대체 메뉴 선택
+→ OR-Tools 경로에서는 대체 메뉴 선택에만 사용
 
 Validation
 → Plan Summary와 후보 Diagnostics 사용
@@ -1198,6 +1295,9 @@ python -m py_compile \
   modeling/services/style/meal_style_service.py \
   modeling/services/optimizer/optimizer_input_builder.py \
   modeling/services/optimizer/ortools/monthly_plan_optimizer.py \
+  modeling/services/optimizer/ortools/result_mapper.py \
+  modeling/services/plan/mmr_service.py \
+  modeling/services/plan/meal_selector_service.py \
   modeling/services/plan/period_plan_service.py \
   modeling/services/plan/plan_payload_service.py
 ```
@@ -1350,6 +1450,22 @@ grep -RIn \
   | grep -v README
 ```
 
+### OR-Tools 경로와 비-OR-Tools 경로를 혼동하지 않음
+
+두 경로는 대표 메뉴를 결정하는 방식이 다릅니다.
+
+```text
+OR-Tools 월간 경로
+→ OR-Tools가 selected_menu 결정
+→ MMR은 alternative_menus만 구성
+
+비-OR-Tools 기간별 경로
+→ MMR과 Style Priority가 selected_menu 결정
+→ MMR이 alternative_menus 구성
+```
+
+따라서 MMR이 항상 OR-Tools 이전에 대표 메뉴 후보를 재랭킹한다고 설명하면 실제 월간 서비스 흐름과 달라집니다.
+
 ### Data Service 문서 없음
 
 `services/data`에는 별도 README가 없습니다.
@@ -1422,10 +1538,10 @@ services -X→ experiments
   Style 후보 생성, 선택 Style 적용과 Validation
 
 - [`optimizer/README.md`](optimizer/README.md)  
-  OR-Tools Input, Constraint, Objective, Retry와 실패 Policy
+  OR-Tools 후보 구성, 월간 `selected_menu` 최적화, Constraint, Objective, Retry와 실패 Policy
 
 - [`plan/README.md`](plan/README.md)  
-  MMR, 메뉴 유사도, 대체 메뉴, Summary와 Payload
+  OR-Tools 결과 매핑, MMR 대체 메뉴 구성, 메뉴 유사도, Summary와 Payload
 
 ### 상위 문서
 

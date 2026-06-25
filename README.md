@@ -155,8 +155,8 @@ Modeling
   ├── Profile Builder
   ├── RAG Candidate Request & Fallback
   ├── Scoring Engine
-  ├── MMR Re-ranking
   ├── Monthly Plan Optimizer
+  ├── MMR Alternative Re-ranking
   └── Plan Quality Validator
           ↕ JSON API
 
@@ -172,7 +172,7 @@ RAG
 |---|---|
 | 📱 Frontend | 사용자 입력, 온보딩, 식단 캘린더, 메뉴 상세 및 장보기 화면 제공 |
 | ⚙️ Backend | 인증, 요청 검증, 비동기 작업 처리, 캐싱, 데이터 저장 및 파트 간 API 연동 |
-| 🧠 Modeling | 사용자 프로필 생성, 후보 메뉴 평가, 재랭킹, 월간 식단 최적화 및 결과 검증 |
+| 🧠 Modeling | 사용자 프로필 생성, 후보 메뉴 평가, OR-Tools 기반 월간 대표 식단 최적화, MMR 기반 대안 메뉴 다양화 및 결과 검증 |
 | 🕸️ RAG | 레시피·재료·영양 관계 데이터를 기반으로 후보 메뉴를 검색하고 Modeling에 제공 |
 | 🚀 Infrastructure | Docker 기반 실행 환경, AWS EC2 배포, Nginx HTTPS 연결 및 Prometheus·Grafana 모니터링 |
 
@@ -221,11 +221,13 @@ RAG
 | 기술 | 사용 목적 |
 |---|---|
 | Python 3.11 | 추천 및 식단 최적화 엔진 |
-| FastAPI | 독립 Modeling API 제공 |
-| Pydantic | 입력·출력 스키마 검증 |
-| OR-Tools | 사용자 조건 기반 월간 식단 최적화 |
-| Weighted Scoring | 예산·영양·선호도·난이도 반영 |
-| MMR | 유사 메뉴 반복 완화 및 다양성 제어 |
+| FastAPI | Backend와 분리된 독립 Modeling API 제공 |
+| Pydantic | 사용자 입력과 Modeling API 요청·응답 스키마 검증 |
+| Weighted Scoring | 예산·영양·선호도·조리 난이도·다양성을 반영한 메뉴별 Final Score 계산 |
+| OR-Tools | 예산·필수 끼니·반복 조건을 고려한 월간 대표 메뉴 최적화 |
+| MMR | OR-Tools가 확정한 대표 메뉴별 대안 메뉴 재정렬 및 다양성 제어 |
+| Snapshot / Replay | 동일 입력을 기준으로 정책 변경 전후의 품질과 회귀 여부 검증 |
+| Prometheus | Modeling API 요청 수, 오류 및 응답 시간 지표 수집 |
 
 ### 🕸️ RAG / Data
 
@@ -293,7 +295,7 @@ todays_ggini/
 |---|---|---|
 | 📱 Frontend | [`frontend/today-s_kkini/README.md`](frontend/today-s_kkini/README.md) | 화면 구성, 상태 관리 및 API 연동 |
 | ⚙️ Backend | [`backend/README.md`](backend/README.md) | 인증, 데이터베이스, 비동기 처리 및 API |
-| 🧠 Modeling | [`modeling/README.md`](modeling/README.md) | 추천, 최적화, 검증 및 Modeling API |
+| 🧠 Modeling | [`modeling/README.md`](modeling/README.md) | 프로필 생성, 후보 평가, OR-Tools 최적화, MMR 대안 메뉴 구성, 품질 검증 및 Modeling API |
 | 🕸️ RAG / Data | [`rag/readme.md`](rag/readme.md) | 데이터 수집, Neo4j, GraphRAG 및 후보 검색 |
 
 > 루트 README는 오늘의 끼니 서비스의 전체 구조와 사용자 흐름을 설명하며, 파트별 상세 구현은 각 디렉터리의 README에서 관리합니다.
@@ -442,8 +444,13 @@ Frontend
 → Backend 식단 생성 요청
 → Celery 작업 등록 및 job_id 반환
 → Modeling API 호출
-→ RAG 메뉴 후보 검색
-→ 월간 식단 최적화
+→ 사용자 프로필 생성
+→ RAG 메뉴 후보 요청 및 Fallback
+→ Soft Scoring 및 Final Score 계산
+→ Final Score 상위 후보와 저비용 후보 병합
+→ OR-Tools 기반 월간 대표 메뉴 최적화
+→ MMR 기반 대안 메뉴 재정렬
+→ Plan Quality Validator 검증
 → PostgreSQL 저장
 → Frontend Polling
 → 생성된 식단 표시
